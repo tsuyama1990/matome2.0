@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Generator
-from pathlib import Path
 from typing import Any
 
 
@@ -8,21 +7,21 @@ class IFileStorage(ABC):
     """Abstract interface for raw file storage operations."""
 
     @abstractmethod
-    def exists(self, path: Path) -> bool:
+    def exists(self, path: str) -> bool:
         """Checks if a file exists.
 
         Args:
-            path (Path): Path to check.
+            path (str): Path to check.
         Returns:
             bool: True if it exists, False otherwise.
         """
 
     @abstractmethod
-    def get_metadata(self, path: Path) -> dict[str, Any]:
+    def get_metadata(self, path: str) -> dict[str, Any]:
         """Gets metadata for a file.
 
         Args:
-            path (Path): Path to the file.
+            path (str): Path to the file.
         Returns:
             dict: File metadata.
         """
@@ -33,7 +32,7 @@ class IFileStorage(ABC):
         filename: str,
         stream: AsyncGenerator[bytes, None],
         max_size_bytes: int = 10 * 1024 * 1024,
-    ) -> Path:
+    ) -> str:
         """Saves a stream of bytes to a file, returning its path.
 
         Args:
@@ -48,11 +47,11 @@ class IFileStorage(ABC):
         """
 
     @abstractmethod
-    def read_file_stream(self, path: Path) -> Generator[bytes, None, None]:
+    def read_file_stream(self, path: str) -> Generator[bytes, None, None]:
         """Reads a file yielding bytes as a stream.
 
         Args:
-            path (Path): The path to the file.
+            path (str): The path to the file.
 
         Raises:
             FileNotFoundError: If the requested path does not exist.
@@ -60,11 +59,11 @@ class IFileStorage(ABC):
         """
 
     @abstractmethod
-    def read_file_stream_async(self, path: Path) -> AsyncGenerator[str, None]:
+    def read_file_stream_async(self, path: str) -> AsyncGenerator[str, None]:
         """Reads a file asynchronously, yielding safely decoded text chunks.
 
         Args:
-            path (Path): The path to the file.
+            path (str): The path to the file.
 
         Raises:
             FileNotFoundError: If the requested path does not exist.

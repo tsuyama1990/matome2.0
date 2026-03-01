@@ -10,14 +10,12 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> str:
         """Generates text from the LLM provider.
 
         Args:
             prompt (str): The main user prompt to pass to the model.
             system_prompt (str): System prompt to configure the model's behavior.
-            timeout (float): The maximum time to wait for the LLM API to respond.
 
         Raises:
             TimeoutError: If the underlying API call exceeds the timeout period. Implementations
@@ -30,14 +28,12 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> Any:
         """Generates text from the LLM provider as an asynchronous stream.
 
         Args:
             prompt (str): The main user prompt.
             system_prompt (str): System prompt context.
-            timeout (float): Timeout per chunk.
 
         Yields:
             str: Chunks of the generated response.
@@ -49,7 +45,6 @@ class ILLMProvider(ABC):
         prompt: str,
         schema: dict[str, Any],
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema.
 
@@ -57,7 +52,6 @@ class ILLMProvider(ABC):
             prompt (str): The input to base the extraction on.
             schema (dict): The target JSON schema representing the data shape.
             system_prompt (str): Additional context or formatting instructions.
-            timeout (float): The timeout per request for extraction.
 
         Raises:
             TimeoutError: If the call to the LLM times out. Implementations must wrap internal timeouts.

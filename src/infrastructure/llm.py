@@ -16,11 +16,13 @@ class OpenRouterClient(ILLMProvider):
         default_model: str,
         client: IHttpClient,
         base_url: str,
+        timeout: float = 30.0,
     ) -> None:
         self.api_key = api_key
         self.default_model = default_model
         self.client = client
         self.base_url = base_url
+        self.timeout = timeout
 
     async def generate_text(
         self,
@@ -46,7 +48,7 @@ class OpenRouterClient(ILLMProvider):
 
         try:
             response = await self.client.post(
-                self.base_url, headers=headers, json=payload, timeout=timeout
+                self.base_url, headers=headers, json=payload, timeout=self.timeout
             )
             response.raise_for_status()
             data = response.json()
@@ -62,11 +64,10 @@ class OpenRouterClient(ILLMProvider):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> Any:
         """Stream implementation."""
         # Simple non-streaming fallback for now if strict streams are unsupported or require special headers
-        text = await self.generate_text(prompt, system_prompt, timeout)
+        text = await self.generate_text(prompt, system_prompt)
         yield text
 
     async def extract_structured_data(

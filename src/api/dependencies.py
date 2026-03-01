@@ -41,6 +41,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         default_model=config_container.app_settings.provided.text_fast_model,
         client=http_client,
         base_url=config_container.app_settings.provided.openrouter_base_url,
+        timeout=config_container.app_settings.provided.llm_timeout,
     )
 
     @staticmethod

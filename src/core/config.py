@@ -18,6 +18,7 @@ class AppSettings(BaseSettings):
     openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1/chat/completions")
     pinecone_index_name: str = Field(default="matome-index")
     storage_base_dir: str = Field(default="./data")
+    llm_timeout: float = Field(default=30.0)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"

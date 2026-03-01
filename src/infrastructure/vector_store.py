@@ -7,7 +7,11 @@ from src.domain.ports.vector_store import IVectorStore
 class PineconeIndexProtocol(Protocol):
     def upsert(self, vectors: list[dict[str, Any]]) -> Any: ...
     def query(
-        self, vector: list[float], top_k: int, filter: dict[str, str] | None, include_metadata: bool  # noqa: A002
+        self,
+        vector: list[float],
+        top_k: int,
+        filter: dict[str, str] | None,  # noqa: A002
+        include_metadata: bool,
     ) -> Any: ...
 
 

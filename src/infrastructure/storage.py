@@ -26,11 +26,13 @@ class LocalStorage(IFileStorage):
         """Explicitly creates the base directory if it doesn't exist."""
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-    def exists(self, path: Path) -> bool:
-        return path.exists()
+    def exists(self, path: str) -> bool:
+        p = self.path_class(path)
+        return p.exists()
 
-    def get_metadata(self, path: Path) -> dict[str, Any]:
-        stat = path.stat()
+    def get_metadata(self, path: str) -> dict[str, Any]:
+        p = self.path_class(path)
+        stat = p.stat()
         return {"size": stat.st_size, "modified": stat.st_mtime}
 
     async def save_upload_stream(
@@ -38,7 +40,7 @@ class LocalStorage(IFileStorage):
         filename: str,
         stream: AsyncGenerator[bytes, None],
         max_size_bytes: int = 10 * 1024 * 1024,
-    ) -> Path:
+    ) -> str:
         """Saves a stream of bytes to a file, returning its path."""
         safe_path = self.base_dir / filename
         if not safe_path.resolve().is_relative_to(self.base_dir.resolve()):
@@ -67,29 +69,31 @@ class LocalStorage(IFileStorage):
         else:
             # Atomic rename after successfully downloading stream
             temp_path.replace(safe_path)
-            return Path(safe_path)  # Cast back to standard Path to satisfy return type
+            return str(safe_path)  # Return string to satisfy interface
 
-    def read_file_stream(self, path: Path) -> Generator[bytes, None, None]:
+    def read_file_stream(self, path: str) -> Generator[bytes, None, None]:
         """Reads a file yielding bytes as a stream."""
-        if not path.is_absolute() or not path.resolve().is_relative_to(self.base_dir.resolve()):
+        p = self.path_class(path)
+        if not p.is_absolute() or not p.resolve().is_relative_to(self.base_dir.resolve()):
             err_msg = "Path traversal attempt"
             raise ValueError(err_msg)
 
-        with path.open("rb") as f:
+        with p.open("rb") as f:
             while chunk := f.read(1024 * 1024):  # 1MB chunks
                 yield chunk
 
-    async def read_file_stream_async(self, path: Path) -> AsyncGenerator[str, None]:
+    async def read_file_stream_async(self, path: str) -> AsyncGenerator[str, None]:
         """Reads a file asynchronously, yielding safely decoded text chunks."""
         from anyio import Path as AnyioPath
 
-        anyio_p = AnyioPath(path)
+        p = self.path_class(path)
+        anyio_p = AnyioPath(p)
         anyio_base = AnyioPath(self.base_dir)
 
         try:
             resolved_p = await anyio_p.resolve()
             resolved_base = await anyio_base.resolve()
-            is_safe = path.is_absolute() and resolved_p.is_relative_to(resolved_base)
+            is_safe = p.is_absolute() and resolved_p.is_relative_to(resolved_base)
         except Exception:
             is_safe = False
 
