@@ -1,3 +1,5 @@
+from collections.abc import Awaitable, Callable
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -21,40 +23,32 @@ def create_app() -> FastAPI:
         description="The Core backend service for document ingestion and knowledge graph construction.",
         docs_url="/docs",
         redoc_url="/redoc",
-        openapi_url="/openapi.json"
+        openapi_url="/openapi.json",
     )
-    app.container = container # type: ignore[attr-defined]
+    app.container = container  # type: ignore[attr-defined]
 
     return app
 
+
 app = create_app()
 
-@app.exception_handler(MatomeAppError)
-async def matome_app_error_handler(request: Request, exc: MatomeAppError) -> JSONResponse:
-    return JSONResponse(
-        status_code=400,
-        content={"message": str(exc)},
-    )
 
-@app.exception_handler(NodeNotFoundError)
-async def node_not_found_error_handler(request: Request, exc: NodeNotFoundError) -> JSONResponse:
-    return JSONResponse(
-        status_code=404,
-        content={"message": str(exc)},
-    )
+def create_exception_handler(
+    status_code: int,
+) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
+    async def handler(request: Request, exc: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=status_code,
+            content={"message": str(exc)},
+        )
 
-@app.exception_handler(InvalidChunkStateError)
-async def invalid_chunk_state_error_handler(request: Request, exc: InvalidChunkStateError) -> JSONResponse:
-    return JSONResponse(
-        status_code=422,
-        content={"message": str(exc)},
-    )
+    return handler
 
-@app.exception_handler(LLMProviderError)
-async def llm_provider_error_handler(request: Request, exc: LLMProviderError) -> JSONResponse:
-    return JSONResponse(
-        status_code=502,
-        content={"message": str(exc)},
-    )
+
+app.add_exception_handler(MatomeAppError, create_exception_handler(400))
+app.add_exception_handler(NodeNotFoundError, create_exception_handler(404))
+app.add_exception_handler(InvalidChunkStateError, create_exception_handler(422))
+app.add_exception_handler(LLMProviderError, create_exception_handler(502))
+
 
 app.include_router(router)

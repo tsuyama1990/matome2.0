@@ -9,7 +9,9 @@ class IVectorStore(ABC):
         pass
 
     @abstractmethod
-    async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int = 1000) -> bool:
+    async def upsert_chunks_batch(
+        self, chunks: list[SemanticChunk], batch_size: int = 1000
+    ) -> bool:
         pass
 
     @abstractmethod
@@ -17,9 +19,13 @@ class IVectorStore(ABC):
         """Stream chunks directly from a document to the vector store to avoid loading large datasets into memory."""
 
     @abstractmethod
-    async def search(self, query_vector: list[float], limit: int, offset: int = 0) -> list[SemanticChunk]:
+    async def search(
+        self, query_vector: list[float], limit: int, offset: int = 0
+    ) -> list[SemanticChunk]:
         pass
 
     @abstractmethod
-    async def search_batch(self, query_vectors: list[list[float]], limit: int, offset: int = 0) -> list[list[SemanticChunk]]:
+    async def search_batch(
+        self, query_vectors: list[list[float]], limit: int, offset: int = 0
+    ) -> list[list[SemanticChunk]]:
         pass

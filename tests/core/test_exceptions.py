@@ -13,17 +13,23 @@ def test_matome_app_exception() -> None:
     with pytest.raises(MatomeAppError, match=msg):
         raise MatomeAppError(msg)
 
+
 def test_node_not_found_error() -> None:
-    msg = "Node ID not found"
-    with pytest.raises(NodeNotFoundError, match=msg):
-        raise NodeNotFoundError(msg)
+    expected_msg = "Knowledge node with ID 123 was not found."
+    node_id = "123"
+    with pytest.raises(NodeNotFoundError, match=expected_msg):
+        raise NodeNotFoundError(node_id)
+
 
 def test_invalid_chunk_state_error() -> None:
-    msg = "Chunk is in invalid state"
-    with pytest.raises(InvalidChunkStateError, match=msg):
-        raise InvalidChunkStateError(msg)
+    expected_msg = "Chunk 456 is in an invalid state: state."
+    chunk_id = "456"
+    with pytest.raises(InvalidChunkStateError, match=expected_msg):
+        raise InvalidChunkStateError(chunk_id, "state")
+
 
 def test_llm_provider_error() -> None:
-    msg = "LLM provider failed to generate completion"
-    with pytest.raises(LLMProviderError, match=msg):
-        raise LLMProviderError(msg)
+    expected_msg = "LLM Provider AWS encountered an error: detail."
+    provider = "AWS"
+    with pytest.raises(LLMProviderError, match=expected_msg):
+        raise LLMProviderError(provider, "detail")

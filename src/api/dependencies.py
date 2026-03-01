@@ -1,38 +1,48 @@
+from collections.abc import AsyncGenerator
+
 from dependency_injector import containers, providers
 
-from src.domain_models.chunk import SemanticChunk
-from src.infrastructure.llm_interface import ILLMProvider
-from src.infrastructure.vdb_interface import IVectorStore
+from src.core.config import AppSettings
+from src.infrastructure.openrouter_llm import OpenRouterLLMProvider
+from src.infrastructure.pinecone_vdb import PineconeVectorStore
 
 
-# Dummy implementations for injection
-class DummyLLMProvider(ILLMProvider):
-    async def generate_completion(self, prompt: str) -> str:
-        return ""
+async def init_llm_provider(
+    api_key: str, max_keepalive: int, max_connections: int
+) -> AsyncGenerator[OpenRouterLLMProvider, None]:
+    provider = OpenRouterLLMProvider(
+        api_key=api_key, max_keepalive=max_keepalive, max_connections=max_connections
+    )
+    yield provider
+    await provider.close()
 
 
-class DummyVectorStore(IVectorStore):
-    async def upsert_chunks(self, chunks: list[SemanticChunk]) -> bool:
-        return True
-    async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int = 1000) -> bool:
-        return True
+async def init_vector_store(
+    api_url: str, max_keepalive: int, max_connections: int
+) -> AsyncGenerator[PineconeVectorStore, None]:
+    store = PineconeVectorStore(
+        api_url=api_url, max_keepalive=max_keepalive, max_connections=max_connections
+    )
+    yield store
+    await store.close()
 
-    async def stream_chunks_to_store(self, document_id: str, document_path: str) -> None:
-        pass
-    async def search(self, query_vector: list[float], limit: int, offset: int = 0) -> list[SemanticChunk]:
-        return []
-    async def search_batch(self, query_vectors: list[list[float]], limit: int, offset: int = 0) -> list[list[SemanticChunk]]:
-        return []
 
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(modules=["src.api.routers.base", "src.main"])
 
-    config = providers.Configuration()
+    # Provide configuration using our AppSettings schema to enforce validation on start
+    config = providers.Singleton(AppSettings)
 
-    llm_provider = providers.Singleton(
-        DummyLLMProvider,
+    llm_provider = providers.Resource(
+        init_llm_provider,
+        api_key=config.provided.OPENROUTER_API_KEY,
+        max_keepalive=config.provided.MAX_KEEPALIVE_CONNECTIONS,
+        max_connections=config.provided.MAX_CONNECTIONS,
     )
 
-    vector_store = providers.Singleton(
-        DummyVectorStore,
+    vector_store = providers.Resource(
+        init_vector_store,
+        api_url=config.provided.VECTOR_DB_URL,
+        max_keepalive=config.provided.MAX_KEEPALIVE_CONNECTIONS,
+        max_connections=config.provided.MAX_CONNECTIONS,
     )
