@@ -31,7 +31,11 @@ class IHttpClient(ABC):
 
     @abstractmethod
     async def put(
-        self, url: str, headers: dict[str, str], json: dict[str, Any], timeout: float  # noqa: ASYNC109
+        self,
+        url: str,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: float,  # noqa: ASYNC109
     ) -> Any:
         """Performs an asynchronous PUT request."""
 

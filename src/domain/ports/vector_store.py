@@ -7,10 +7,6 @@ class IVectorStore(ABC):
     """Abstract interface for a Vector Database."""
 
     @abstractmethod
-    async def initialize(self) -> None:
-        """Initializes or configures the vector store. Must be called before use."""
-
-    @abstractmethod
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured.
 

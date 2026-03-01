@@ -21,10 +21,6 @@ class PineconeClient(IVectorStore):
     def __init__(self, index: PineconeIndexProtocol | None = None) -> None:
         self._index = index
 
-    async def initialize(self) -> None:
-        """Initializes or configures the vector store. Must be called before use."""
-        # The index is already provided via DI in this implementation
-
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""
         return self._index is not None

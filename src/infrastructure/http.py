@@ -12,7 +12,14 @@ class HttpxAdapter(IHttpClient):
         self.client = client
 
     async def get(self, url: str, headers: dict[str, str], timeout: float) -> Any:  # noqa: ASYNC109
-        return await self.client.get(url, headers=headers, timeout=timeout)
+        try:
+            return await self.client.get(url, headers=headers, timeout=timeout)
+        except httpx.TimeoutException as e:
+            msg = f"Request timed out: {e}"
+            raise TimeoutError(msg) from e
+        except httpx.RequestError as e:
+            msg = f"HTTP connection error: {e}"
+            raise ConnectionError(msg) from e
 
     async def post(
         self,
@@ -21,15 +28,40 @@ class HttpxAdapter(IHttpClient):
         json: dict[str, Any],
         timeout: float,  # noqa: ASYNC109
     ) -> Any:
-        return await self.client.post(url, headers=headers, json=json, timeout=timeout)
+        try:
+            return await self.client.post(url, headers=headers, json=json, timeout=timeout)
+        except httpx.TimeoutException as e:
+            msg = f"Request timed out: {e}"
+            raise TimeoutError(msg) from e
+        except httpx.RequestError as e:
+            msg = f"HTTP connection error: {e}"
+            raise ConnectionError(msg) from e
 
     async def put(
-        self, url: str, headers: dict[str, str], json: dict[str, Any], timeout: float  # noqa: ASYNC109
+        self,
+        url: str,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: float,  # noqa: ASYNC109
     ) -> Any:
-        return await self.client.put(url, headers=headers, json=json, timeout=timeout)
+        try:
+            return await self.client.put(url, headers=headers, json=json, timeout=timeout)
+        except httpx.TimeoutException as e:
+            msg = f"Request timed out: {e}"
+            raise TimeoutError(msg) from e
+        except httpx.RequestError as e:
+            msg = f"HTTP connection error: {e}"
+            raise ConnectionError(msg) from e
 
     async def delete(self, url: str, headers: dict[str, str], timeout: float) -> Any:  # noqa: ASYNC109
-        return await self.client.delete(url, headers=headers, timeout=timeout)
+        try:
+            return await self.client.delete(url, headers=headers, timeout=timeout)
+        except httpx.TimeoutException as e:
+            msg = f"Request timed out: {e}"
+            raise TimeoutError(msg) from e
+        except httpx.RequestError as e:
+            msg = f"HTTP connection error: {e}"
+            raise ConnectionError(msg) from e
 
     async def close(self) -> None:
         await self.client.aclose()

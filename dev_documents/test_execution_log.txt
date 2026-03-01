@@ -27,7 +27,7 @@ Name                                 Stmts   Miss  Cover   Missing
 ------------------------------------------------------------------
 src/__init__.py                          0      0   100%
 src/api/__init__.py                      0      0   100%
-src/api/dependencies.py                 44      2    95%   30-31
+src/api/dependencies.py                 45      2    96%   30-31
 src/core/__init__.py                     0      0   100%
 src/core/config.py                      23      0   100%
 src/domain/__init__.py                   0      0   100%
@@ -38,11 +38,11 @@ src/domain/models/node.py               19      0   100%
 src/domain/ports/http.py                13      0   100%
 src/domain/ports/llm.py                  9      0   100%
 src/domain/ports/storage.py             14      0   100%
-src/domain/ports/vector_store.py        11      0   100%
-src/infrastructure/http.py              16      6    62%   12, 15, 24, 29, 32, 35
-src/infrastructure/llm.py               43      6    86%   41, 59-61, 70-71
+src/domain/ports/vector_store.py         9      0   100%
+src/infrastructure/http.py              44     34    23%   12, 15-22, 31-38, 47-54, 57-64, 67
+src/infrastructure/llm.py               49      9    82%   43, 61-67, 76-77
 src/infrastructure/storage.py           78      7    91%   27, 34-36, 97-98, 113
-src/infrastructure/vector_store.py      37      4    89%   35-36, 66-67
+src/infrastructure/vector_store.py      36      4    89%   31-32, 62-63
 ------------------------------------------------------------------
-TOTAL                                  326     25    92%
-============================== 31 passed in 4.15s ==============================
+TOTAL                                  358     56    84%
+============================== 31 passed in 2.70s ==============================

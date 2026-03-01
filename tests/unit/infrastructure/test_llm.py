@@ -5,7 +5,7 @@ import pytest
 
 from src.core.config import AppSettings
 from src.domain.ports.http import IHttpClient
-from src.infrastructure.llm import OpenRouterClient
+from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 
 
 @pytest.fixture
@@ -15,12 +15,13 @@ def mock_httpx_client() -> AsyncMock:
 
 @pytest.fixture
 def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRouterClient:
-    return OpenRouterClient(
+    config = OpenRouterConfig(
         api_key="dummy_key",
         default_model="dummy-model",
-        client=mock_httpx_client,
         base_url=test_config.openrouter_base_url,
+        timeout=30.0,
     )
+    return OpenRouterClient(config=config, client=mock_httpx_client)
 
 
 @pytest.mark.asyncio
@@ -43,7 +44,7 @@ async def test_generate_text_success(
 async def test_generate_text_timeout(
     llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
 ) -> None:
-    mock_httpx_client.post.side_effect = httpx.TimeoutException("Timeout")
+    mock_httpx_client.post.side_effect = TimeoutError("Timeout")
     with pytest.raises(TimeoutError, match="OpenRouter API request timed out"):
         await llm_client.generate_text("Hello")
 
