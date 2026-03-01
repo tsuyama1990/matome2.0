@@ -30,7 +30,8 @@ def test_node_not_found_error_handler() -> None:
 
     @app.get("/trigger-not-found")
     async def trigger_not_found() -> None:
-        raise NodeNotFoundError("123")
+        node_id = "123"
+        raise NodeNotFoundError(node_id)
 
     response = client.get("/trigger-not-found")
     assert response.status_code == 404
@@ -42,7 +43,8 @@ def test_invalid_chunk_state_error_handler() -> None:
 
     @app.get("/trigger-invalid-chunk")
     async def trigger_invalid_chunk() -> None:
-        raise InvalidChunkStateError("456", "foo")
+        chunk_id = "456"
+        raise InvalidChunkStateError(chunk_id, "foo")
 
     response = client.get("/trigger-invalid-chunk")
     assert response.status_code == 422
@@ -54,7 +56,8 @@ def test_llm_provider_error_handler() -> None:
 
     @app.get("/trigger-llm-error")
     async def trigger_llm_error() -> None:
-        raise LLMProviderError("Anthropic", "timeout")
+        provider = "Anthropic"
+        raise LLMProviderError(provider, "timeout")
 
     response = client.get("/trigger-llm-error")
     assert response.status_code == 502

@@ -17,30 +17,22 @@ class SemanticChunk(BaseModel):
     id: UUID4
     document_id: UUID4
     content: str = Field(..., min_length=1, max_length=10_000)
-    entities: list[str] = Field(default_factory=list)
+    entities: list[str] = Field(default_factory=list, max_length=100)
     dimensional_tags: DimensionalTags = Field(default_factory=DimensionalTags)
-    metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+    metadata: dict[str, str | int | float | bool | None] = Field(
+        default_factory=dict, max_length=50
+    )
 
     @model_validator(mode="after")
     def validate_content_safety(self) -> "SemanticChunk":
         """Ensures the content does not contain obvious malicious patterns or invalid encodings."""
-        import re
+        import bleach
 
-        # Extended XSS validation
-        unsafe_patterns = [
-            r"<\s*script.*?>.*?</\s*script\s*>",
-            r"javascript:",
-            r"vbscript:",
-            r"data:text/html",
-            r"onload\s*=",
-            r"onerror\s*=",
-            r"<\s*iframe.*?>",
-        ]
-
-        for pattern in unsafe_patterns:
-            if re.search(pattern, self.content, flags=re.IGNORECASE | re.DOTALL):
-                msg = "Potentially malicious content detected"
-                raise ValueError(msg)
+        # XSS validation via Bleach
+        cleaned_content = bleach.clean(self.content, tags=[], attributes={}, strip=True)
+        if cleaned_content != self.content:
+            msg = "Potentially malicious content detected"
+            raise ValueError(msg)
 
         # Validate that the string is properly encodable
         try:

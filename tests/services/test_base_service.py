@@ -31,12 +31,12 @@ class ConcreteService(BaseService):
 
 
 @pytest.fixture
-def test_config(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
+def test_config(monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory) -> AppSettings:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_key")
     monkeypatch.setenv("VECTOR_DB_URL", "http://test")
     monkeypatch.setenv("VDB_BATCH_SIZE", "100")
     monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "3")
-    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", "/app/data")
+    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", str(tmp_path))
     return AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 

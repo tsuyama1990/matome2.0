@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
@@ -12,32 +13,33 @@ class Document(BaseModel):
     title: str = Field(..., min_length=1, max_length=255, pattern=r"^[^<>;&]*$")
     file_path: str = Field(..., min_length=1, max_length=1024, pattern=r"^[^<>;&]*$")
 
-    def _validate_path_security(self) -> None:
+    def _validate_path_security(self, allowed_dir: str | Path) -> None:
         """Ensures the file path is safe and does not traverse outside allowed directories."""
         from pathlib import Path
 
-        from src.core.config import AppSettings
-
-        config = AppSettings(_env_file=".env", _env_file_encoding="utf-8")  # type: ignore[call-arg]
-        allowed_dir = config.ALLOWED_DOCUMENT_DIR.resolve()
+        allowed_path = Path(allowed_dir).resolve()
         resolved_path = Path(self.file_path).resolve()
 
         if ".." in Path(self.file_path).parts:
             msg = "Directory traversal detected in file_path"
             raise ValueError(msg)
 
-        if not str(resolved_path).startswith(str(allowed_dir)):
-            msg = f"File path must be within {allowed_dir}"
-            raise ValueError(msg)
+        try:
+            resolved_path.relative_to(allowed_path)
+        except ValueError:
+            msg = f"File path must be within {allowed_path}"
+            raise ValueError(msg) from None
 
-    async def stream_chunks(self, block_size: int = 10_000) -> AsyncGenerator[SemanticChunk, None]:
+    async def stream_chunks(
+        self, allowed_dir: str | Path, block_size: int = 10_000
+    ) -> AsyncGenerator[SemanticChunk, None]:
         """Streams document content directly from file using aiofiles with buffered generator."""
         import uuid
 
         import aiofiles
         import anyio
 
-        self._validate_path_security()
+        self._validate_path_security(allowed_dir)
 
         path = anyio.Path(self.file_path)
         if not await path.exists():
@@ -56,7 +58,6 @@ class Document(BaseModel):
                         chunk = SemanticChunk(
                             id=uuid.uuid4(), document_id=self.id, content=chunk_data
                         )
-                        chunk.metadata["_compressed"] = chunk.compress_content().hex()
                         yield chunk
                         buffer = []
                         current_size = 0
@@ -67,7 +68,6 @@ class Document(BaseModel):
                 if buffer:
                     chunk_data = "".join(buffer)
                     chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
-                    chunk.metadata["_compressed"] = chunk.compress_content().hex()
                     yield chunk
 
         except OSError as e:

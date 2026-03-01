@@ -29,6 +29,14 @@ class BaseService(ABC):
         self._circuit_reset_time: float = 0
 
     def _check_circuit(self) -> None:
+        """Evaluate if the circuit is currently open and blocks the operation if true.
+
+        If the circuit has exceeded its wait timeout, it will automatically reset
+        and allow new operations to proceed.
+
+        Raises:
+            CircuitBreakerOpenError: If the circuit is actively blocking execution.
+        """
         import time
 
         if self._circuit_open:
@@ -41,14 +49,13 @@ class BaseService(ABC):
                 raise CircuitBreakerOpenError(msg)
 
     def _record_failure(self) -> None:
+        """Register an execution failure and trip the circuit breaker if the threshold is met."""
         import time
 
         self._failure_count += 1
-        # Arbitrary threshold: 5 consecutive failures trips the breaker
-        if self._failure_count >= 5:
+        if self._failure_count >= self.config.CIRCUIT_BREAKER_FAILURE_THRESHOLD:
             self._circuit_open = True
-            # Arbitrary reset timeout: 30 seconds
-            self._circuit_reset_time = time.time() + 30
+            self._circuit_reset_time = time.time() + self.config.CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS
             self.logger.warning("Circuit breaker opened due to %d failures", self._failure_count)
 
     async def execute_with_retry(

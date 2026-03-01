@@ -49,42 +49,53 @@ def test_semantic_chunk_malicious_content() -> None:
             id=uuid4(),
             document_id=uuid4(),
             content="Normal <script>alert('pwn')</script> text",
-            metadata={},
         )
 
     with pytest.raises(ValidationError, match="Potentially malicious content detected"):
         SemanticChunk(
             id=uuid4(),
             document_id=uuid4(),
-            content="Check this link javascript:alert(1)",
-            metadata={},
+            content='<a href="javascript:alert(1)">Check this link</a>',
         )
 
     with pytest.raises(ValidationError, match="Potentially malicious content detected"):
         SemanticChunk(
-            id=uuid4(), document_id=uuid4(), content="<img src='x' onerror='alert(1)'>", metadata={}
+            id=uuid4(), document_id=uuid4(), content="<img src='x' onerror='alert(1)'>"
         )
 
 
 def test_semantic_chunk_invalid_encoding() -> None:
-    # Directly test the validator since pydantic does pre-casting before the model_validator
-    from src.domain_models.chunk import SemanticChunk
+    from typing import Any
 
     class BadString(str):
-        def encode(self, *args, **kwargs):
-            raise UnicodeEncodeError("utf-8", "", 0, 1, "mocked")
+        def encode(self, *args: Any, **kwargs: Any) -> bytes:
+            msg = "utf-8"
+            raise UnicodeEncodeError(msg, "", 0, 1, "mocked")
 
     # Bypass pydantic's internal coercion logic by explicitly testing the manual step
     chunk = SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={})
     chunk.content = BadString("test")
 
     with pytest.raises(ValueError, match="Content contains invalid UTF-8 characters"):
-        chunk.validate_content_safety()
+        # Explicit call to avoid mypy complaining about missing model_validator
+        SemanticChunk.validate_content_safety(chunk)  # type: ignore[operator]
 
 
 def test_semantic_chunk_metadata_invalid_key() -> None:
     with pytest.raises(ValidationError):
         SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={1: "test"})  # type: ignore[dict-item]
+
+
+def test_semantic_chunk_limits() -> None:
+    # Entities limit
+    entities = ["Entity"] * 101
+    with pytest.raises(ValidationError):
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", entities=entities)
+
+    # Metadata limit
+    metadata: dict[str, str | int | float | bool | None] = {f"key{i}": "val" for i in range(51)}
+    with pytest.raises(ValidationError):
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata=metadata)
 
 
 def test_semantic_chunk_compression() -> None:

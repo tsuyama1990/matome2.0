@@ -12,10 +12,10 @@ def test_app_settings_missing_required(monkeypatch: pytest.MonkeyPatch) -> None:
         AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 
-def test_app_settings_inconsistent_retry_config(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_app_settings_inconsistent_retry_config(monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_key")
     monkeypatch.setenv("VECTOR_DB_URL", "http://test")
-    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", "/app/data")
+    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", str(tmp_path))
     monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "11")
     monkeypatch.setenv("RETRY_DELAY_SECONDS", "11")
 
@@ -23,12 +23,12 @@ def test_app_settings_inconsistent_retry_config(monkeypatch: pytest.MonkeyPatch)
         AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 
-def test_app_settings_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_app_settings_valid(monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_key")
     monkeypatch.setenv("VECTOR_DB_URL", "http://localhost:8080")
     monkeypatch.setenv("VDB_BATCH_SIZE", "100")
     monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "5")
-    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", "/app/data")
+    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", str(tmp_path))
     settings = AppSettings(_env_file=None)  # type: ignore[call-arg]
     assert settings.OPENROUTER_API_KEY == "test_key"
     assert settings.VECTOR_DB_URL == "http://localhost:8080"

@@ -17,12 +17,12 @@ async def test_full_pipeline_ingestion(tmp_path: Path, monkeypatch: pytest.Monke
 
     doc = Document(id=uuid4(), title="Int Test", file_path=str(test_file))
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self: None
+        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
     )
 
     # 2. Extract Chunks
     chunks: list[SemanticChunk] = []
-    async for chunk in doc.stream_chunks(block_size=10):
+    async for chunk in doc.stream_chunks(allowed_dir=str(tmp_path), block_size=10):
         chunks.append(chunk)
 
     assert len(chunks) > 0

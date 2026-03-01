@@ -5,6 +5,8 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.core.constants import (
+    DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS,
     DEFAULT_ENVIRONMENT,
     DEFAULT_RETRY_DELAY_SECONDS,
     DEFAULT_RETRY_MAX_ATTEMPTS,
@@ -27,6 +29,14 @@ class AppSettings(BaseSettings):
         default_factory=lambda: int(os.getenv("RETRY_DELAY_SECONDS", DEFAULT_RETRY_DELAY_SECONDS)),
         ge=0,
     )
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = Field(
+        default_factory=lambda: int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD)),
+        ge=1,
+    )
+    CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS: int = Field(
+        default_factory=lambda: int(os.getenv("CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS", DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS)),
+        ge=1,
+    )
     ALLOWED_DOCUMENT_DIR: Path = Field(...)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
@@ -42,4 +52,15 @@ class AppSettings(BaseSettings):
                 "Retry mechanism is configured too aggressively (Max Attempts > 10 and Delay > 10s)"
             )
             raise ValueError(msg)
+
+        allowed_dir = self.ALLOWED_DOCUMENT_DIR.resolve()
+        if not allowed_dir.exists() or not allowed_dir.is_dir():
+            msg = f"ALLOWED_DOCUMENT_DIR must exist and be a directory: {allowed_dir}"
+            raise ValueError(msg)
+
+        import os
+        if not os.access(allowed_dir, os.R_OK | os.W_OK):
+            msg = f"ALLOWED_DOCUMENT_DIR must be readable and writable: {allowed_dir}"
+            raise ValueError(msg)
+
         return self
