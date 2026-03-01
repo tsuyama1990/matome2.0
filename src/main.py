@@ -15,8 +15,15 @@ def create_app() -> FastAPI:
     container = Container()
     container.wire(modules=["src.api.routers.base"])
 
-    app = FastAPI(title="matome2-0", version="0.1.0")
-    app.container = container  # type: ignore[attr-defined]
+    app = FastAPI(
+        title="matome2-0 API",
+        version="v1",
+        description="The Core backend service for document ingestion and knowledge graph construction.",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json"
+    )
+    app.container = container # type: ignore[attr-defined]
 
     return app
 

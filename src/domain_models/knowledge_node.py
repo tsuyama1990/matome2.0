@@ -17,4 +17,15 @@ class KnowledgeNode(BaseModel):
         if self.id in self.children:
             msg = "Node cannot be its own child"
             raise ValueError(msg)
+
+        # Adding a check that list is unique. Although existence is hard to check here (needs DB)
+        # We can at least ensure we don't have duplicate chunk references.
+        if len(self.source_chunks) != len(set(self.source_chunks)):
+            msg = "Source chunks must be unique"
+            raise ValueError(msg)
+
+        if len(self.children) != len(set(self.children)):
+            msg = "Children must be unique"
+            raise ValueError(msg)
+
         return self

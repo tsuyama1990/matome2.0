@@ -8,7 +8,7 @@ class SemanticChunk(BaseModel):
 
     id: UUID4
     document_id: UUID4
-    content: str = Field(..., min_length=1, max_length=100_000)
+    content: str = Field(..., min_length=1, max_length=10_000)
     metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
 
     @model_validator(mode="after")

@@ -1,29 +1,27 @@
+from unittest.mock import AsyncMock
+
 import pytest
 
 from src.core.config import AppSettings
 from src.core.exceptions import MatomeAppError
-from src.domain_models.chunk import SemanticChunk
 from src.infrastructure.llm_interface import ILLMProvider
 from src.infrastructure.vdb_interface import IVectorStore
 from src.services.base_service import BaseService
 
 
-class MockLLMProvider(ILLMProvider):
-    async def generate_completion(self, prompt: str) -> str:
-        return "mock completion"
+def get_mock_llm_provider() -> AsyncMock:
+    mock = AsyncMock(spec=ILLMProvider)
+    mock.generate_completion.return_value = "mock completion"
+    return mock
 
-class MockVectorStore(IVectorStore):
-    async def upsert_chunks(self, chunks: list[SemanticChunk]) -> bool:
-        return True
-
-    async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int) -> bool:
-        return True
-
-    async def search(self, query_vector: list[float], limit: int, offset: int = 0) -> list[SemanticChunk]:
-        return []
-
-    async def search_batch(self, query_vectors: list[list[float]], limit: int, offset: int = 0) -> list[list[SemanticChunk]]:
-        return []
+def get_mock_vector_store() -> AsyncMock:
+    mock = AsyncMock(spec=IVectorStore)
+    mock.upsert_chunks.return_value = True
+    mock.upsert_chunks_batch.return_value = True
+    mock.search.return_value = []
+    mock.search_batch.return_value = []
+    mock.stream_chunks_to_store.return_value = None
+    return mock
 
 class ConcreteService(BaseService):
     async def execute(self) -> None:
@@ -39,16 +37,16 @@ def test_config(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
     return AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 def test_base_service_init(test_config: AppSettings) -> None:
-    llm = MockLLMProvider()
-    vdb = MockVectorStore()
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
     service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
     assert service.llm_provider is llm
     assert service.vector_store is vdb
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_success(test_config: AppSettings) -> None:
-    llm = MockLLMProvider()
-    vdb = MockVectorStore()
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
     service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
 
     async def mock_operation() -> str:
@@ -64,8 +62,8 @@ async def test_execute_with_retry_matome_app_exception(monkeypatch: pytest.Monke
     async def mock_sleep(x: float) -> None:
         await original_sleep(0)
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    llm = MockLLMProvider()
-    vdb = MockVectorStore()
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
     test_config.RETRY_MAX_ATTEMPTS = 2
     service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
 
@@ -84,8 +82,8 @@ async def test_execute_with_retry_matome_app_exception(monkeypatch: pytest.Monke
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_generic_exception(test_config: AppSettings) -> None:
-    llm = MockLLMProvider()
-    vdb = MockVectorStore()
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
     service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
 
     async def mock_operation() -> str:
