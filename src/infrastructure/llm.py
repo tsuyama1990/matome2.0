@@ -13,7 +13,7 @@ class OpenRouterConfig:
     api_key: str
     default_model: str
     base_url: str
-    timeout: float = 30.0
+    timeout: float
 
 
 class OpenRouterClient(ILLMProvider):
@@ -54,7 +54,7 @@ class OpenRouterClient(ILLMProvider):
             )
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
+            return str(data["choices"][0]["message"]["content"])
         except TimeoutError as e:
             msg = f"OpenRouter API request timed out: {e}"
             raise TimeoutError(msg) from e
@@ -142,7 +142,12 @@ class OpenRouterClient(ILLMProvider):
             # Simple heuristic to extract JSON block if wrapped in markdown
             if raw_text.startswith("```json"):
                 raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-            return json.loads(raw_text)  # type: ignore[no-any-return]
+            result = json.loads(raw_text)
         except json.JSONDecodeError as e:
             msg = f"Failed to parse LLM response into JSON: {raw_text}"
             raise ValueError(msg) from e
+        else:
+            if not isinstance(result, dict):
+                msg = "Parsed JSON is not a dictionary"
+                raise TypeError(msg)
+            return result

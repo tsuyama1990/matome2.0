@@ -1,8 +1,9 @@
+from contextlib import AbstractAsyncContextManager
 from typing import Any
 
 import httpx
 
-from src.domain.ports.http import IHttpClient
+from src.domain.ports.http import IHttpClient, IHttpResponse
 
 
 class HttpxAdapter(IHttpClient):
@@ -11,15 +12,17 @@ class HttpxAdapter(IHttpClient):
     def __init__(self, client: httpx.AsyncClient) -> None:
         self.client = client
 
-    async def get(self, url: str, headers: dict[str, str], timeout: float) -> Any:  # noqa: ASYNC109
+    async def get(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
         try:
-            return await self.client.get(url, headers=headers, timeout=timeout)
+            resp = await self.client.get(url, headers=headers, timeout=timeout)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
+        else:
+            return resp  # type: ignore[return-value]
 
     def stream_post(
         self,
@@ -27,8 +30,8 @@ class HttpxAdapter(IHttpClient):
         headers: dict[str, str],
         json: dict[str, Any],
         timeout: float,
-    ) -> Any:
-        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)
+    ) -> AbstractAsyncContextManager[IHttpResponse]:
+        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)  # type: ignore[return-value]
 
     async def post(
         self,
@@ -36,15 +39,17 @@ class HttpxAdapter(IHttpClient):
         headers: dict[str, str],
         json: dict[str, Any],
         timeout: float,  # noqa: ASYNC109
-    ) -> Any:
+    ) -> IHttpResponse:
         try:
-            return await self.client.post(url, headers=headers, json=json, timeout=timeout)
+            resp = await self.client.post(url, headers=headers, json=json, timeout=timeout)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
+        else:
+            return resp  # type: ignore[return-value]
 
     async def put(
         self,
@@ -52,25 +57,29 @@ class HttpxAdapter(IHttpClient):
         headers: dict[str, str],
         json: dict[str, Any],
         timeout: float,  # noqa: ASYNC109
-    ) -> Any:
+    ) -> IHttpResponse:
         try:
-            return await self.client.put(url, headers=headers, json=json, timeout=timeout)
+            resp = await self.client.put(url, headers=headers, json=json, timeout=timeout)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
+        else:
+            return resp  # type: ignore[return-value]
 
-    async def delete(self, url: str, headers: dict[str, str], timeout: float) -> Any:  # noqa: ASYNC109
+    async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
         try:
-            return await self.client.delete(url, headers=headers, timeout=timeout)
+            resp = await self.client.delete(url, headers=headers, timeout=timeout)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
+        else:
+            return resp  # type: ignore[return-value]
 
     async def close(self) -> None:
         await self.client.aclose()
