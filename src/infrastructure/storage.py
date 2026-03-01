@@ -23,15 +23,29 @@ class LocalStorage(IFileStorage):
             err_msg = "Path traversal attempt"
             raise ValueError(err_msg)
 
-        written = 0
-        with safe_path.open("wb") as f:
-            async for chunk in stream:
-                written += len(chunk)
-                if written > max_size_bytes:
-                    err_msg = f"File size exceeds maximum allowed of {max_size_bytes} bytes"
-                    raise ValueError(err_msg)
-                f.write(chunk)
-        return safe_path
+        temp_path = safe_path.with_suffix(".tmp")
+
+        def _check_size(w: int, maximum: int) -> None:
+            if w > maximum:
+                err_msg = f"File size exceeds maximum allowed of {maximum} bytes"
+                raise ValueError(err_msg)
+
+        try:
+            written = 0
+            with temp_path.open("wb") as f:
+                async for chunk in stream:
+                    written += len(chunk)
+                    _check_size(written, max_size_bytes)
+                    f.write(chunk)
+        except Exception:
+            # Clean up partial temp file in case of any failure
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
+        else:
+            # Atomic rename after successfully downloading stream
+            temp_path.replace(safe_path)
+            return safe_path
 
     def read_file_stream(self, path: Path) -> Generator[bytes, None, None]:
         """Reads a file yielding bytes as a stream."""

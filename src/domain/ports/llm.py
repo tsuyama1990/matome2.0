@@ -20,7 +20,8 @@ class ILLMProvider(ABC):
             timeout (float): The maximum time to wait for the LLM API to respond.
 
         Raises:
-            TimeoutError: If the underlying API call exceeds the timeout period.
+            TimeoutError: If the underlying API call exceeds the timeout period. Implementations
+                          should ideally wrap library-specific timeouts to this built-in error.
             ConnectionError: If a connection error happens during interaction with the API.
         """
 
@@ -41,6 +42,6 @@ class ILLMProvider(ABC):
             timeout (float): The timeout per request for extraction.
 
         Raises:
-            TimeoutError: If the call to the LLM times out.
+            TimeoutError: If the call to the LLM times out. Implementations must wrap internal timeouts.
             ValueError: If the generated output cannot be parsed into the target schema.
         """

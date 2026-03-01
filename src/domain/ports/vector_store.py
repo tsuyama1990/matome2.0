@@ -7,6 +7,14 @@ class IVectorStore(ABC):
     """Abstract interface for a Vector Database."""
 
     @abstractmethod
+    async def check_health(self) -> bool:
+        """Verifies if the vector store is reachable and configured.
+
+        Returns:
+            bool: True if the connection is healthy, otherwise False.
+        """
+
+    @abstractmethod
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         """Insert or update chunks into the vector store.
 
@@ -37,4 +45,5 @@ class IVectorStore(ABC):
 
         Raises:
             ConnectionError: If the search request times out or DB is unreachable.
+            ValueError: If the query embedding has a dimension mismatch.
         """

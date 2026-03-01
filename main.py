@@ -11,6 +11,8 @@ from src.core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup actions
+    settings.validate_keys()
+
     container = ApplicationContainer()
     container.config.from_pydantic(settings)
     app.container = container  # type: ignore
@@ -28,16 +30,12 @@ app = FastAPI(
 
 @app.get("/")
 def read_root() -> dict[str, Any]:
+    # In a full deployment, features would be dynamically fetched from
+    # a feature flag or available router modules.
     return {
         "status": "online",
-        "message": "Welcome to matome2-0 Knowledge Workspace Platform!",
-        "features": [
-            "Semantic Zoom UI",
-            "Frictionless Active Learning",
-            "Voice Interactive Recite",
-            "Multi-Dimensional Knowledge Restructuring (Pivot KJ)",
-            "Automated Export & Web-Grounding",
-        ],
+        "message": "Welcome to matome2-0 Knowledge Workspace Platform API.",
+        "version": "0.1.0",
     }
 
 

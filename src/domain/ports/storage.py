@@ -22,6 +22,7 @@ class IFileStorage(ABC):
 
         Raises:
             ValueError: If the total size exceeds the `max_size_bytes` or if path traversal is attempted.
+                        In either case, incomplete partial files should be cleaned up.
             IOError: If an error occurs writing to the underlying disk or blob storage.
         """
 

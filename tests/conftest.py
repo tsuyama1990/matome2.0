@@ -21,6 +21,7 @@ def test_config() -> AppSettings:
     os.environ["MULTIMODAL_MODEL"] = "test-vision"
 
     settings = AppSettings()
+    settings.validate_keys()
 
     del os.environ["OPENROUTER_API_KEY"]
     del os.environ["PINECONE_API_KEY"]

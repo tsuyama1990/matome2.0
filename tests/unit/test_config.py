@@ -5,8 +5,8 @@ from src.core.config import AppSettings
 
 def test_settings_initialization(test_config: AppSettings) -> None:
     """Test that settings correctly parse environment variables."""
-    assert test_config.openrouter_api_key.startswith("test-key-")
-    assert test_config.pinecone_api_key.startswith("test-key-")
+    assert test_config.openrouter_api_key.get_secret_value().startswith("test-key-")
+    assert test_config.pinecone_api_key.get_secret_value().startswith("test-key-")
     assert test_config.text_fast_model == "test-fast"
     assert test_config.text_reasoning_model == "test-reason"
     assert test_config.multimodal_model == "test-vision"
