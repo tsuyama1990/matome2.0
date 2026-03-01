@@ -6,32 +6,41 @@ import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
+from src.infrastructure.http import HttpxAdapter
 from src.infrastructure.llm import OpenRouterClient
 from src.infrastructure.storage import LocalStorage
 from src.infrastructure.vector_store import PineconeClient
 
 
-class ApplicationContainer(containers.DeclarativeContainer):
-    """Dependency Injection Container for application."""
+class ConfigContainer(containers.DeclarativeContainer):
+    """Container for configuration settings."""
 
     env = providers.Configuration()
     config = providers.Configuration()
     app_settings = providers.Singleton(AppSettings)
 
+
+class InfrastructureContainer(containers.DeclarativeContainer):
+    """Container for infrastructure dependencies."""
+
+    config_container = providers.DependenciesContainer()
+
     @staticmethod
-    async def init_async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
+    async def init_async_client() -> AsyncGenerator[HttpxAdapter, None]:
         async with httpx.AsyncClient() as client:
-            yield client
+            yield HttpxAdapter(client=client)
 
     http_client = providers.Resource(init_async_client)
 
     # Infrastructure Implementations
     llm_provider = providers.Factory(
         OpenRouterClient,
-        api_key=providers.Callable(lambda s: s.openrouter_api_key.get_secret_value(), app_settings),
-        default_model=app_settings.provided.text_fast_model,
+        api_key=providers.Callable(
+            lambda s: s.openrouter_api_key.get_secret_value(), config_container.app_settings
+        ),
+        default_model=config_container.app_settings.provided.text_fast_model,
         client=http_client,
-        base_url=app_settings.provided.openrouter_base_url,
+        base_url=config_container.app_settings.provided.openrouter_base_url,
     )
 
     @staticmethod
@@ -46,8 +55,10 @@ class ApplicationContainer(containers.DeclarativeContainer):
 
     pinecone_index = providers.Singleton(
         init_pinecone_index,
-        api_key=providers.Callable(lambda s: s.pinecone_api_key.get_secret_value(), app_settings),
-        index_name=app_settings.provided.pinecone_index_name,
+        api_key=providers.Callable(
+            lambda s: s.pinecone_api_key.get_secret_value(), config_container.app_settings
+        ),
+        index_name=config_container.app_settings.provided.pinecone_index_name,
     )
 
     vector_store = providers.Factory(
@@ -57,8 +68,18 @@ class ApplicationContainer(containers.DeclarativeContainer):
 
     file_storage = providers.Factory(
         LocalStorage,
-        base_dir=app_settings.provided.storage_base_dir,
+        base_dir=config_container.app_settings.provided.storage_base_dir,
         path_class=Path,
+    )
+
+
+class ApplicationContainer(containers.DeclarativeContainer):
+    """Dependency Injection Container assembling sub-containers."""
+
+    config_container = providers.Container(ConfigContainer)
+    infrastructure_container = providers.Container(
+        InfrastructureContainer,
+        config_container=config_container,
     )
 
 
@@ -70,6 +91,7 @@ class ContainerFactory:
         """Creates the container and handles its lifecycle wiring."""
         container = ApplicationContainer()
         if settings:
-            container.config.from_pydantic(settings)
-            container.app_settings.override(settings)
+            # We access the underlying Configuration object logic here
+            container.config_container().config.from_pydantic(settings)
+            container.config_container().app_settings.override(settings)
         return container

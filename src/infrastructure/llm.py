@@ -3,6 +3,7 @@ from typing import Any
 
 import httpx
 
+from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
 
 
@@ -13,7 +14,7 @@ class OpenRouterClient(ILLMProvider):
         self,
         api_key: str,
         default_model: str,
-        client: httpx.AsyncClient,
+        client: IHttpClient,
         base_url: str,
     ) -> None:
         self.api_key = api_key
@@ -56,6 +57,17 @@ class OpenRouterClient(ILLMProvider):
         except httpx.RequestError as e:
             msg = f"Error communicating with OpenRouter: {e}"
             raise ConnectionError(msg) from e
+
+    async def stream_generate_text(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        timeout: float = 30.0,  # noqa: ASYNC109
+    ) -> Any:
+        """Stream implementation."""
+        # Simple non-streaming fallback for now if strict streams are unsupported or require special headers
+        text = await self.generate_text(prompt, system_prompt, timeout)
+        yield text
 
     async def extract_structured_data(
         self,

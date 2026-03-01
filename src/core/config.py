@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +23,10 @@ class AppSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"
     )
 
+    def model_post_init(self, __context: Any) -> None:
+        """Automatically checks validation upon startup correctly."""
+        self.validate_keys()
+
     def validate_keys(self) -> None:
         """Validates that critical API keys are present."""
         if not self.openrouter_api_key.get_secret_value():
@@ -31,4 +37,8 @@ class AppSettings(BaseSettings):
             raise ValueError(msg)
 
 
-settings = AppSettings()
+# For testing without loading settings right away, we defer initialization or catch the error
+# based on when the app requires the actual configurations.
+# Settings initialization is deferred to the container creation so it doesn't break CI immediately
+# on imports before tests can setup environments.
+# To keep previous test logic valid we remove the global settings instance here and instantiate it where needed.

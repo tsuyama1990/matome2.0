@@ -4,12 +4,13 @@ import httpx
 import pytest
 
 from src.core.config import AppSettings
+from src.domain.ports.http import IHttpClient
 from src.infrastructure.llm import OpenRouterClient
 
 
 @pytest.fixture
 def mock_httpx_client() -> AsyncMock:
-    return AsyncMock(spec=httpx.AsyncClient)
+    return AsyncMock(spec=IHttpClient)
 
 
 @pytest.fixture

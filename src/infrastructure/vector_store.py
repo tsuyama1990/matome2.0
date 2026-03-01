@@ -1,14 +1,25 @@
-from typing import Any
+from typing import Any, Protocol
 
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
 
 
+class PineconeIndexProtocol(Protocol):
+    def upsert(self, vectors: list[dict[str, Any]]) -> Any: ...
+    def query(
+        self, vector: list[float], top_k: int, filter: dict[str, str] | None, include_metadata: bool  # noqa: A002
+    ) -> Any: ...
+
+
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
-    def __init__(self, index: Any | None = None) -> None:
+    def __init__(self, index: PineconeIndexProtocol | None = None) -> None:
         self._index = index
+
+    async def initialize(self) -> None:
+        """Initializes or configures the vector store. Must be called before use."""
+        # The index is already provided via DI in this implementation
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""

@@ -11,7 +11,9 @@ from src.domain.ports.storage import IFileStorage
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 
-    def __init__(self, base_dir: Path, create_dir: bool = True, path_class: Any = Path) -> None:
+    def __init__(
+        self, base_dir: Path, create_dir: bool = True, path_class: type[Path] = Path
+    ) -> None:
         self.path_class = path_class
         # Attempt to wrap the base_dir in the path_class if it's strictly a string/path
         self.base_dir = (
@@ -23,6 +25,13 @@ class LocalStorage(IFileStorage):
     def initialize(self) -> None:
         """Explicitly creates the base directory if it doesn't exist."""
         self.base_dir.mkdir(parents=True, exist_ok=True)
+
+    def exists(self, path: Path) -> bool:
+        return path.exists()
+
+    def get_metadata(self, path: Path) -> dict[str, Any]:
+        stat = path.stat()
+        return {"size": stat.st_size, "modified": stat.st_mtime}
 
     async def save_upload_stream(
         self,

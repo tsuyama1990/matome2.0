@@ -10,7 +10,7 @@ collected 31 items
 tests/unit/infrastructure/test_llm.py ....                               [ 12%]
 tests/unit/infrastructure/test_storage.py .......                        [ 35%]
 tests/unit/infrastructure/test_vector_store.py ......                    [ 54%]
-tests/unit/test_config.py .....                                          [ 70%]
+tests/unit/test_config.py .FFF.                                          [ 70%]
 tests/unit/test_dependencies.py .                                        [ 74%]
 tests/unit/test_models.py ......../app/.venv/lib/python3.12/site-packages/coverage/inorout.py:561: CoverageWarning: Module dev_src was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-module-not-imported
   self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")
@@ -20,6 +20,307 @@ tests/unit/test_models.py ......../app/.venv/lib/python3.12/site-packages/covera
   coverage._warn(msg, slug="couldnt-parse")
                                        [100%]
 
+=================================== FAILURES ===================================
+____________________________ test_settings_defaults ____________________________
+
+    def test_settings_defaults() -> None:
+        """Test default fallbacks when environment variables are missing."""
+>       settings = AppSettings()
+                   ^^^^^^^^^^^^^
+
+tests/unit/test_config.py:17:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+__pydantic_self__ = AppSettings(openrouter_api_key=SecretStr(''), pinecone_api_key=SecretStr(''), text_fast_model='google/gemini-2.5-flash...ase_url='https://openrouter.ai/api/v1/chat/completions', pinecone_index_name='matome-index', storage_base_dir='./data')
+_case_sensitive = None, _nested_model_default_partial_update = None
+_env_prefix = None, _env_prefix_target = None, _env_file = PosixPath('.')
+_env_file_encoding = None, _env_ignore_empty = None
+_env_nested_delimiter = None, _env_nested_max_split = None
+_env_parse_none_str = None, _env_parse_enums = None, _cli_prog_name = None
+_cli_parse_args = None, _cli_settings_source = None, _cli_parse_none_str = None
+_cli_hide_none_type = None, _cli_avoid_json = None, _cli_enforce_required = None
+_cli_use_class_docs_for_groups = None, _cli_exit_on_error = None
+_cli_prefix = None, _cli_flag_prefix_char = None, _cli_implicit_flags = None
+_cli_ignore_unknown_args = None, _cli_kebab_case = None, _cli_shortcuts = None
+_secrets_dir = None, _build_sources = None, values = {}
+sources = (InitSettingsSource(init_kwargs={}), EnvSettingsSource(env_nested_delimiter='__', env_prefix_len=0), DotEnvSettingsSou...efix_len=0), SecretsSettingsSource(secrets_dir=None), DefaultSettingsSource(nested_model_default_partial_update=False))
+init_kwargs = {}
+
+    def __init__(
+        __pydantic_self__,
+        _case_sensitive: bool | None = None,
+        _nested_model_default_partial_update: bool | None = None,
+        _env_prefix: str | None = None,
+        _env_prefix_target: EnvPrefixTarget | None = None,
+        _env_file: DotenvType | None = ENV_FILE_SENTINEL,
+        _env_file_encoding: str | None = None,
+        _env_ignore_empty: bool | None = None,
+        _env_nested_delimiter: str | None = None,
+        _env_nested_max_split: int | None = None,
+        _env_parse_none_str: str | None = None,
+        _env_parse_enums: bool | None = None,
+        _cli_prog_name: str | None = None,
+        _cli_parse_args: bool | list[str] | tuple[str, ...] | None = None,
+        _cli_settings_source: CliSettingsSource[Any] | None = None,
+        _cli_parse_none_str: str | None = None,
+        _cli_hide_none_type: bool | None = None,
+        _cli_avoid_json: bool | None = None,
+        _cli_enforce_required: bool | None = None,
+        _cli_use_class_docs_for_groups: bool | None = None,
+        _cli_exit_on_error: bool | None = None,
+        _cli_prefix: str | None = None,
+        _cli_flag_prefix_char: str | None = None,
+        _cli_implicit_flags: bool | Literal['dual', 'toggle'] | None = None,
+        _cli_ignore_unknown_args: bool | None = None,
+        _cli_kebab_case: bool | Literal['all', 'no_enums'] | None = None,
+        _cli_shortcuts: Mapping[str, str | list[str]] | None = None,
+        _secrets_dir: PathType | None = None,
+        _build_sources: tuple[tuple[PydanticBaseSettingsSource, ...], dict[str, Any]] | None = None,
+        **values: Any,
+    ) -> None:
+        sources, init_kwargs = (
+            _build_sources
+            if _build_sources is not None
+            else __pydantic_self__.__class__._settings_init_sources(
+                _case_sensitive=_case_sensitive,
+                _nested_model_default_partial_update=_nested_model_default_partial_update,
+                _env_prefix=_env_prefix,
+                _env_prefix_target=_env_prefix_target,
+                _env_file=_env_file,
+                _env_file_encoding=_env_file_encoding,
+                _env_ignore_empty=_env_ignore_empty,
+                _env_nested_delimiter=_env_nested_delimiter,
+                _env_nested_max_split=_env_nested_max_split,
+                _env_parse_none_str=_env_parse_none_str,
+                _env_parse_enums=_env_parse_enums,
+                _cli_prog_name=_cli_prog_name,
+                _cli_parse_args=_cli_parse_args,
+                _cli_settings_source=_cli_settings_source,
+                _cli_parse_none_str=_cli_parse_none_str,
+                _cli_hide_none_type=_cli_hide_none_type,
+                _cli_avoid_json=_cli_avoid_json,
+                _cli_enforce_required=_cli_enforce_required,
+                _cli_use_class_docs_for_groups=_cli_use_class_docs_for_groups,
+                _cli_exit_on_error=_cli_exit_on_error,
+                _cli_prefix=_cli_prefix,
+                _cli_flag_prefix_char=_cli_flag_prefix_char,
+                _cli_implicit_flags=_cli_implicit_flags,
+                _cli_ignore_unknown_args=_cli_ignore_unknown_args,
+                _cli_kebab_case=_cli_kebab_case,
+                _cli_shortcuts=_cli_shortcuts,
+                _secrets_dir=_secrets_dir,
+                **values,
+            )
+        )
+
+>       super().__init__(**__pydantic_self__.__class__._settings_build_values(sources, init_kwargs))
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for AppSettings
+E         Value error, OPENROUTER_API_KEY environment variable is not set or is empty. [type=value_error, input_value={}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/value_error
+
+.venv/lib/python3.12/site-packages/pydantic_settings/main.py:242: ValidationError
+____________ test_validate_keys_fails_on_missing_openrouter_api_key ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff47253e180>
+
+    def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("OPENROUTER_API_KEY", "")
+        monkeypatch.setenv("PINECONE_API_KEY", "dummy_key")
+>       settings = AppSettings()
+                   ^^^^^^^^^^^^^
+
+tests/unit/test_config.py:26:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+__pydantic_self__ = AppSettings(openrouter_api_key=SecretStr(''), pinecone_api_key=SecretStr('**********'), text_fast_model='google/gemini...ase_url='https://openrouter.ai/api/v1/chat/completions', pinecone_index_name='matome-index', storage_base_dir='./data')
+_case_sensitive = None, _nested_model_default_partial_update = None
+_env_prefix = None, _env_prefix_target = None, _env_file = PosixPath('.')
+_env_file_encoding = None, _env_ignore_empty = None
+_env_nested_delimiter = None, _env_nested_max_split = None
+_env_parse_none_str = None, _env_parse_enums = None, _cli_prog_name = None
+_cli_parse_args = None, _cli_settings_source = None, _cli_parse_none_str = None
+_cli_hide_none_type = None, _cli_avoid_json = None, _cli_enforce_required = None
+_cli_use_class_docs_for_groups = None, _cli_exit_on_error = None
+_cli_prefix = None, _cli_flag_prefix_char = None, _cli_implicit_flags = None
+_cli_ignore_unknown_args = None, _cli_kebab_case = None, _cli_shortcuts = None
+_secrets_dir = None, _build_sources = None, values = {}
+sources = (InitSettingsSource(init_kwargs={}), EnvSettingsSource(env_nested_delimiter='__', env_prefix_len=0), DotEnvSettingsSou...efix_len=0), SecretsSettingsSource(secrets_dir=None), DefaultSettingsSource(nested_model_default_partial_update=False))
+init_kwargs = {}
+
+    def __init__(
+        __pydantic_self__,
+        _case_sensitive: bool | None = None,
+        _nested_model_default_partial_update: bool | None = None,
+        _env_prefix: str | None = None,
+        _env_prefix_target: EnvPrefixTarget | None = None,
+        _env_file: DotenvType | None = ENV_FILE_SENTINEL,
+        _env_file_encoding: str | None = None,
+        _env_ignore_empty: bool | None = None,
+        _env_nested_delimiter: str | None = None,
+        _env_nested_max_split: int | None = None,
+        _env_parse_none_str: str | None = None,
+        _env_parse_enums: bool | None = None,
+        _cli_prog_name: str | None = None,
+        _cli_parse_args: bool | list[str] | tuple[str, ...] | None = None,
+        _cli_settings_source: CliSettingsSource[Any] | None = None,
+        _cli_parse_none_str: str | None = None,
+        _cli_hide_none_type: bool | None = None,
+        _cli_avoid_json: bool | None = None,
+        _cli_enforce_required: bool | None = None,
+        _cli_use_class_docs_for_groups: bool | None = None,
+        _cli_exit_on_error: bool | None = None,
+        _cli_prefix: str | None = None,
+        _cli_flag_prefix_char: str | None = None,
+        _cli_implicit_flags: bool | Literal['dual', 'toggle'] | None = None,
+        _cli_ignore_unknown_args: bool | None = None,
+        _cli_kebab_case: bool | Literal['all', 'no_enums'] | None = None,
+        _cli_shortcuts: Mapping[str, str | list[str]] | None = None,
+        _secrets_dir: PathType | None = None,
+        _build_sources: tuple[tuple[PydanticBaseSettingsSource, ...], dict[str, Any]] | None = None,
+        **values: Any,
+    ) -> None:
+        sources, init_kwargs = (
+            _build_sources
+            if _build_sources is not None
+            else __pydantic_self__.__class__._settings_init_sources(
+                _case_sensitive=_case_sensitive,
+                _nested_model_default_partial_update=_nested_model_default_partial_update,
+                _env_prefix=_env_prefix,
+                _env_prefix_target=_env_prefix_target,
+                _env_file=_env_file,
+                _env_file_encoding=_env_file_encoding,
+                _env_ignore_empty=_env_ignore_empty,
+                _env_nested_delimiter=_env_nested_delimiter,
+                _env_nested_max_split=_env_nested_max_split,
+                _env_parse_none_str=_env_parse_none_str,
+                _env_parse_enums=_env_parse_enums,
+                _cli_prog_name=_cli_prog_name,
+                _cli_parse_args=_cli_parse_args,
+                _cli_settings_source=_cli_settings_source,
+                _cli_parse_none_str=_cli_parse_none_str,
+                _cli_hide_none_type=_cli_hide_none_type,
+                _cli_avoid_json=_cli_avoid_json,
+                _cli_enforce_required=_cli_enforce_required,
+                _cli_use_class_docs_for_groups=_cli_use_class_docs_for_groups,
+                _cli_exit_on_error=_cli_exit_on_error,
+                _cli_prefix=_cli_prefix,
+                _cli_flag_prefix_char=_cli_flag_prefix_char,
+                _cli_implicit_flags=_cli_implicit_flags,
+                _cli_ignore_unknown_args=_cli_ignore_unknown_args,
+                _cli_kebab_case=_cli_kebab_case,
+                _cli_shortcuts=_cli_shortcuts,
+                _secrets_dir=_secrets_dir,
+                **values,
+            )
+        )
+
+>       super().__init__(**__pydantic_self__.__class__._settings_build_values(sources, init_kwargs))
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for AppSettings
+E         Value error, OPENROUTER_API_KEY environment variable is not set or is empty. [type=value_error, input_value={'openrouter_api_key': ''...e_api_key': 'dummy_key'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/value_error
+
+.venv/lib/python3.12/site-packages/pydantic_settings/main.py:242: ValidationError
+_____________ test_validate_keys_fails_on_missing_pinecone_api_key _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff47253f920>
+
+    def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PINECONE_API_KEY", "")
+        monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_key")
+>       settings = AppSettings()
+                   ^^^^^^^^^^^^^
+
+tests/unit/test_config.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+__pydantic_self__ = AppSettings(openrouter_api_key=SecretStr('**********'), pinecone_api_key=SecretStr(''), text_fast_model='google/gemini...ase_url='https://openrouter.ai/api/v1/chat/completions', pinecone_index_name='matome-index', storage_base_dir='./data')
+_case_sensitive = None, _nested_model_default_partial_update = None
+_env_prefix = None, _env_prefix_target = None, _env_file = PosixPath('.')
+_env_file_encoding = None, _env_ignore_empty = None
+_env_nested_delimiter = None, _env_nested_max_split = None
+_env_parse_none_str = None, _env_parse_enums = None, _cli_prog_name = None
+_cli_parse_args = None, _cli_settings_source = None, _cli_parse_none_str = None
+_cli_hide_none_type = None, _cli_avoid_json = None, _cli_enforce_required = None
+_cli_use_class_docs_for_groups = None, _cli_exit_on_error = None
+_cli_prefix = None, _cli_flag_prefix_char = None, _cli_implicit_flags = None
+_cli_ignore_unknown_args = None, _cli_kebab_case = None, _cli_shortcuts = None
+_secrets_dir = None, _build_sources = None, values = {}
+sources = (InitSettingsSource(init_kwargs={}), EnvSettingsSource(env_nested_delimiter='__', env_prefix_len=0), DotEnvSettingsSou...efix_len=0), SecretsSettingsSource(secrets_dir=None), DefaultSettingsSource(nested_model_default_partial_update=False))
+init_kwargs = {}
+
+    def __init__(
+        __pydantic_self__,
+        _case_sensitive: bool | None = None,
+        _nested_model_default_partial_update: bool | None = None,
+        _env_prefix: str | None = None,
+        _env_prefix_target: EnvPrefixTarget | None = None,
+        _env_file: DotenvType | None = ENV_FILE_SENTINEL,
+        _env_file_encoding: str | None = None,
+        _env_ignore_empty: bool | None = None,
+        _env_nested_delimiter: str | None = None,
+        _env_nested_max_split: int | None = None,
+        _env_parse_none_str: str | None = None,
+        _env_parse_enums: bool | None = None,
+        _cli_prog_name: str | None = None,
+        _cli_parse_args: bool | list[str] | tuple[str, ...] | None = None,
+        _cli_settings_source: CliSettingsSource[Any] | None = None,
+        _cli_parse_none_str: str | None = None,
+        _cli_hide_none_type: bool | None = None,
+        _cli_avoid_json: bool | None = None,
+        _cli_enforce_required: bool | None = None,
+        _cli_use_class_docs_for_groups: bool | None = None,
+        _cli_exit_on_error: bool | None = None,
+        _cli_prefix: str | None = None,
+        _cli_flag_prefix_char: str | None = None,
+        _cli_implicit_flags: bool | Literal['dual', 'toggle'] | None = None,
+        _cli_ignore_unknown_args: bool | None = None,
+        _cli_kebab_case: bool | Literal['all', 'no_enums'] | None = None,
+        _cli_shortcuts: Mapping[str, str | list[str]] | None = None,
+        _secrets_dir: PathType | None = None,
+        _build_sources: tuple[tuple[PydanticBaseSettingsSource, ...], dict[str, Any]] | None = None,
+        **values: Any,
+    ) -> None:
+        sources, init_kwargs = (
+            _build_sources
+            if _build_sources is not None
+            else __pydantic_self__.__class__._settings_init_sources(
+                _case_sensitive=_case_sensitive,
+                _nested_model_default_partial_update=_nested_model_default_partial_update,
+                _env_prefix=_env_prefix,
+                _env_prefix_target=_env_prefix_target,
+                _env_file=_env_file,
+                _env_file_encoding=_env_file_encoding,
+                _env_ignore_empty=_env_ignore_empty,
+                _env_nested_delimiter=_env_nested_delimiter,
+                _env_nested_max_split=_env_nested_max_split,
+                _env_parse_none_str=_env_parse_none_str,
+                _env_parse_enums=_env_parse_enums,
+                _cli_prog_name=_cli_prog_name,
+                _cli_parse_args=_cli_parse_args,
+                _cli_settings_source=_cli_settings_source,
+                _cli_parse_none_str=_cli_parse_none_str,
+                _cli_hide_none_type=_cli_hide_none_type,
+                _cli_avoid_json=_cli_avoid_json,
+                _cli_enforce_required=_cli_enforce_required,
+                _cli_use_class_docs_for_groups=_cli_use_class_docs_for_groups,
+                _cli_exit_on_error=_cli_exit_on_error,
+                _cli_prefix=_cli_prefix,
+                _cli_flag_prefix_char=_cli_flag_prefix_char,
+                _cli_implicit_flags=_cli_implicit_flags,
+                _cli_ignore_unknown_args=_cli_ignore_unknown_args,
+                _cli_kebab_case=_cli_kebab_case,
+                _cli_shortcuts=_cli_shortcuts,
+                _secrets_dir=_secrets_dir,
+                **values,
+            )
+        )
+
+>       super().__init__(**__pydantic_self__.__class__._settings_build_values(sources, init_kwargs))
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for AppSettings
+E         Value error, PINECONE_API_KEY environment variable is not set or is empty. [type=value_error, input_value={'openrouter_api_key': 'd... 'pinecone_api_key': ''}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/value_error
+
+.venv/lib/python3.12/site-packages/pydantic_settings/main.py:242: ValidationError
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.12.12-final-0 _______________
 
@@ -27,20 +328,26 @@ Name                                 Stmts   Miss  Cover   Missing
 ------------------------------------------------------------------
 src/__init__.py                          0      0   100%
 src/api/__init__.py                      0      0   100%
-src/api/dependencies.py                 38      7    82%   23-24, 71-75
+src/api/dependencies.py                 44      2    95%   30-31
 src/core/__init__.py                     0      0   100%
-src/core/config.py                      20      0   100%
+src/core/config.py                      22      0   100%
 src/domain/__init__.py                   0      0   100%
 src/domain/models/__init__.py            4      0   100%
-src/domain/models/base.py                3      0   100%
+src/domain/models/base.py                5      0   100%
 src/domain/models/document.py           10      0   100%
 src/domain/models/node.py               19      0   100%
-src/domain/ports/llm.py                  7      0   100%
-src/domain/ports/storage.py             10      0   100%
-src/domain/ports/vector_store.py         9      0   100%
-src/infrastructure/llm.py               38      4    89%   38, 56-58
-src/infrastructure/storage.py           69      4    94%   25, 84-85, 100
-src/infrastructure/vector_store.py      35      4    89%   20-21, 51-52
+src/domain/ports/http.py                 7      0   100%
+src/domain/ports/llm.py                  9      0   100%
+src/domain/ports/storage.py             15      0   100%
+src/domain/ports/vector_store.py        11      0   100%
+src/infrastructure/http.py              10      3    70%   12, 17, 20
+src/infrastructure/llm.py               42      6    86%   39, 57-59, 69-70
+src/infrastructure/storage.py           74      7    91%   27, 30, 33-34, 93-94, 109
+src/infrastructure/vector_store.py      37      4    89%   31-32, 62-63
 ------------------------------------------------------------------
-TOTAL                                  262     19    93%
-============================== 31 passed in 2.70s ==============================
+TOTAL                                  309     22    93%
+=========================== short test summary info ============================
+FAILED tests/unit/test_config.py::test_settings_defaults - pydantic_core._pyd...
+FAILED tests/unit/test_config.py::test_validate_keys_fails_on_missing_openrouter_api_key
+FAILED tests/unit/test_config.py::test_validate_keys_fails_on_missing_pinecone_api_key
+========================= 3 failed, 28 passed in 2.79s =========================

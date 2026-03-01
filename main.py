@@ -5,13 +5,14 @@ from typing import Any
 from fastapi import FastAPI
 
 from src.api.dependencies import ContainerFactory
-from src.core.config import settings
+from src.core.config import AppSettings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup actions
-    settings.validate_keys()
+    # Using AppSettings instantiates the configuration and performs post init validation automatically
+    settings = AppSettings()
 
     container = ContainerFactory.create_container(settings)
     app.container = container  # type: ignore

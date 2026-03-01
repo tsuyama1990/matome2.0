@@ -1,10 +1,31 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any
 
 
 class IFileStorage(ABC):
     """Abstract interface for raw file storage operations."""
+
+    @abstractmethod
+    def exists(self, path: Path) -> bool:
+        """Checks if a file exists.
+
+        Args:
+            path (Path): Path to check.
+        Returns:
+            bool: True if it exists, False otherwise.
+        """
+
+    @abstractmethod
+    def get_metadata(self, path: Path) -> dict[str, Any]:
+        """Gets metadata for a file.
+
+        Args:
+            path (Path): Path to the file.
+        Returns:
+            dict: File metadata.
+        """
 
     @abstractmethod
     async def save_upload_stream(

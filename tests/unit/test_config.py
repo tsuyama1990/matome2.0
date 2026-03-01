@@ -12,8 +12,11 @@ def test_settings_initialization(test_config: AppSettings) -> None:
     assert test_config.multimodal_model == "test-vision"
 
 
-def test_settings_defaults() -> None:
+def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default fallbacks when environment variables are missing."""
+    # Temporarily set dummy keys so validation passes during initialization
+    monkeypatch.setenv("OPENROUTER_API_KEY", "dummy")
+    monkeypatch.setenv("PINECONE_API_KEY", "dummy")
     settings = AppSettings()
     assert settings.text_fast_model == "google/gemini-2.5-flash"
     assert settings.text_reasoning_model == "deepseek/deepseek-reasoner"
@@ -23,21 +26,19 @@ def test_settings_defaults() -> None:
 def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "")
     monkeypatch.setenv("PINECONE_API_KEY", "dummy_key")
-    settings = AppSettings()
     with pytest.raises(
         ValueError, match="OPENROUTER_API_KEY environment variable is not set or is empty."
     ):
-        settings.validate_keys()
+        AppSettings()
 
 
 def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PINECONE_API_KEY", "")
     monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_key")
-    settings = AppSettings()
     with pytest.raises(
         ValueError, match="PINECONE_API_KEY environment variable is not set or is empty."
     ):
-        settings.validate_keys()
+        AppSettings()
 
 
 def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.MonkeyPatch) -> None:

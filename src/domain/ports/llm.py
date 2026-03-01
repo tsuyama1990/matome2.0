@@ -26,6 +26,24 @@ class ILLMProvider(ABC):
         """
 
     @abstractmethod
+    async def stream_generate_text(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        timeout: float = 30.0,  # noqa: ASYNC109
+    ) -> Any:
+        """Generates text from the LLM provider as an asynchronous stream.
+
+        Args:
+            prompt (str): The main user prompt.
+            system_prompt (str): System prompt context.
+            timeout (float): Timeout per chunk.
+
+        Yields:
+            str: Chunks of the generated response.
+        """
+
+    @abstractmethod
     async def extract_structured_data(
         self,
         prompt: str,
