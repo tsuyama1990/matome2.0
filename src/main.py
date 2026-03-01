@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from src.api.dependencies import Container
 from src.api.routers.base import router
 from src.core.exceptions import (
     InvalidChunkStateError,
@@ -9,7 +10,17 @@ from src.core.exceptions import (
     NodeNotFoundError,
 )
 
-app = FastAPI(title="matome2-0", version="0.1.0")
+
+def create_app() -> FastAPI:
+    container = Container()
+    container.wire(modules=["src.api.routers.base"])
+
+    app = FastAPI(title="matome2-0", version="0.1.0")
+    app.container = container  # type: ignore[attr-defined]
+
+    return app
+
+app = create_app()
 
 @app.exception_handler(MatomeAppError)
 async def matome_app_error_handler(request: Request, exc: MatomeAppError) -> JSONResponse:

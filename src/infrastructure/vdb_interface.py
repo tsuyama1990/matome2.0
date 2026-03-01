@@ -13,9 +13,9 @@ class IVectorStore(ABC):
         pass
 
     @abstractmethod
-    async def search(self, query_vector: list[float], limit: int) -> list[SemanticChunk]:
+    async def search(self, query_vector: list[float], limit: int, offset: int = 0) -> list[SemanticChunk]:
         pass
 
     @abstractmethod
-    async def search_batch(self, query_vectors: list[list[float]], limit: int) -> list[list[SemanticChunk]]:
+    async def search_batch(self, query_vectors: list[list[float]], limit: int, offset: int = 0) -> list[list[SemanticChunk]]:
         pass

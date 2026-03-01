@@ -1,17 +1,16 @@
-from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
 
 class KnowledgeNode(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    id: UUID
+    id: UUID4
     level: int = Field(ge=0)
     title: str = Field(..., min_length=1, max_length=512, pattern=r"^[^<>;&]*$")
     dense_summary: str = Field(..., min_length=1, max_length=2048)
-    children: list[UUID] = Field(default_factory=list)
-    source_chunks: list[UUID] = Field(default_factory=list)
+    children: list[UUID4] = Field(default_factory=list)
+    source_chunks: list[UUID4] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def check_cyclic_dependency(self) -> "KnowledgeNode":

@@ -18,6 +18,10 @@ def test_semantic_chunk_empty_content() -> None:
     with pytest.raises(ValidationError):
         SemanticChunk(id=uuid4(), document_id=uuid4(), content="", metadata={})
 
+def test_semantic_chunk_metadata_invalid_key() -> None:
+    with pytest.raises(ValidationError):
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={1: "test"})  # type: ignore[dict-item]
+
 def test_semantic_chunk_compression() -> None:
     chunk_id = uuid4()
     doc_id = uuid4()

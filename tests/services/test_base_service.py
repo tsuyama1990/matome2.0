@@ -19,10 +19,10 @@ class MockVectorStore(IVectorStore):
     async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int) -> bool:
         return True
 
-    async def search(self, query_vector: list[float], limit: int) -> list[SemanticChunk]:
+    async def search(self, query_vector: list[float], limit: int, offset: int = 0) -> list[SemanticChunk]:
         return []
 
-    async def search_batch(self, query_vectors: list[list[float]], limit: int) -> list[list[SemanticChunk]]:
+    async def search_batch(self, query_vectors: list[list[float]], limit: int, offset: int = 0) -> list[list[SemanticChunk]]:
         return []
 
 class ConcreteService(BaseService):
@@ -34,6 +34,8 @@ class ConcreteService(BaseService):
 def test_config(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_key")
     monkeypatch.setenv("VECTOR_DB_URL", "http://test")
+    monkeypatch.setenv("VDB_BATCH_SIZE", "100")
+    monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "3")
     return AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 def test_base_service_init(test_config: AppSettings) -> None:
