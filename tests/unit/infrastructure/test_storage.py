@@ -65,3 +65,29 @@ def test_read_file_stream_path_traversal(storage: LocalStorage, tmp_path: Path) 
 
     with pytest.raises(ValueError, match="Path traversal attempt"):
         list(storage.read_file_stream(outside_path))
+
+
+@pytest.mark.asyncio
+async def test_read_file_stream_async_success(storage: LocalStorage, tmp_path: Path) -> None:
+    # Prepare file: write 5MB using a repeated byte chunk
+    file_path = tmp_path / "read_async.txt"
+    chunk = b"A" * 1024 * 1024  # 1MB
+    file_path.write_bytes(chunk * 5)  # Write 5MB to disk to prevent OOM in memory string appending
+
+    # Read asynchronously
+    stream = storage.read_file_stream_async(file_path)
+    chunks = []
+    async for c in stream:
+        chunks.append(c)
+
+    assert "".join(chunks) == "A" * 5 * 1024 * 1024
+
+
+@pytest.mark.asyncio
+async def test_read_file_stream_async_path_traversal(storage: LocalStorage, tmp_path: Path) -> None:
+    outside_path = tmp_path.parent / "outside.txt"
+
+    stream = storage.read_file_stream_async(outside_path)
+    with pytest.raises(ValueError, match="Path traversal attempt"):
+        async for _ in stream:
+            pass

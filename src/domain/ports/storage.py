@@ -37,3 +37,15 @@ class IFileStorage(ABC):
             FileNotFoundError: If the requested path does not exist.
             ValueError: If the path implies a path traversal attack outside bounds.
         """
+
+    @abstractmethod
+    def read_file_stream_async(self, path: Path) -> AsyncGenerator[str, None]:
+        """Reads a file asynchronously, yielding safely decoded text chunks.
+
+        Args:
+            path (Path): The path to the file.
+
+        Raises:
+            FileNotFoundError: If the requested path does not exist.
+            ValueError: If the path implies a path traversal attack outside bounds.
+        """

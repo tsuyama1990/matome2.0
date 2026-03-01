@@ -1,5 +1,7 @@
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
+import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
@@ -14,11 +16,19 @@ class ApplicationContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
     app_settings = providers.Singleton(AppSettings)
 
+    @staticmethod
+    async def init_async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
+        async with httpx.AsyncClient() as client:
+            yield client
+
+    http_client = providers.Resource(init_async_client)
+
     # Infrastructure Implementations
     llm_provider = providers.Factory(
         OpenRouterClient,
         api_key=providers.Callable(lambda s: s.openrouter_api_key.get_secret_value(), app_settings),
         default_model=app_settings.provided.text_fast_model,
+        client=http_client,
     )
 
     vector_store = providers.Factory(

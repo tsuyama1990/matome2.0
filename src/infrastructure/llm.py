@@ -9,9 +9,10 @@ from src.domain.ports.llm import ILLMProvider
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
-    def __init__(self, api_key: str, default_model: str) -> None:
+    def __init__(self, api_key: str, default_model: str, client: httpx.AsyncClient) -> None:
         self.api_key = api_key
         self.default_model = default_model
+        self.client = client
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
 
     async def generate_text(
@@ -37,11 +38,12 @@ class OpenRouterClient(ILLMProvider):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(self.base_url, headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
+            response = await self.client.post(
+                self.base_url, headers=headers, json=payload, timeout=timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
         except httpx.TimeoutException as e:
             msg = f"OpenRouter API request timed out: {e}"
             raise TimeoutError(msg) from e
