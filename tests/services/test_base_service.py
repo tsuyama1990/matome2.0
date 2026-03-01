@@ -14,6 +14,7 @@ def get_mock_llm_provider() -> AsyncMock:
     mock.generate_completion.return_value = "mock completion"
     return mock
 
+
 def get_mock_vector_store() -> AsyncMock:
     mock = AsyncMock(spec=IVectorStore)
     mock.upsert_chunks.return_value = True
@@ -22,6 +23,7 @@ def get_mock_vector_store() -> AsyncMock:
     mock.search_batch.return_value = []
     mock.stream_chunks_to_store.return_value = None
     return mock
+
 
 class ConcreteService(BaseService):
     async def execute(self) -> None:
@@ -36,12 +38,14 @@ def test_config(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
     monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "3")
     return AppSettings(_env_file=None)  # type: ignore[call-arg]
 
+
 def test_base_service_init(test_config: AppSettings) -> None:
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
     service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
     assert service.llm_provider is llm
     assert service.vector_store is vdb
+
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_success(test_config: AppSettings) -> None:
@@ -55,12 +59,18 @@ async def test_execute_with_retry_success(test_config: AppSettings) -> None:
     result: str = await service.execute_with_retry(mock_operation)
     assert result == "success"
 
+
 @pytest.mark.asyncio
-async def test_execute_with_retry_matome_app_exception(monkeypatch: pytest.MonkeyPatch, test_config: AppSettings) -> None:
+async def test_execute_with_retry_matome_app_exception(
+    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+) -> None:
     import asyncio
+
     original_sleep = asyncio.sleep
+
     async def mock_sleep(x: float) -> None:
         await original_sleep(0)
+
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
@@ -79,6 +89,7 @@ async def test_execute_with_retry_matome_app_exception(monkeypatch: pytest.Monke
         await service.execute_with_retry(mock_operation)
 
     assert attempts == 2
+
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_generic_exception(test_config: AppSettings) -> None:

@@ -5,14 +5,17 @@ from pydantic import BaseModel, ConfigDict
 
 router = APIRouter()
 
+
 class HealthStatus(StrEnum):
     OK = "ok"
     DEGRADED = "degraded"
     ERROR = "error"
 
+
 class HealthResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: HealthStatus
+
 
 @router.get(
     "/health",
@@ -22,13 +25,9 @@ class HealthResponse(BaseModel):
     responses={
         200: {
             "description": "Successful Response",
-            "content": {
-                "application/json": {
-                    "example": {"status": "ok"}
-                }
-            },
+            "content": {"application/json": {"example": {"status": "ok"}}},
         }
-    }
+    },
 )
 async def health_check() -> HealthResponse:
     """Check the health status of the application."""

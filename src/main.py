@@ -21,13 +21,15 @@ def create_app() -> FastAPI:
         description="The Core backend service for document ingestion and knowledge graph construction.",
         docs_url="/docs",
         redoc_url="/redoc",
-        openapi_url="/openapi.json"
+        openapi_url="/openapi.json",
     )
-    app.container = container # type: ignore[attr-defined]
+    app.container = container  # type: ignore[attr-defined]
 
     return app
 
+
 app = create_app()
+
 
 @app.exception_handler(MatomeAppError)
 async def matome_app_error_handler(request: Request, exc: MatomeAppError) -> JSONResponse:
@@ -36,6 +38,7 @@ async def matome_app_error_handler(request: Request, exc: MatomeAppError) -> JSO
         content={"message": str(exc)},
     )
 
+
 @app.exception_handler(NodeNotFoundError)
 async def node_not_found_error_handler(request: Request, exc: NodeNotFoundError) -> JSONResponse:
     return JSONResponse(
@@ -43,12 +46,16 @@ async def node_not_found_error_handler(request: Request, exc: NodeNotFoundError)
         content={"message": str(exc)},
     )
 
+
 @app.exception_handler(InvalidChunkStateError)
-async def invalid_chunk_state_error_handler(request: Request, exc: InvalidChunkStateError) -> JSONResponse:
+async def invalid_chunk_state_error_handler(
+    request: Request, exc: InvalidChunkStateError
+) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={"message": str(exc)},
     )
+
 
 @app.exception_handler(LLMProviderError)
 async def llm_provider_error_handler(request: Request, exc: LLMProviderError) -> JSONResponse:
@@ -56,5 +63,6 @@ async def llm_provider_error_handler(request: Request, exc: LLMProviderError) ->
         status_code=502,
         content={"message": str(exc)},
     )
+
 
 app.include_router(router)

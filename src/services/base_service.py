@@ -13,7 +13,9 @@ T = TypeVar("T")
 
 
 class BaseService(ABC):
-    def __init__(self, llm_provider: ILLMProvider, vector_store: IVectorStore, config: AppSettings) -> None:
+    def __init__(
+        self, llm_provider: ILLMProvider, vector_store: IVectorStore, config: AppSettings
+    ) -> None:
         self.llm_provider = llm_provider
         self.vector_store = vector_store
         self.config = config

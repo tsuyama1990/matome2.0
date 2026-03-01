@@ -64,4 +64,4 @@ explicit_package_bases = true
 disable_error_code = ["untyped-decorator"]
 
 [tool.uv]
-managed = false
+managed = true

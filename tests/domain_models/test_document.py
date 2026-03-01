@@ -14,21 +14,26 @@ def test_document_valid_creation() -> None:
     assert doc.title == "Test Doc"
     assert doc.file_path == "/path/to/doc"
 
+
 def test_document_empty_title() -> None:
     with pytest.raises(ValidationError):
         Document(id=uuid4(), title="", file_path="/path/to/doc")
+
 
 def test_document_empty_file_path() -> None:
     with pytest.raises(ValidationError):
         Document(id=uuid4(), title="Test Doc", file_path="")
 
+
 def test_document_malicious_title() -> None:
     with pytest.raises(ValidationError):
         Document(id=uuid4(), title="<script>alert(1)</script>", file_path="/path")
 
+
 def test_document_malicious_path() -> None:
     with pytest.raises(ValidationError):
         Document(id=uuid4(), title="Valid", file_path="/path/&rm -rf")
+
 
 @pytest.mark.asyncio
 async def test_document_stream_chunks_not_found() -> None:
@@ -40,6 +45,7 @@ async def test_document_stream_chunks_not_found() -> None:
 @pytest.mark.asyncio
 async def test_document_stream_chunks_valid(tmp_path: Path) -> None:
     import anyio
+
     test_file = tmp_path / "test_doc.txt"
     async with await anyio.open_file(test_file, "w") as f:
         await f.write("Line 1\nLine 2\nLine 3\n")

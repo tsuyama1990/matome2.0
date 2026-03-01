@@ -1,4 +1,3 @@
-
 from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
 

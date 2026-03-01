@@ -4,10 +4,12 @@ from src.main import app
 
 client = TestClient(app)
 
+
 def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
 
 def test_matome_app_error_handler() -> None:
     # Trigger an error manually to test the exception handler
@@ -22,6 +24,7 @@ def test_matome_app_error_handler() -> None:
     assert response.status_code == 400
     assert response.json() == {"message": "Triggered MatomeAppError"}
 
+
 def test_node_not_found_error_handler() -> None:
     from src.core.exceptions import NodeNotFoundError
 
@@ -34,6 +37,7 @@ def test_node_not_found_error_handler() -> None:
     assert response.status_code == 404
     assert response.json() == {"message": "Node missing"}
 
+
 def test_invalid_chunk_state_error_handler() -> None:
     from src.core.exceptions import InvalidChunkStateError
 
@@ -45,6 +49,7 @@ def test_invalid_chunk_state_error_handler() -> None:
     response = client.get("/trigger-invalid-chunk")
     assert response.status_code == 422
     assert response.json() == {"message": "Chunk state invalid"}
+
 
 def test_llm_provider_error_handler() -> None:
     from src.core.exceptions import LLMProviderError

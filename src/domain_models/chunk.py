@@ -3,12 +3,22 @@ import zlib
 from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
 
+class DimensionalTags(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    time_axis: str | None = None
+    logic_axis: str | None = None
+    polarity_axis: str | None = None
+    system_design_axis: str | None = None
+
+
 class SemanticChunk(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: UUID4
     document_id: UUID4
     content: str = Field(..., min_length=1, max_length=10_000)
+    entities: list[str] = Field(default_factory=list)
+    dimensional_tags: DimensionalTags = Field(default_factory=DimensionalTags)
     metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
 
     @model_validator(mode="after")

@@ -13,17 +13,23 @@ def test_knowledge_node_valid_creation() -> None:
     assert node.level == 0
     assert node.title == "Root Node"
 
+
 def test_knowledge_node_negative_level() -> None:
     with pytest.raises(ValidationError):
         KnowledgeNode(id=uuid4(), level=-1, title="Test", dense_summary="Summary")
+
 
 def test_knowledge_node_empty_title() -> None:
     with pytest.raises(ValidationError):
         KnowledgeNode(id=uuid4(), level=1, title="", dense_summary="Summary")
 
+
 def test_knowledge_node_malicious_title() -> None:
     with pytest.raises(ValidationError):
-        KnowledgeNode(id=uuid4(), level=1, title="<script>alert()</script>", dense_summary="Summary")
+        KnowledgeNode(
+            id=uuid4(), level=1, title="<script>alert()</script>", dense_summary="Summary"
+        )
+
 
 def test_knowledge_node_cyclic_child() -> None:
     node_id = uuid4()

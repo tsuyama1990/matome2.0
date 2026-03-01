@@ -22,7 +22,7 @@ class Document(BaseModel):
         # If we have an explicit allowed directory, we can check it
         # For general security, we definitely want to prevent absolute path escapes
         # Or simple check for '..' in path
-        if '..' in Path(self.file_path).parts:
+        if ".." in Path(self.file_path).parts:
             msg = "Directory traversal detected in file_path"
             raise ValueError(msg)
 
@@ -46,10 +46,6 @@ class Document(BaseModel):
                 if not chunk_data:
                     break
 
-                chunk = SemanticChunk(
-                    id=uuid.uuid4(),
-                    document_id=self.id,
-                    content=chunk_data
-                )
+                chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
                 chunk.metadata["_compressed"] = chunk.compress_content().hex()
                 yield chunk
