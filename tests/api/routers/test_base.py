@@ -11,6 +11,16 @@ def test_health_check() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_health_check_rate_limit() -> None:
+    # Exhaust the rate limit
+    for _ in range(10):
+        client.get("/health")
+
+    response = client.get("/health")
+    assert response.status_code == 429
+    assert response.json()["detail"] == "Too Many Requests"
+
+
 def test_matome_app_error_handler() -> None:
     # Trigger an error manually to test the exception handler
     from src.core.exceptions import MatomeAppError

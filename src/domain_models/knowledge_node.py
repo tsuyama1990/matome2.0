@@ -4,6 +4,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 class KnowledgeNode(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = Field(default="1.0.0", frozen=True)
     id: UUID4
     level: int = Field(ge=0)
     title: str = Field(..., min_length=1, max_length=512, pattern=r"^[^<>;&]*$")

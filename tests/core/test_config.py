@@ -28,19 +28,8 @@ def test_app_settings_inconsistent_retry_config(
         AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 
-def test_app_settings_valid(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
-) -> None:
-    import uuid
-
-    mock_key = uuid.uuid4().hex
-    monkeypatch.setenv("OPENROUTER_API_KEY", mock_key)
-    monkeypatch.setenv("VECTOR_DB_URL", "http://localhost:8080")
-    monkeypatch.setenv("VDB_BATCH_SIZE", "100")
-    monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "5")
-    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", str(tmp_path))
-    settings = AppSettings(_env_file=None)  # type: ignore[call-arg]
-    assert mock_key == settings.OPENROUTER_API_KEY
-    assert settings.VECTOR_DB_URL == "http://localhost:8080"
-    assert settings.VDB_BATCH_SIZE == 100
-    assert settings.RETRY_MAX_ATTEMPTS == 5
+def test_app_settings_valid(app_settings: AppSettings) -> None:
+    assert app_settings.OPENROUTER_API_KEY is not None
+    assert app_settings.VECTOR_DB_URL == "http://test-url.local"
+    assert app_settings.VDB_BATCH_SIZE == 100
+    assert app_settings.RETRY_MAX_ATTEMPTS == 3

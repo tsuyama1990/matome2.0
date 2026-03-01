@@ -46,6 +46,12 @@ class AppSettings(BaseSettings):
         ),
         ge=1,
     )
+    MAX_KEEPALIVE_CONNECTIONS: int = Field(
+        default_factory=lambda: int(os.getenv("MAX_KEEPALIVE_CONNECTIONS", "20")), ge=1
+    )
+    MAX_CONNECTIONS: int = Field(
+        default_factory=lambda: int(os.getenv("MAX_CONNECTIONS", "100")), ge=1
+    )
     ALLOWED_DOCUMENT_DIR: Path = Field(...)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

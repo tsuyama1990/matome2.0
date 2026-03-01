@@ -25,36 +25,24 @@ def get_mock_vector_store() -> AsyncMock:
     return mock
 
 
-class ConcreteService(BaseService):
-    async def execute(self) -> None:
-        pass
+class ConcreteService(BaseService[str]):
+    async def execute(self) -> str:
+        return "success"
 
 
-@pytest.fixture
-def test_config(monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory) -> AppSettings:
-    import uuid
-
-    monkeypatch.setenv("OPENROUTER_API_KEY", uuid.uuid4().hex)
-    monkeypatch.setenv("VECTOR_DB_URL", "http://test-url.local")
-    monkeypatch.setenv("VDB_BATCH_SIZE", "100")
-    monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "3")
-    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", str(tmp_path))
-    return AppSettings(_env_file=None)  # type: ignore[call-arg]
-
-
-def test_base_service_init(test_config: AppSettings) -> None:
+def test_base_service_init(app_settings: AppSettings) -> None:
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
     assert service.llm_provider is llm
     assert service.vector_store is vdb
 
 
 @pytest.mark.asyncio
-async def test_execute_with_retry_success(test_config: AppSettings) -> None:
+async def test_execute_with_retry_success(app_settings: AppSettings) -> None:
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
 
     async def mock_operation() -> str:
         return "success"
@@ -65,7 +53,7 @@ async def test_execute_with_retry_success(test_config: AppSettings) -> None:
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_matome_app_exception(
-    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+    monkeypatch: pytest.MonkeyPatch, app_settings: AppSettings
 ) -> None:
     import asyncio
 
@@ -77,8 +65,8 @@ async def test_execute_with_retry_matome_app_exception(
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    test_config.RETRY_MAX_ATTEMPTS = 2
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    app_settings.RETRY_MAX_ATTEMPTS = 2
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
 
     attempts = 0
 
@@ -95,10 +83,12 @@ async def test_execute_with_retry_matome_app_exception(
 
 
 @pytest.mark.asyncio
-async def test_execute_with_retry_generic_exception(test_config: AppSettings) -> None:
+async def test_execute_with_retry_generic_exception(
+    app_settings: AppSettings, caplog: pytest.LogCaptureFixture
+) -> None:
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
 
     async def mock_operation() -> str:
         msg = "Generic error"
@@ -107,15 +97,17 @@ async def test_execute_with_retry_generic_exception(test_config: AppSettings) ->
     with pytest.raises(MatomeAppError, match="Operation failed: Generic error"):
         await service.execute_with_retry(mock_operation)
 
+    assert "Operation failed: Generic error" in caplog.text
+
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_circuit_breaker(
-    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+    monkeypatch: pytest.MonkeyPatch, app_settings: AppSettings
 ) -> None:
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    test_config.RETRY_MAX_ATTEMPTS = 1  # 1 try per call
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    app_settings.RETRY_MAX_ATTEMPTS = 1  # 1 try per call
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
 
     async def fail_op() -> str:
         msg = "fail"
@@ -135,7 +127,7 @@ async def test_execute_with_retry_circuit_breaker(
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_recovers(
-    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+    monkeypatch: pytest.MonkeyPatch, app_settings: AppSettings
 ) -> None:
     import asyncio
 
@@ -146,8 +138,8 @@ async def test_execute_with_retry_recovers(
 
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    test_config.RETRY_MAX_ATTEMPTS = 3
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+    app_settings.RETRY_MAX_ATTEMPTS = 3
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
 
     attempts = 0
 

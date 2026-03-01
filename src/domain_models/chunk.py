@@ -5,6 +5,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
 class DimensionalTags(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    schema_version: str = Field(default="1.0.0", frozen=True)
     time_axis: str | None = None
     logic_axis: str | None = None
     polarity_axis: str | None = None
@@ -14,6 +15,7 @@ class DimensionalTags(BaseModel):
 class SemanticChunk(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = Field(default="1.0.0", frozen=True)
     id: UUID4
     document_id: UUID4
     content: str = Field(..., min_length=1, max_length=10_000)
@@ -26,10 +28,14 @@ class SemanticChunk(BaseModel):
     @model_validator(mode="after")
     def validate_content_safety(self) -> "SemanticChunk":
         """Ensures the content does not contain obvious malicious patterns or invalid encodings."""
+        import html
+
         import bleach
 
-        # XSS validation via Bleach
-        cleaned_content = bleach.clean(self.content, tags=[], attributes={}, strip=True)
+        # XSS validation via Bleach. Unescape html entities that bleach adds (e.g. & to &amp;)
+        cleaned_content = html.unescape(
+            bleach.clean(self.content, tags=[], attributes={}, strip=True)
+        )
         if cleaned_content != self.content:
             msg = "Potentially malicious content detected"
             raise ValueError(msg)

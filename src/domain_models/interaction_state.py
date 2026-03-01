@@ -6,6 +6,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field
 class InteractionState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = Field(default="1.0.0", frozen=True)
     user_id: UUID4
     document_id: UUID4
     locked_nodes: list[UUID4] = Field(default_factory=list)

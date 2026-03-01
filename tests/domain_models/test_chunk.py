@@ -9,12 +9,12 @@ from src.domain_models.chunk import DimensionalTags, SemanticChunk
 def test_semantic_chunk_valid_creation() -> None:
     chunk_id = uuid4()
     doc_id = uuid4()
-    chunk = SemanticChunk(
-        id=chunk_id, document_id=doc_id, content="This is valid content.", metadata={}
-    )
+    # Adding characters that bleach auto-escapes to verify they do not fail validation
+    valid_content = "This is valid content & testing it's 'quotes' and \"stuff\"."
+    chunk = SemanticChunk(id=chunk_id, document_id=doc_id, content=valid_content, metadata={})
     assert chunk.id == chunk_id
     assert chunk.document_id == doc_id
-    assert chunk.content == "This is valid content."
+    assert chunk.content == valid_content
     assert chunk.entities == []
     assert chunk.dimensional_tags.time_axis is None
 

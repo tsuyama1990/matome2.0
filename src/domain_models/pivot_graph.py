@@ -4,6 +4,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field
 class PivotGraph(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = Field(default="1.0.0", frozen=True)
     id: UUID4
     source_document_ids: list[UUID4] = Field(default_factory=list)
     analytical_axis: str = Field(..., min_length=1, max_length=255)

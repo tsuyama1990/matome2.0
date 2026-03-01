@@ -7,14 +7,18 @@ from src.infrastructure.vdb_interface import IVectorStore
 class PineconeVectorStore(IVectorStore):
     """Provides vector database operations leveraging Pinecone API with connection pooling."""
 
-    def __init__(self, api_url: str) -> None:
+    def __init__(self, api_url: str, max_keepalive: int = 50, max_connections: int = 200) -> None:
         """Initialize the Pinecone Vector Store.
 
         Args:
             api_url: The Pinecone Vector DB REST URL endpoint.
+            max_keepalive: Max keepalive connections for the pool.
+            max_connections: Total maximum open TCP connections.
         """
         self.api_url = api_url
-        limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
+        limits = httpx.Limits(
+            max_keepalive_connections=max_keepalive, max_connections=max_connections
+        )
         timeout = httpx.Timeout(10.0, read=45.0)
         self._client = httpx.AsyncClient(limits=limits, timeout=timeout)
 

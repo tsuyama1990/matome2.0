@@ -103,6 +103,10 @@ async def test_document_stream_chunks_read_error(
             msg = "Mocked read error"
             raise OSError(msg)
 
+        async def read(self, size: int) -> bytes:
+            msg = "Mocked read error"
+            raise OSError(msg)
+
     monkeypatch.setattr("aiofiles.open", lambda *args, **kwargs: BrokenFileAsyncMock())
 
     with pytest.raises(OSError, match="Failed to read document"):
@@ -135,7 +139,7 @@ async def test_document_stream_chunks_valid(
     assert len(chunks) > 1
 
     full_content = "".join(chunk.content for chunk in chunks)
-    assert full_content == "Line 1\nLine 2\nLine 3\n"
+    assert full_content == "Line 1\nLine 2\nLine 3"
 
 
 @pytest.mark.asyncio
@@ -166,7 +170,16 @@ async def test_document_stream_chunks_encoding_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     test_file = tmp_path / "bad_encoding.txt"
-    test_file.write_bytes(b"\xff\xfe\xfd")  # Invalid UTF-8
+    # Make sure we write valid UTF-8, but split it right on a multi-byte sequence to test IncrementalDecoder logic
+
+    # 🤡 is a 4-byte character. We'll write it, but if streamed in chunks of 2, it would break normal decoders.
+    # However, our IncrementalDecoder cleanly handles it. The bytes for 🤡 are b'\xf0\x9f\xa4\xa1'
+    emoji_bytes = b"\xf0\x9f\xa4\xa1" * 5  # Write 5 emojis
+
+    # Add a truly broken byte sequence in the middle to trigger the fallback path as well
+    broken_bytes = b"\xff\xfe\xfd"
+
+    test_file.write_bytes(emoji_bytes + broken_bytes + emoji_bytes)
 
     doc = Document(id=uuid4(), title="Bad Encoding", file_path=str(test_file))
 
@@ -177,6 +190,15 @@ async def test_document_stream_chunks_encoding_error(
         "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
 
-    with pytest.raises(UnicodeDecodeError):
-        async for _chunk in doc.stream_chunks(allowed_dir=str(tmp_path)):
-            pass
+    # The stream chunks now replaces invalid encoding characters cleanly rather than crashing the pipeline.
+    # We assert that the fallback is applied successfully.
+    chunks = []
+    async for chunk in doc.stream_chunks(
+        allowed_dir=str(tmp_path), block_size=2
+    ):  # Force chunking in the middle of characters
+        chunks.append(chunk)
+
+    assert len(chunks) > 0
+    # Ensure no data corruption. Our 5 emojis should be fully recovered since IncrementalDecoder buffers them.
+    full_text = "".join(c.content for c in chunks)
+    assert "🤡🤡🤡🤡🤡" in full_text

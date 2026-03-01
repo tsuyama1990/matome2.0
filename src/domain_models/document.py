@@ -9,6 +9,7 @@ from src.domain_models.chunk import SemanticChunk
 class Document(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = Field(default="1.0.0", frozen=True)
     id: UUID4
     title: str = Field(..., min_length=1, max_length=255, pattern=r"^[^<>;&]*$")
     file_path: str = Field(..., min_length=1, max_length=1024, pattern=r"^[^<>;&]*$")
@@ -50,29 +51,35 @@ class Document(BaseModel):
             msg = f"Document path not found: {self.file_path}"
             raise FileNotFoundError(msg)
 
-        try:
-            async with aiofiles.open(self.file_path, encoding="utf-8") as f:
-                buffer: list[str] = []
-                current_size = 0
+        import codecs
 
-                async for line in f:
-                    line_len = len(line)
-                    if current_size + line_len > block_size and buffer:
-                        chunk_data = "".join(buffer)
-                        chunk = SemanticChunk(
+        try:
+            # Open binary for efficient block-level reading without slow line-by-line parsing
+            async with aiofiles.open(self.file_path, "rb") as f:
+                # Stateful incremental decoder correctly handles multi-byte characters split across chunk boundaries
+                decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+                while True:
+                    chunk_bytes = await f.read(block_size)
+                    if not chunk_bytes:
+                        # Flush the final decoded bytes
+                        final_data = decoder.decode(b"", final=True)
+                        if final_data.strip():
+                            yield SemanticChunk(
+                                id=uuid.uuid4(), document_id=self.id, content=final_data
+                            )
+                        break
+
+                    try:
+                        chunk_data = decoder.decode(chunk_bytes, final=False)
+                    except UnicodeError as ue:
+                        msg = "Failed to decode chunk"
+                        enc = "utf-8"
+                        raise UnicodeDecodeError(enc, chunk_bytes, 0, len(chunk_bytes), msg) from ue
+
+                    if chunk_data.strip():
+                        yield SemanticChunk(
                             id=uuid.uuid4(), document_id=self.id, content=chunk_data
                         )
-                        yield chunk
-                        buffer = []
-                        current_size = 0
-
-                    buffer.append(line)
-                    current_size += line_len
-
-                if buffer:
-                    chunk_data = "".join(buffer)
-                    chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
-                    yield chunk
 
         except OSError as e:
             msg = f"Failed to read document: {e}"

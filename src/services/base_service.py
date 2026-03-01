@@ -2,7 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from src.core.config import AppSettings
 from src.core.exceptions import MatomeAppError
@@ -16,7 +16,7 @@ class CircuitBreakerOpenError(MatomeAppError):
     """Raised when the circuit breaker is open to prevent cascading failures."""
 
 
-class BaseService(ABC):
+class BaseService(ABC, Generic[T]):
     def __init__(
         self, llm_provider: ILLMProvider, vector_store: IVectorStore, config: AppSettings
     ) -> None:
@@ -108,7 +108,15 @@ class BaseService(ABC):
         operations: list[Callable[[], Awaitable[T]]],
         batch_size: int = 10,
     ) -> list[T]:
-        """Executes a list of operations concurrently with batching and retry mechanisms to prevent API flooding."""
+        """Executes a list of operations concurrently with backpressure to prevent API flooding.
+
+        Args:
+            operations: A list of async operations.
+            batch_size: Maximum concurrent operations allowed.
+
+        Returns:
+            A list containing the results of each operation.
+        """
         semaphore = asyncio.Semaphore(batch_size)
 
         async def _bounded_execute(op: Callable[[], Awaitable[T]]) -> T:
@@ -116,8 +124,13 @@ class BaseService(ABC):
                 return await self.execute_with_retry(op)
 
         tasks = [_bounded_execute(op) for op in operations]
-        return await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
+        return list(results)
 
     @abstractmethod
-    async def execute(self) -> None:
-        """Abstract method that concrete services must implement."""
+    async def execute(self) -> T:
+        """Abstract method that concrete services must implement.
+
+        Returns:
+            Generic result of type T.
+        """

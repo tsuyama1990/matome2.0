@@ -44,4 +44,10 @@ async def test_full_pipeline_ingestion(tmp_path: Path, monkeypatch: pytest.Monke
     assert res is True
     assert vdb.upsert_chunks.call_count == (len(chunks) + 1) // 2
 
+    # Verify that the correct chunks are being passed into the mock
+    called_chunks = vdb.upsert_chunks.call_args[0][0]
+    assert len(called_chunks) <= 2
+    assert isinstance(called_chunks[0], SemanticChunk)
+    assert called_chunks[0].document_id == doc.id
+
     await vdb.close()

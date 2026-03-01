@@ -6,15 +6,19 @@ from src.infrastructure.llm_interface import ILLMProvider
 class OpenRouterLLMProvider(ILLMProvider):
     """Provides LLM completions leveraging the OpenRouter API with connection pooling."""
 
-    def __init__(self, api_key: str) -> None:
+    def __init__(self, api_key: str, max_keepalive: int = 20, max_connections: int = 100) -> None:
         """Initialize the OpenRouter provider.
 
         Args:
             api_key: The OpenRouter API key.
+            max_keepalive: Max keepalive TCP connections.
+            max_connections: Maximum open TCP connections.
         """
         self.api_key = api_key
         # Configure connection pooling: Max keepalive limits, explicit timeouts.
-        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+        limits = httpx.Limits(
+            max_keepalive_connections=max_keepalive, max_connections=max_connections
+        )
         timeout = httpx.Timeout(10.0, read=30.0)
         self._client = httpx.AsyncClient(limits=limits, timeout=timeout)
 
