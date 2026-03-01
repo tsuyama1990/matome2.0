@@ -31,18 +31,42 @@ class ConcreteService(BaseService[str]):
 
 
 def test_base_service_init(app_settings: AppSettings) -> None:
+    from src.api.dependencies import Container
+
+    container = Container()
+    container.config.override(app_settings)
+
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
+    container.llm_provider.override(llm)
+    container.vector_store.override(vdb)
+
+    service = ConcreteService(
+        llm_provider=container.llm_provider(),
+        vector_store=container.vector_store(),
+        config=container.config(),
+    )
     assert service.llm_provider is llm
     assert service.vector_store is vdb
 
 
 @pytest.mark.asyncio
 async def test_execute_with_retry_success(app_settings: AppSettings) -> None:
+    from src.api.dependencies import Container
+
+    container = Container()
+    container.config.override(app_settings)
+
     llm = get_mock_llm_provider()
     vdb = get_mock_vector_store()
-    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=app_settings)
+    container.llm_provider.override(llm)
+    container.vector_store.override(vdb)
+
+    service = ConcreteService(
+        llm_provider=container.llm_provider(),
+        vector_store=container.vector_store(),
+        config=container.config(),
+    )
 
     async def mock_operation() -> str:
         return "success"

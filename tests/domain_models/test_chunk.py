@@ -90,6 +90,15 @@ def test_semantic_chunk_metadata_empty_value() -> None:
 
 
 def test_semantic_chunk_limits() -> None:
+    # Content limit checks
+    max_content = "a" * 10_000
+    chunk = SemanticChunk(id=uuid4(), document_id=uuid4(), content=max_content)
+    assert chunk.content == max_content
+
+    too_big_content = "a" * 10_001
+    with pytest.raises(ValidationError):
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content=too_big_content)
+
     # Entities limit
     entities = ["Entity"] * 101
     with pytest.raises(ValidationError):

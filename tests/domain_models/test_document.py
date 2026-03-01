@@ -115,6 +115,48 @@ async def test_document_stream_chunks_read_error(
 
 
 @pytest.mark.asyncio
+async def test_document_stream_chunks_partial_read_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    test_file = tmp_path / "test_doc.txt"
+    test_file.write_bytes(b"Good start\n")
+    doc = Document(id=uuid4(), title="Test Doc", file_path=str(test_file))
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
+    )
+
+    class PartialFailureAsyncMock:
+        def __init__(self) -> None:
+            self.reads = 0
+
+        async def __aenter__(self) -> "PartialFailureAsyncMock":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            pass
+
+        def __aiter__(self) -> "PartialFailureAsyncMock":
+            return self
+
+        async def read(self, size: int) -> bytes:
+            if self.reads == 0:
+                self.reads += 1
+                return b"First read is okay"
+            msg = "Mocked partial read error"
+            raise OSError(msg)
+
+    monkeypatch.setattr("aiofiles.open", lambda *args, **kwargs: PartialFailureAsyncMock())
+
+    with pytest.raises(OSError, match="Failed to read document"):
+        async for _chunk in doc.stream_chunks(allowed_dir="/app/data", block_size=10):
+            pass
+
+
+@pytest.mark.asyncio
 async def test_document_stream_chunks_valid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
