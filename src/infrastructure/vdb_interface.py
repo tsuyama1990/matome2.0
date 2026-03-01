@@ -9,7 +9,7 @@ class IVectorStore(ABC):
         pass
 
     @abstractmethod
-    async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int = 1000) -> bool:
+    async def upsert_chunks_batch(self, chunks: list[SemanticChunk], batch_size: int) -> bool:
         pass
 
     @abstractmethod

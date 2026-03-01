@@ -8,8 +8,8 @@ class KnowledgeNode(BaseModel):
 
     id: UUID
     level: int = Field(ge=0)
-    title: str = Field(..., min_length=1)
-    dense_summary: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1, max_length=512, pattern=r"^[^<>;&]*$")
+    dense_summary: str = Field(..., min_length=1, max_length=2048)
     children: list[UUID] = Field(default_factory=list)
     source_chunks: list[UUID] = Field(default_factory=list)
 

@@ -21,6 +21,10 @@ def test_knowledge_node_empty_title() -> None:
     with pytest.raises(ValidationError):
         KnowledgeNode(id=uuid4(), level=1, title="", dense_summary="Summary")
 
+def test_knowledge_node_malicious_title() -> None:
+    with pytest.raises(ValidationError):
+        KnowledgeNode(id=uuid4(), level=1, title="<script>alert()</script>", dense_summary="Summary")
+
 def test_knowledge_node_cyclic_child() -> None:
     node_id = uuid4()
     with pytest.raises(ValueError, match="Node cannot be its own child"):
