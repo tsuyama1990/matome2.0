@@ -103,3 +103,30 @@ async def test_execute_with_retry_generic_exception(test_config: AppSettings) ->
 
     with pytest.raises(MatomeAppError, match="Operation failed: Generic error"):
         await service.execute_with_retry(mock_operation)
+
+@pytest.mark.asyncio
+async def test_execute_with_retry_recovers(monkeypatch: pytest.MonkeyPatch, test_config: AppSettings) -> None:
+    import asyncio
+
+    async def mock_sleep(x: float) -> None:
+        pass
+    monkeypatch.setattr(asyncio, "sleep", mock_sleep)
+
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
+    test_config.RETRY_MAX_ATTEMPTS = 3
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+
+    attempts = 0
+
+    async def mock_operation() -> str:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            msg = "Temporary failure"
+            raise MatomeAppError(msg)
+        return "success"
+
+    result = await service.execute_with_retry(mock_operation)
+    assert result == "success"
+    assert attempts == 3

@@ -36,7 +36,7 @@ class BaseService(ABC):
                     self.logger.exception("Operation failed after %d attempts", max_retries)
                     raise
                 self.logger.warning("Retry %d/%d due to: %s", attempt + 1, max_retries, e)
-                await asyncio.sleep(2**attempt)  # Exponential backoff
+                await asyncio.sleep(self.config.RETRY_DELAY_SECONDS)
             except Exception as e:
                 msg = f"Operation failed: {e}"
                 self.logger.exception(msg)

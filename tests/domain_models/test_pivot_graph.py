@@ -37,3 +37,11 @@ def test_pivot_graph_empty_axis() -> None:
 def test_pivot_graph_extra_fields() -> None:
     with pytest.raises(ValidationError):
         PivotGraph(id=uuid4(), analytical_axis="SWOT", extra="invalid")  # type: ignore[call-arg]
+
+
+def test_pivot_graph_invalid_analytical_axis() -> None:
+    with pytest.raises(ValidationError):
+        PivotGraph(id=uuid4(), analytical_axis="")
+
+    with pytest.raises(ValidationError):
+        PivotGraph(id=uuid4(), analytical_axis="a" * 256)

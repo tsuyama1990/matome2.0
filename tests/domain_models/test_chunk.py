@@ -43,6 +43,16 @@ def test_semantic_chunk_empty_content() -> None:
         SemanticChunk(id=uuid4(), document_id=uuid4(), content="", metadata={})
 
 
+def test_semantic_chunk_malicious_content() -> None:
+    with pytest.raises(ValidationError, match="Potentially malicious content detected"):
+        SemanticChunk(
+            id=uuid4(),
+            document_id=uuid4(),
+            content="Normal <script>alert('pwn')</script> text",
+            metadata={}
+        )
+
+
 def test_semantic_chunk_metadata_invalid_key() -> None:
     with pytest.raises(ValidationError):
         SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={1: "test"})  # type: ignore[dict-item]
@@ -60,3 +70,9 @@ def test_semantic_chunk_compression() -> None:
 
     decompressed = chunk.decompress_content(compressed)
     assert decompressed == original_text
+
+
+def test_semantic_chunk_decompression_error() -> None:
+    chunk = SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={})
+    with pytest.raises(ValueError, match="Failed to decompress content"):
+        chunk.decompress_content(b"invalid data")

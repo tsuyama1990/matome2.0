@@ -16,18 +16,22 @@ class Document(BaseModel):
         """Ensures the file path is safe and does not traverse outside allowed directories."""
         from pathlib import Path
 
-        # Absolute path resolution to check true path
-        _resolved_path = Path(self.file_path).resolve()
+        from src.core.config import AppSettings
 
-        # If we have an explicit allowed directory, we can check it
-        # For general security, we definitely want to prevent absolute path escapes
-        # Or simple check for '..' in path
+        config = AppSettings(_env_file=".env", _env_file_encoding="utf-8")  # type: ignore[call-arg]
+        allowed_dir = config.ALLOWED_DOCUMENT_DIR.resolve()
+        resolved_path = Path(self.file_path).resolve()
+
         if ".." in Path(self.file_path).parts:
             msg = "Directory traversal detected in file_path"
             raise ValueError(msg)
 
+        if not str(resolved_path).startswith(str(allowed_dir)):
+            msg = f"File path must be within {allowed_dir}"
+            raise ValueError(msg)
+
     async def stream_chunks(self, block_size: int = 10_000) -> AsyncGenerator[SemanticChunk, None]:
-        """Streams document content directly from file without loading fully into memory."""
+        """Streams document content directly from file using aiofiles with buffered generator."""
         import uuid
 
         import aiofiles
@@ -40,12 +44,16 @@ class Document(BaseModel):
             msg = f"Document path not found: {self.file_path}"
             raise FileNotFoundError(msg)
 
-        async with aiofiles.open(self.file_path, encoding="utf-8") as f:
-            while True:
-                chunk_data = await f.read(block_size)
-                if not chunk_data:
-                    break
+        try:
+            async with aiofiles.open(self.file_path, encoding="utf-8") as f:
+                while True:
+                    chunk_data = await f.read(block_size)
+                    if not chunk_data:
+                        break
 
-                chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
-                chunk.metadata["_compressed"] = chunk.compress_content().hex()
-                yield chunk
+                    chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
+                    chunk.metadata["_compressed"] = chunk.compress_content().hex()
+                    yield chunk
+        except OSError as e:
+            msg = f"Failed to read document: {e}"
+            raise OSError(msg) from e

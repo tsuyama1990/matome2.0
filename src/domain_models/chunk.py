@@ -22,7 +22,15 @@ class SemanticChunk(BaseModel):
     metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_metadata_keys(self) -> "SemanticChunk":
+    def validate_content_safety(self) -> "SemanticChunk":
+        """Ensures the content does not contain script tags or obvious malicious patterns."""
+        import re
+
+        unsafe_pattern = re.compile(r"<\s*script.*?>.*?</\s*script\s*>", flags=re.IGNORECASE | re.DOTALL)
+        if unsafe_pattern.search(self.content):
+            msg = "Potentially malicious content detected"
+            raise ValueError(msg)
+
         for key in self.metadata:
             if not isinstance(key, str):
                 msg = "Metadata keys must be strings"
@@ -31,8 +39,12 @@ class SemanticChunk(BaseModel):
 
     def compress_content(self) -> bytes:
         """Compress large text data for efficient storage."""
-        return zlib.compress(self.content.encode("utf-8"))
+        return zlib.compress(self.content.encode("utf-8"), level=zlib.Z_BEST_COMPRESSION)
 
     def decompress_content(self, compressed_data: bytes) -> str:
         """Decompress stored text data."""
-        return zlib.decompress(compressed_data).decode("utf-8")
+        try:
+            return zlib.decompress(compressed_data).decode("utf-8")
+        except zlib.error as e:
+            msg = f"Failed to decompress content: {e}"
+            raise ValueError(msg) from e
