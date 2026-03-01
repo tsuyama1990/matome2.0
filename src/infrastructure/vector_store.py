@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from pinecone import Pinecone
 
@@ -17,8 +18,8 @@ class PineconeClient(IVectorStore):
         # Initialize client
         # Depending on network/test env, connection might fail if key is dummy
         try:
-            self._pc = Pinecone(api_key=self.api_key)
-            self._index = self._pc.Index(self.index_name)
+            self._pc: Pinecone | None = Pinecone(api_key=self.api_key)
+            self._index: Any | None = self._pc.Index(self.index_name) if self._pc else None
         except Exception:
             # For testing with dummy keys
             self._pc = None
@@ -74,7 +75,7 @@ class PineconeClient(IVectorStore):
             raise ConnectionError(msg) from e
         else:
             chunks = []
-            for match in results.matches:
+            for match in getattr(results, "matches", []):
                 meta = match.metadata or {}
                 # Recover original chunk
                 chunks.append(

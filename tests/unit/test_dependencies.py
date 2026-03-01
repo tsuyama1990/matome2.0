@@ -1,6 +1,6 @@
-import pytest
 from src.api.dependencies import ApplicationContainer
 from src.core.config import AppSettings
+
 
 def test_container_wiring(test_config: AppSettings) -> None:
     """Ensure the container successfully injects and resolves dependencies."""
