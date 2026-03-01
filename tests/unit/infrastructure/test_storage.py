@@ -8,7 +8,7 @@ from src.infrastructure.storage import LocalStorage
 
 @pytest.fixture
 def storage(tmp_path: Path) -> LocalStorage:
-    return LocalStorage(base_dir=tmp_path)
+    return LocalStorage(base_dir=tmp_path, create_dir=True)
 
 
 async def dummy_stream(content: bytes, chunks: int = 2) -> AsyncGenerator[bytes, None]:

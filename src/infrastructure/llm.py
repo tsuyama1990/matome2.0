@@ -9,11 +9,17 @@ from src.domain.ports.llm import ILLMProvider
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
-    def __init__(self, api_key: str, default_model: str, client: httpx.AsyncClient) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        default_model: str,
+        client: httpx.AsyncClient,
+        base_url: str = "https://openrouter.ai/api/v1/chat/completions",
+    ) -> None:
         self.api_key = api_key
         self.default_model = default_model
         self.client = client
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.base_url = base_url
 
     async def generate_text(
         self,

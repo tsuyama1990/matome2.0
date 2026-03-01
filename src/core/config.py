@@ -9,10 +9,10 @@ class AppSettings(BaseSettings):
 
     # Provide defaults to safely load tests when not set
     openrouter_api_key: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("OPENROUTER_API_KEY", "NOT_SET"))
+        default_factory=lambda: SecretStr(os.getenv("OPENROUTER_API_KEY", "UNCONFIGURED_API_KEY"))
     )
     pinecone_api_key: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("PINECONE_API_KEY", "NOT_SET"))
+        default_factory=lambda: SecretStr(os.getenv("PINECONE_API_KEY", "UNCONFIGURED_API_KEY"))
     )
 
     text_fast_model: str = Field(
@@ -29,10 +29,10 @@ class AppSettings(BaseSettings):
 
     def validate_keys(self) -> None:
         """Validates that critical API keys are present."""
-        if self.openrouter_api_key.get_secret_value() == "NOT_SET":
+        if self.openrouter_api_key.get_secret_value() == "UNCONFIGURED_API_KEY":
             msg = "OPENROUTER_API_KEY environment variable is not set or is empty."
             raise ValueError(msg)
-        if self.pinecone_api_key.get_secret_value() == "NOT_SET":
+        if self.pinecone_api_key.get_secret_value() == "UNCONFIGURED_API_KEY":
             msg = "PINECONE_API_KEY environment variable is not set or is empty."
             raise ValueError(msg)
 

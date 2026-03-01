@@ -18,8 +18,19 @@ def mock_pinecone() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def vector_client(mock_pinecone: MagicMock) -> PineconeClient:
-    return PineconeClient(api_key="dummy_key")
+def mock_pinecone_class(mock_pinecone: MagicMock) -> MagicMock:
+    pc_class = MagicMock()
+    # Mocking the initialization such that calling pc_class(api_key="...") returns an object
+    # that has an `Index` method, which when called returns our `mock_pinecone` mock.
+    pc_instance = MagicMock()
+    pc_instance.Index.return_value = mock_pinecone
+    pc_class.return_value = pc_instance
+    return pc_class
+
+
+@pytest.fixture
+def vector_client(mock_pinecone_class: MagicMock) -> PineconeClient:
+    return PineconeClient(api_key="dummy_key", pinecone_class=mock_pinecone_class)
 
 
 @pytest.mark.asyncio
@@ -29,9 +40,9 @@ async def test_check_health(vector_client: PineconeClient) -> None:
 
 @pytest.mark.asyncio
 async def test_check_health_failure() -> None:
-    with patch("src.infrastructure.vector_store.Pinecone", side_effect=Exception("Init failed")):
-        client = PineconeClient(api_key="dummy_key")
-        assert await client.check_health() is False
+    pc_class = MagicMock(side_effect=Exception("Init failed"))
+    client = PineconeClient(api_key="dummy_key", pinecone_class=pc_class)
+    assert await client.check_health() is False
 
 
 @pytest.mark.asyncio

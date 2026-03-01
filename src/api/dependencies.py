@@ -13,6 +13,7 @@ from src.infrastructure.vector_store import PineconeClient
 class ApplicationContainer(containers.DeclarativeContainer):
     """Dependency Injection Container for application."""
 
+    env = providers.Configuration()
     config = providers.Configuration()
     app_settings = providers.Singleton(AppSettings)
 

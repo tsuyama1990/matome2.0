@@ -10,8 +10,13 @@ from src.domain.ports.storage import IFileStorage
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 
-    def __init__(self, base_dir: Path) -> None:
+    def __init__(self, base_dir: Path, create_dir: bool = True) -> None:
         self.base_dir = base_dir
+        if create_dir:
+            self.base_dir.mkdir(parents=True, exist_ok=True)
+
+    def initialize(self) -> None:
+        """Explicitly creates the base directory if it doesn't exist."""
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     async def save_upload_stream(
