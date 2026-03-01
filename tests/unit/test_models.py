@@ -59,3 +59,34 @@ def test_pivot_board_validation() -> None:
     board = PivotBoard(board_id=uuid4(), original_document_id=uuid4(), axis=axis)
     assert board.axis.name == "SWOT"
     assert len(board.clusters) == 0
+
+
+def test_pivot_board_with_complex_clusters() -> None:
+    """Test complex nested structure of PivotBoard."""
+    axis = AnalysisAxis(name="System", dimensions=["Actors", "DataFlow"])
+
+    node1 = ConceptNode(node_id=uuid4(), title="Node 1", summary="Sum 1", level=1)
+    node2 = ConceptNode(node_id=uuid4(), title="Node 2", summary="Sum 2", level=2)
+
+    board = PivotBoard(
+        board_id=uuid4(),
+        original_document_id=uuid4(),
+        axis=axis,
+        clusters={"Actors": [node1], "DataFlow": [node2, node1]},
+    )
+
+    assert "Actors" in board.clusters
+    assert len(board.clusters["Actors"]) == 1
+    assert board.clusters["DataFlow"][0].title == "Node 2"
+
+
+def test_document_chunk_metadata_typing() -> None:
+    """Ensure DocumentChunk metadata validates properly when given complex types."""
+    chunk = DocumentChunk(
+        chunk_id=uuid4(),
+        document_id=uuid4(),
+        text="Sample",
+        metadata={"entities": ["API", "DB"], "score": 0.95, "tags": {"time": "future"}},
+    )
+    assert chunk.metadata["score"] == 0.95
+    assert len(chunk.metadata["entities"]) == 2

@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -26,8 +27,18 @@ app = FastAPI(
 
 
 @app.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": "Hello from matome2-0!"}
+def read_root() -> dict[str, Any]:
+    return {
+        "status": "online",
+        "message": "Welcome to matome2-0 Knowledge Workspace Platform!",
+        "features": [
+            "Semantic Zoom UI",
+            "Frictionless Active Learning",
+            "Voice Interactive Recite",
+            "Multi-Dimensional Knowledge Restructuring (Pivot KJ)",
+            "Automated Export & Web-Grounding",
+        ],
+    }
 
 
 if __name__ == "__main__":

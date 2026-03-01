@@ -8,7 +8,12 @@ from src.core.config import AppSettings
 
 @pytest.fixture
 def test_config() -> AppSettings:
-    """Provides a dynamically hydrated AppSettings to avoid side-effects."""
+    """Provides a dynamically hydrated AppSettings to avoid side-effects.
+
+    This fixture ensures that tests interacting with the configuration use mocked values
+    rather than attempting to read from the local environment. It guarantees tests remain
+    isolated and predictable, preventing side effects from leaking across test executions.
+    """
     os.environ["OPENROUTER_API_KEY"] = f"test-key-{uuid4()}"
     os.environ["PINECONE_API_KEY"] = f"test-key-{uuid4()}"
     os.environ["TEXT_FAST_MODEL"] = "test-fast"
