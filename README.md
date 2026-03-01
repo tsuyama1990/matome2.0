@@ -15,6 +15,7 @@
 - **Speech-to-Text Recitation (Feynman Method)**: Integrates voice interactions to allow users to explain concepts back to the system, which then uses the Context-Aware Hierarchical Merging (CAHM) algorithm to fact-check and provide constructive feedback.
 - **Pivot KJ (Multi-Dimensional Knowledge Re-construction)**: Automatically re-arranges ingested information based on multi-dimensional axes (e.g., business frameworks, system architectures) to generate actionable insights and output formats like PRDs and UML diagrams.
 - **Multimodal AI Preprocessing**: Robust pipeline for ingesting complex documents (PDFs with charts, math, images) using Vision-Language Models, semantic chunking, and RAPTOR-based hierarchical tree generation.
+- **Solid API Foundations**: High-performance core powered by strict Pydantic data schemas, providing bullet-proof REST API endpoints built natively on FastAPI with well-tested configuration management and modular abstractions for AI providers.
 
 ## Architecture Overview
 
@@ -81,10 +82,15 @@ graph TD
 
 **Quick Start**
 
-Currently in the architectural setup phase. To run the baseline verification and interactive tutorials, you will use Marimo.
+To run the baseline verification and interactive tutorials:
 
 ```bash
-uv run marimo edit tutorials/UAT_AND_TUTORIAL.py
+uv run python tutorials/UAT_AND_TUTORIAL.py
+```
+
+To run the application locally (API backend):
+```bash
+uv run fastapi dev src/main.py
 ```
 
 ## Development Workflow
@@ -93,28 +99,29 @@ This project enforces strict code quality standards utilizing `ruff`, `mypy` (st
 
 - **Run Linters:**
   ```bash
-  uv run ruff check
+  uv run ruff check .
   ```
 - **Run Type Checking:**
   ```bash
-  uv run mypy src dev_src main.py
+  uv run mypy .
   ```
-- **Run Tests:**
+- **Run Tests with Coverage:**
   ```bash
-  uv run pytest
+  uv run pytest --cov=src --cov-report=term-missing
   ```
 
 ## Project Structure
 
 ```
 matome2-0/
-├── dev_documents/
-│   ├── system_prompts/   # CYCLE-based architecture and implementation details
-│   ├── ALL_SPEC.md       # Raw requirements
-│   └── USER_TEST_SCENARIO.md # Master plan for tutorials and testing
-├── src/                  # Core source code (to be populated)
+├── src/                  # Core source code
+│   ├── api/              # FastAPI routers and dependency injection
+│   ├── core/             # Application-wide configurations and custom exceptions
+│   ├── domain_models/    # Pydantic schemas acting as the application's source of truth
+│   ├── infrastructure/   # Abstract interfaces for LLM and Vector Database operations
+│   └── services/         # Application business logic layers
 ├── tests/                # Test suite
-├── tutorials/            # Marimo tutorial files
+├── tutorials/            # Executable scenario verifications
 ├── pyproject.toml        # Project configuration
 └── README.md             # Project landing page
 ```
