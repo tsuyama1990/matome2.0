@@ -1,28 +1,40 @@
 import json
+from dataclasses import dataclass
 from typing import Any
 
-import httpx
-
+from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
+
+
+@dataclass
+class OpenRouterConfig:
+    """Configuration wrapper for OpenRouterClient."""
+
+    api_key: str
+    default_model: str
+    base_url: str
+    timeout: float = 30.0
 
 
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
-    def __init__(self, api_key: str, default_model: str) -> None:
-        self.api_key = api_key
-        self.default_model = default_model
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+    def __init__(
+        self,
+        config: OpenRouterConfig,
+        client: IHttpClient,
+    ) -> None:
+        self.config = config
+        self.client = client
 
     async def generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> str:
         """Generates text from the LLM provider using httpx."""
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.config.api_key}",
             "Content-Type": "application/json",
         }
 
@@ -32,29 +44,43 @@ class OpenRouterClient(ILLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         payload = {
-            "model": self.default_model,
+            "model": self.config.default_model,
             "messages": messages,
         }
 
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(self.base_url, headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
-        except httpx.TimeoutException as e:
+            response = await self.client.post(
+                self.config.base_url, headers=headers, json=payload, timeout=self.config.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
+        except TimeoutError as e:
             msg = f"OpenRouter API request timed out: {e}"
             raise TimeoutError(msg) from e
-        except httpx.RequestError as e:
+        except ConnectionError as e:
             msg = f"Error communicating with OpenRouter: {e}"
             raise ConnectionError(msg) from e
+        except Exception as e:
+            # Fallback for unexpected HTTP client adapter errors (e.g. from raise_for_status())
+            msg = f"Unexpected error during OpenRouter API call: {e}"
+            raise ConnectionError(msg) from e
+
+    async def stream_generate_text(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+    ) -> Any:
+        """Stream implementation."""
+        # Simple non-streaming fallback for now if strict streams are unsupported or require special headers
+        text = await self.generate_text(prompt, system_prompt)
+        yield text
 
     async def extract_structured_data(
         self,
         prompt: str,
         schema: dict[str, Any],
         system_prompt: str = "",
-        timeout: float = 30.0,  # noqa: ASYNC109
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema using httpx."""
         extended_prompt = (
@@ -62,9 +88,7 @@ class OpenRouterClient(ILLMProvider):
             f"{json.dumps(schema)}"
         )
 
-        raw_text = await self.generate_text(
-            prompt=extended_prompt, system_prompt=system_prompt, timeout=timeout
-        )
+        raw_text = await self.generate_text(prompt=extended_prompt, system_prompt=system_prompt)
 
         try:
             # Simple heuristic to extract JSON block if wrapped in markdown

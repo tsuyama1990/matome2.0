@@ -19,6 +19,7 @@ def test_config() -> AppSettings:
     os.environ["TEXT_FAST_MODEL"] = "test-fast"
     os.environ["TEXT_REASONING_MODEL"] = "test-reason"
     os.environ["MULTIMODAL_MODEL"] = "test-vision"
+    os.environ["OPENROUTER_BASE_URL"] = "http://test-api"
 
     settings = AppSettings()
     settings.validate_keys()
@@ -28,5 +29,6 @@ def test_config() -> AppSettings:
     del os.environ["TEXT_FAST_MODEL"]
     del os.environ["TEXT_REASONING_MODEL"]
     del os.environ["MULTIMODAL_MODEL"]
+    del os.environ["OPENROUTER_BASE_URL"]
 
     return settings

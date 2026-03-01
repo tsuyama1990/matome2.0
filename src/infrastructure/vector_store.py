@@ -1,29 +1,25 @@
-import os
-from typing import Any
-
-from pinecone import Pinecone
+from typing import Any, Protocol
 
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
 
 
+class PineconeIndexProtocol(Protocol):
+    def upsert(self, vectors: list[dict[str, Any]]) -> Any: ...
+    def query(
+        self,
+        vector: list[float],
+        top_k: int,
+        filter: dict[str, str] | None,  # noqa: A002
+        include_metadata: bool,
+    ) -> Any: ...
+
+
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
-    def __init__(self, api_key: str) -> None:
-        self.api_key = api_key
-        # Environment variables allow flexibility for testing
-        self.index_name = os.getenv("PINECONE_INDEX_NAME", "matome-index")
-
-        # Initialize client
-        # Depending on network/test env, connection might fail if key is dummy
-        try:
-            self._pc: Pinecone | None = Pinecone(api_key=self.api_key)
-            self._index: Any | None = self._pc.Index(self.index_name) if self._pc else None
-        except Exception:
-            # For testing with dummy keys
-            self._pc = None
-            self._index = None
+    def __init__(self, index: PineconeIndexProtocol | None = None) -> None:
+        self._index = index
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""

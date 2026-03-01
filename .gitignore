@@ -5,6 +5,9 @@ __pycache__/
 *.pyd
 *$py.class
 
+# IMPORTANT: Never exclude __init__.py files
+!__init__.py
+
 # C extensions
 *.so
 

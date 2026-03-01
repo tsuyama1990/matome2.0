@@ -1,4 +1,4 @@
-import os
+from typing import Any
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,34 +7,39 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
 
-    # Provide defaults to safely load tests when not set
-    openrouter_api_key: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("OPENROUTER_API_KEY", "NOT_SET"))
-    )
-    pinecone_api_key: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("PINECONE_API_KEY", "NOT_SET"))
+    # Explicit mapping and environment loading via Pydantic model configuration
+    openrouter_api_key: SecretStr = Field(default=SecretStr(""))
+    pinecone_api_key: SecretStr = Field(default=SecretStr(""))
+
+    text_fast_model: str = Field(default="google/gemini-2.5-flash")
+    text_reasoning_model: str = Field(default="deepseek/deepseek-reasoner")
+    multimodal_model: str = Field(default="google/gemini-2.5-pro")
+
+    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1/chat/completions")
+    pinecone_index_name: str = Field(default="matome-index")
+    storage_base_dir: str = Field(default="./data")
+    llm_timeout: float = Field(default=30.0)
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"
     )
 
-    text_fast_model: str = Field(
-        default_factory=lambda: os.getenv("TEXT_FAST_MODEL", "google/gemini-2.5-flash")
-    )
-    text_reasoning_model: str = Field(
-        default_factory=lambda: os.getenv("TEXT_REASONING_MODEL", "deepseek/deepseek-reasoner")
-    )
-    multimodal_model: str = Field(
-        default_factory=lambda: os.getenv("MULTIMODAL_MODEL", "google/gemini-2.5-pro")
-    )
-
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    def model_post_init(self, __context: Any) -> None:
+        """Automatically checks validation upon startup correctly."""
+        self.validate_keys()
 
     def validate_keys(self) -> None:
         """Validates that critical API keys are present."""
-        if self.openrouter_api_key.get_secret_value() == "NOT_SET":
+        if not self.openrouter_api_key.get_secret_value():
             msg = "OPENROUTER_API_KEY environment variable is not set or is empty."
             raise ValueError(msg)
-        if self.pinecone_api_key.get_secret_value() == "NOT_SET":
+        if not self.pinecone_api_key.get_secret_value():
             msg = "PINECONE_API_KEY environment variable is not set or is empty."
             raise ValueError(msg)
 
 
-settings = AppSettings()
+# For testing without loading settings right away, we defer initialization or catch the error
+# based on when the app requires the actual configurations.
+# Settings initialization is deferred to the container creation so it doesn't break CI immediately
+# on imports before tests can setup environments.
+# To keep previous test logic valid we remove the global settings instance here and instantiate it where needed.
