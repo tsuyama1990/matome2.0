@@ -1,6 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
+*.pyo
+*.pyd
 *$py.class
 
 # C extensions
@@ -136,8 +138,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# macOS
+.DS_Store
+
 # Environments
 .env
+.env.local
 .envrc
 .venv
 env/

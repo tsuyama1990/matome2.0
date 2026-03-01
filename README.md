@@ -8,6 +8,9 @@
 
 ## Key Features
 
+*   **Robust Configuration:** Centralised environment variable management using Pydantic Settings.
+*   **Schema-First Design:** Defined strict data models for Documents, Chunks, and Concept Nodes representing knowledge.
+*   **Separation of Concerns:** Abstract interface definitions (Ports) for external systems (LLM Providers, Vector Stores, and File Storage).
 *   **Semantic Zoom UI & Progressive Disclosure:** Never drown in a wall of text again. Start with a beautiful, high-level mind map (the "Big Picture") and zoom in seamlessly to read detailed summaries only when you are ready.
 *   **Frictionless Active Learning (Micro-Gamification):** Defeat the "Lost-in-the-Middle" phenomenon. The system prevents passive reading by forcing you to answer AI-generated questions before unlocking nodes, turning learning into a rewarding game.
 *   **Voice Interactive "Recite" Phase:** Use your voice to explain concepts back to the AI (Feynman Technique). The Context-Aware Hierarchical Merging (CAHM) algorithm checks your understanding against facts and provides gentle "Sandwich Feedback."
@@ -61,10 +64,10 @@ To run this project, you will need the following tools installed:
     ```
 
 3.  **Configure Environment Variables:**
-    Copy the example configuration file and add your actual API keys.
+    Create a `.env` file based on `.env.example` (if present) or add your required configuration keys such as your LLM/Vector Store API keys.
     ```bash
-    cp .env.example .env
-    # Edit .env and add your OPENROUTER_API_KEY
+    echo "OPENROUTER_API_KEY=your_key_here" >> .env
+    echo "PINECONE_API_KEY=your_key_here" >> .env
     ```
 
 ## Usage
