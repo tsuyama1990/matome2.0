@@ -21,7 +21,7 @@ def test_settings_defaults() -> None:
 
 
 def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
     monkeypatch.setenv("PINECONE_API_KEY", "dummy_key")
     settings = AppSettings()
     with pytest.raises(
@@ -31,7 +31,7 @@ def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.M
 
 
 def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("PINECONE_API_KEY", raising=False)
+    monkeypatch.setenv("PINECONE_API_KEY", "")
     monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_key")
     settings = AppSettings()
     with pytest.raises(

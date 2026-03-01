@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 
 import httpx
 from dependency_injector import containers, providers
@@ -33,14 +34,30 @@ class ApplicationContainer(containers.DeclarativeContainer):
         base_url=app_settings.provided.openrouter_base_url,
     )
 
+    @staticmethod
+    def init_pinecone_index(api_key: str, index_name: str) -> Any | None:
+        try:
+            from pinecone import Pinecone
+
+            pc = Pinecone(api_key=api_key)
+            return pc.Index(index_name)
+        except Exception:
+            return None
+
+    pinecone_index = providers.Singleton(
+        init_pinecone_index,
+        api_key=providers.Callable(lambda s: s.pinecone_api_key.get_secret_value(), app_settings),
+        index_name=app_settings.provided.pinecone_index_name,
+    )
+
     vector_store = providers.Factory(
         PineconeClient,
-        api_key=providers.Callable(lambda s: s.pinecone_api_key.get_secret_value(), app_settings),
+        index=pinecone_index,
     )
 
     file_storage = providers.Factory(
         LocalStorage,
-        base_dir=Path("./data"),  # Default storage directory
+        base_dir=app_settings.provided.storage_base_dir,
         path_class=Path,
     )
 

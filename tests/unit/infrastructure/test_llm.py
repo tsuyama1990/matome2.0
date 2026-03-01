@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from src.core.config import AppSettings
 from src.infrastructure.llm import OpenRouterClient
 
 
@@ -12,23 +13,23 @@ def mock_httpx_client() -> AsyncMock:
 
 
 @pytest.fixture
-def llm_client(mock_httpx_client: AsyncMock) -> OpenRouterClient:
+def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRouterClient:
     return OpenRouterClient(
         api_key="dummy_key",
         default_model="dummy-model",
         client=mock_httpx_client,
-        base_url="http://test",
+        base_url=test_config.openrouter_base_url,
     )
 
 
 @pytest.mark.asyncio
 async def test_generate_text_success(
-    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
 ) -> None:
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Test response"}}]},
-        request=httpx.Request("POST", "http://test"),
+        request=httpx.Request("POST", test_config.openrouter_base_url),
     )
 
     mock_httpx_client.post.return_value = mock_response
@@ -48,12 +49,12 @@ async def test_generate_text_timeout(
 
 @pytest.mark.asyncio
 async def test_extract_structured_data_success(
-    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
 ) -> None:
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": '```json\n{"key": "value"}\n```'}}]},
-        request=httpx.Request("POST", "http://test"),
+        request=httpx.Request("POST", test_config.openrouter_base_url),
     )
 
     mock_httpx_client.post.return_value = mock_response
@@ -63,12 +64,12 @@ async def test_extract_structured_data_success(
 
 @pytest.mark.asyncio
 async def test_extract_structured_data_invalid_json(
-    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
 ) -> None:
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Not JSON at all"}}]},
-        request=httpx.Request("POST", "http://test"),
+        request=httpx.Request("POST", test_config.openrouter_base_url),
     )
 
     mock_httpx_client.post.return_value = mock_response

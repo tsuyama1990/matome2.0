@@ -1,7 +1,4 @@
-import os
 from typing import Any
-
-from pinecone import Pinecone
 
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
@@ -10,23 +7,8 @@ from src.domain.ports.vector_store import IVectorStore
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
-    def __init__(self, api_key: str, pinecone_class: type[Pinecone] | None = None) -> None:
-        self.api_key = api_key
-        # Environment variables allow flexibility for testing
-        self.index_name = os.getenv("PINECONE_INDEX_NAME", "matome-index")
-
-        # Use provided class or default to Pinecone
-        pc_cls = pinecone_class or Pinecone
-
-        # Initialize client
-        # Depending on network/test env, connection might fail if key is dummy
-        try:
-            self._pc: Pinecone | None = pc_cls(api_key=self.api_key)
-            self._index: Any | None = self._pc.Index(self.index_name) if self._pc else None
-        except Exception:
-            # For testing with dummy keys
-            self._pc = None
-            self._index = None
+    def __init__(self, index: Any | None = None) -> None:
+        self._index = index
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""

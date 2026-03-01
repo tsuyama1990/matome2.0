@@ -1,5 +1,4 @@
-from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -9,28 +8,13 @@ from src.infrastructure.vector_store import PineconeClient
 
 
 @pytest.fixture
-def mock_pinecone() -> Generator[MagicMock, None, None]:
-    with patch("src.infrastructure.vector_store.Pinecone") as MockPinecone:
-        mock_pc = MockPinecone.return_value
-        mock_index = MagicMock()
-        mock_pc.Index.return_value = mock_index
-        yield mock_index
+def mock_pinecone_index() -> MagicMock:
+    return MagicMock()
 
 
 @pytest.fixture
-def mock_pinecone_class(mock_pinecone: MagicMock) -> MagicMock:
-    pc_class = MagicMock()
-    # Mocking the initialization such that calling pc_class(api_key="...") returns an object
-    # that has an `Index` method, which when called returns our `mock_pinecone` mock.
-    pc_instance = MagicMock()
-    pc_instance.Index.return_value = mock_pinecone
-    pc_class.return_value = pc_instance
-    return pc_class
-
-
-@pytest.fixture
-def vector_client(mock_pinecone_class: MagicMock) -> PineconeClient:
-    return PineconeClient(api_key="dummy_key", pinecone_class=mock_pinecone_class)
+def vector_client(mock_pinecone_index: MagicMock) -> PineconeClient:
+    return PineconeClient(index=mock_pinecone_index)
 
 
 @pytest.mark.asyncio
@@ -40,21 +24,20 @@ async def test_check_health(vector_client: PineconeClient) -> None:
 
 @pytest.mark.asyncio
 async def test_check_health_failure() -> None:
-    pc_class = MagicMock(side_effect=Exception("Init failed"))
-    client = PineconeClient(api_key="dummy_key", pinecone_class=pc_class)
+    client = PineconeClient(index=None)
     assert await client.check_health() is False
 
 
 @pytest.mark.asyncio
 async def test_upsert_chunks_success(
-    vector_client: PineconeClient, mock_pinecone: MagicMock
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
     chunk = DocumentChunk(
         chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
     )
 
     await vector_client.upsert_chunks([chunk])
-    mock_pinecone.upsert.assert_called_once()
+    mock_pinecone_index.upsert.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -67,7 +50,7 @@ async def test_upsert_chunks_missing_embedding(vector_client: PineconeClient) ->
 
 @pytest.mark.asyncio
 async def test_search_similar_success(
-    vector_client: PineconeClient, mock_pinecone: MagicMock
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
     # Setup mock return
     mock_match = MagicMock()
@@ -81,7 +64,7 @@ async def test_search_similar_success(
 
     mock_response = MagicMock()
     mock_response.matches = [mock_match]
-    mock_pinecone.query.return_value = mock_response
+    mock_pinecone_index.query.return_value = mock_response
 
     results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
 
@@ -92,9 +75,9 @@ async def test_search_similar_success(
 
 @pytest.mark.asyncio
 async def test_search_similar_connection_error(
-    vector_client: PineconeClient, mock_pinecone: MagicMock
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
-    mock_pinecone.query.side_effect = Exception("Network down")
+    mock_pinecone_index.query.side_effect = Exception("Network down")
 
     with pytest.raises(ConnectionError, match="Pinecone query failed"):
         await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
