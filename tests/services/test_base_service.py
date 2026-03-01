@@ -36,6 +36,7 @@ def test_config(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
     monkeypatch.setenv("VECTOR_DB_URL", "http://test")
     monkeypatch.setenv("VDB_BATCH_SIZE", "100")
     monkeypatch.setenv("RETRY_MAX_ATTEMPTS", "3")
+    monkeypatch.setenv("ALLOWED_DOCUMENT_DIR", "/app/data")
     return AppSettings(_env_file=None)  # type: ignore[call-arg]
 
 
@@ -104,12 +105,41 @@ async def test_execute_with_retry_generic_exception(test_config: AppSettings) ->
     with pytest.raises(MatomeAppError, match="Operation failed: Generic error"):
         await service.execute_with_retry(mock_operation)
 
+
 @pytest.mark.asyncio
-async def test_execute_with_retry_recovers(monkeypatch: pytest.MonkeyPatch, test_config: AppSettings) -> None:
+async def test_execute_with_retry_circuit_breaker(
+    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+) -> None:
+    llm = get_mock_llm_provider()
+    vdb = get_mock_vector_store()
+    test_config.RETRY_MAX_ATTEMPTS = 1  # 1 try per call
+    service = ConcreteService(llm_provider=llm, vector_store=vdb, config=test_config)
+
+    async def fail_op() -> str:
+        msg = "fail"
+        raise MatomeAppError(msg)
+
+    # Trip breaker
+    for _ in range(5):
+        with pytest.raises(MatomeAppError):
+            await service.execute_with_retry(fail_op)
+
+    # Breaker should now be open
+    from src.services.base_service import CircuitBreakerOpenError
+
+    with pytest.raises(CircuitBreakerOpenError, match="Circuit is currently open"):
+        await service.execute_with_retry(fail_op)
+
+
+@pytest.mark.asyncio
+async def test_execute_with_retry_recovers(
+    monkeypatch: pytest.MonkeyPatch, test_config: AppSettings
+) -> None:
     import asyncio
 
     async def mock_sleep(x: float) -> None:
         pass
+
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
 
     llm = get_mock_llm_provider()

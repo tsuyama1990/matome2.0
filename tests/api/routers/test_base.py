@@ -30,12 +30,11 @@ def test_node_not_found_error_handler() -> None:
 
     @app.get("/trigger-not-found")
     async def trigger_not_found() -> None:
-        msg = "Node missing"
-        raise NodeNotFoundError(msg)
+        raise NodeNotFoundError("123")
 
     response = client.get("/trigger-not-found")
     assert response.status_code == 404
-    assert response.json() == {"message": "Node missing"}
+    assert response.json() == {"message": "Knowledge node with ID 123 was not found."}
 
 
 def test_invalid_chunk_state_error_handler() -> None:
@@ -43,12 +42,11 @@ def test_invalid_chunk_state_error_handler() -> None:
 
     @app.get("/trigger-invalid-chunk")
     async def trigger_invalid_chunk() -> None:
-        msg = "Chunk state invalid"
-        raise InvalidChunkStateError(msg)
+        raise InvalidChunkStateError("456", "foo")
 
     response = client.get("/trigger-invalid-chunk")
     assert response.status_code == 422
-    assert response.json() == {"message": "Chunk state invalid"}
+    assert response.json() == {"message": "Chunk 456 is in an invalid state: foo."}
 
 
 def test_llm_provider_error_handler() -> None:
@@ -56,9 +54,8 @@ def test_llm_provider_error_handler() -> None:
 
     @app.get("/trigger-llm-error")
     async def trigger_llm_error() -> None:
-        msg = "LLM failed"
-        raise LLMProviderError(msg)
+        raise LLMProviderError("Anthropic", "timeout")
 
     response = client.get("/trigger-llm-error")
     assert response.status_code == 502
-    assert response.json() == {"message": "LLM failed"}
+    assert response.json() == {"message": "LLM Provider Anthropic encountered an error: timeout."}

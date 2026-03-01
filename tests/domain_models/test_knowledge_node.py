@@ -38,6 +38,7 @@ def test_knowledge_node_cyclic_child() -> None:
             id=node_id, level=1, title="Test", dense_summary="Summary", children=[node_id]
         )
 
+
 def test_knowledge_node_validate_tree_acyclic() -> None:
     node_1 = KnowledgeNode(id=uuid4(), level=0, title="Root", dense_summary=".")
     node_2 = KnowledgeNode(id=uuid4(), level=1, title="Child 1", dense_summary=".")
@@ -51,3 +52,9 @@ def test_knowledge_node_validate_tree_acyclic() -> None:
     # Introduce a cycle
     node_3.children = [node_1.id]
     assert KnowledgeNode.validate_tree_acyclic([node_1, node_2, node_3]) is False
+
+
+def test_knowledge_node_validate_tree_missing_child() -> None:
+    node_1 = KnowledgeNode(id=uuid4(), level=0, title="Root", dense_summary=".")
+    node_1.children = [uuid4()]  # Unknown child ID
+    assert KnowledgeNode.validate_tree_acyclic([node_1]) is False

@@ -46,14 +46,30 @@ class Document(BaseModel):
 
         try:
             async with aiofiles.open(self.file_path, encoding="utf-8") as f:
-                while True:
-                    chunk_data = await f.read(block_size)
-                    if not chunk_data:
-                        break
+                buffer: list[str] = []
+                current_size = 0
 
+                async for line in f:
+                    line_len = len(line)
+                    if current_size + line_len > block_size and buffer:
+                        chunk_data = "".join(buffer)
+                        chunk = SemanticChunk(
+                            id=uuid.uuid4(), document_id=self.id, content=chunk_data
+                        )
+                        chunk.metadata["_compressed"] = chunk.compress_content().hex()
+                        yield chunk
+                        buffer = []
+                        current_size = 0
+
+                    buffer.append(line)
+                    current_size += line_len
+
+                if buffer:
+                    chunk_data = "".join(buffer)
                     chunk = SemanticChunk(id=uuid.uuid4(), document_id=self.id, content=chunk_data)
                     chunk.metadata["_compressed"] = chunk.compress_content().hex()
                     yield chunk
+
         except OSError as e:
             msg = f"Failed to read document: {e}"
             raise OSError(msg) from e

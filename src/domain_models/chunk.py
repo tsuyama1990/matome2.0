@@ -23,13 +23,31 @@ class SemanticChunk(BaseModel):
 
     @model_validator(mode="after")
     def validate_content_safety(self) -> "SemanticChunk":
-        """Ensures the content does not contain script tags or obvious malicious patterns."""
+        """Ensures the content does not contain obvious malicious patterns or invalid encodings."""
         import re
 
-        unsafe_pattern = re.compile(r"<\s*script.*?>.*?</\s*script\s*>", flags=re.IGNORECASE | re.DOTALL)
-        if unsafe_pattern.search(self.content):
-            msg = "Potentially malicious content detected"
-            raise ValueError(msg)
+        # Extended XSS validation
+        unsafe_patterns = [
+            r"<\s*script.*?>.*?</\s*script\s*>",
+            r"javascript:",
+            r"vbscript:",
+            r"data:text/html",
+            r"onload\s*=",
+            r"onerror\s*=",
+            r"<\s*iframe.*?>",
+        ]
+
+        for pattern in unsafe_patterns:
+            if re.search(pattern, self.content, flags=re.IGNORECASE | re.DOTALL):
+                msg = "Potentially malicious content detected"
+                raise ValueError(msg)
+
+        # Validate that the string is properly encodable
+        try:
+            self.content.encode("utf-8")
+        except UnicodeEncodeError as e:
+            msg = "Content contains invalid UTF-8 characters"
+            raise ValueError(msg) from e
 
         for key in self.metadata:
             if not isinstance(key, str):

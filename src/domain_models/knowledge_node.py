@@ -50,4 +50,9 @@ class KnowledgeNode(BaseModel):
             recursion_stack.remove(node_id)
             return False
 
+        node_ids = set(graph.keys())
+        for node in nodes:
+            if not all(child_id in node_ids for child_id in node.children):
+                return False
+
         return all(not (node.id not in visited and is_cyclic(node.id)) for node in nodes)

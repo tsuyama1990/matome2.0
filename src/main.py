@@ -1,3 +1,5 @@
+from collections.abc import Awaitable, Callable
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -31,15 +33,15 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-from collections.abc import Awaitable, Callable
-
-
-def create_exception_handler(status_code: int) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
+def create_exception_handler(
+    status_code: int,
+) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
     async def handler(request: Request, exc: Exception) -> JSONResponse:
         return JSONResponse(
             status_code=status_code,
             content={"message": str(exc)},
         )
+
     return handler
 
 

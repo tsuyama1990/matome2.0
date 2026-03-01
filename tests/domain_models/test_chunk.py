@@ -49,8 +49,37 @@ def test_semantic_chunk_malicious_content() -> None:
             id=uuid4(),
             document_id=uuid4(),
             content="Normal <script>alert('pwn')</script> text",
-            metadata={}
+            metadata={},
         )
+
+    with pytest.raises(ValidationError, match="Potentially malicious content detected"):
+        SemanticChunk(
+            id=uuid4(),
+            document_id=uuid4(),
+            content="Check this link javascript:alert(1)",
+            metadata={},
+        )
+
+    with pytest.raises(ValidationError, match="Potentially malicious content detected"):
+        SemanticChunk(
+            id=uuid4(), document_id=uuid4(), content="<img src='x' onerror='alert(1)'>", metadata={}
+        )
+
+
+def test_semantic_chunk_invalid_encoding() -> None:
+    # Directly test the validator since pydantic does pre-casting before the model_validator
+    from src.domain_models.chunk import SemanticChunk
+
+    class BadString(str):
+        def encode(self, *args, **kwargs):
+            raise UnicodeEncodeError("utf-8", "", 0, 1, "mocked")
+
+    # Bypass pydantic's internal coercion logic by explicitly testing the manual step
+    chunk = SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={})
+    chunk.content = BadString("test")
+
+    with pytest.raises(ValueError, match="Content contains invalid UTF-8 characters"):
+        chunk.validate_content_safety()
 
 
 def test_semantic_chunk_metadata_invalid_key() -> None:
