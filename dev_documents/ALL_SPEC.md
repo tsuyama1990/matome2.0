@@ -1,167 +1,172 @@
-プロダクト要求仕様書 (PRD): matome（まとめ）
-1. プロダクト概要
-1.1 プロダクト名と基本理念
-プロダクト名: matome（まとめ）
-ビジョン: 「情報の咀嚼という苦痛から人類を解放し、知識の獲得と新たなインサイトの創出を、最高にエキサイティングな知能ゲームへと変容させる。」
-ミッション: 認知心理学（SQ3R法、認知負荷理論、ファインマン・テクニック、忘却曲線）と最新の生成AI技術（RAPTOR、GraphRAG、MD-SKJ）をシームレスに統合し、ユーザーが無意識のうちに最も効率的な学習・分析プロセスを実践できる「フリクションレス（摩擦ゼロ）な能動的学習プラットフォーム」を提供する。本プロダクトは、単に長い文章を短く要約する「時短ツール」ではない。ユーザーの脳内に強固な「知識のネットワーク」を構築し、情報のインプットから革新的なアウトプット（要求仕様書、企画書、論文の骨子等）までを一気通貫で支援する、究極のナレッジ・ワークスペースである。
-1.2 ターゲットユーザーとペルソナの深掘り
-本プロダクトは、大量のテキストデータを日常的に処理し、そこから高度な価値や意思決定を生み出す必要がある以下の層を主要ターゲットとする。各ペルソナが抱える「現状の限界」と「提供価値」を明確に定義する。
-PdM・SE・DX推進担当者（プロダクト開発・DX層）
-現状の課題: 既存の複雑な業務マニュアル、部門ごとにサイロ化された社内規程、あるいはレガシーシステムの仕様書（数千ページに及ぶExcelやWord群）を読み解き、それを新しいソフトウェアやシステムの「要件定義書」や「ワークフロー」へと再設計（To-Be化）しなければならない。しかし、アナログなマニュアルからシステム要件を抽出する作業は、極めて高い認知的労力を要する。結果として、見落としが発生したり、既存の非効率なプロセスをそのままシステム化してしまう「現状維持バイアス（As-Isトラップ）」に陥りやすい。
-期待する価値: ドキュメントの束をシステム設計の視点（アクター、データフロー、状態遷移など）で自動的に解体・再構成し、UML（シーケンス図等）やPRDのドラフトを瞬時に出力する機能。人間が「考えるべきコアな業務ロジック」に集中できる環境の提供。
-新規事業開発担当者・コンサルタント・経営企画（ビジネス層）
-現状の課題: 数百ページに及ぶマクロ経済の市場レポート、競合他社の難解な技術仕様書、海外のトレンド記事を極めて短時間で読み込み、経営陣へのプレゼンテーション用に「独自のインサイト」を抽出する必要がある。時間が常に不足しており、「結論」と「その根拠」の構造的理解を急いでいるが、斜め読みでは本質的なリスクや機会を見落としてしまう。
-期待する価値: 複数のレポートを横断的に分析し、SWOT分析、PESTLE分析、ポーターの5フォースなどのビジネスフレームワークに沿って情報を瞬時に再配置（Pivot）する機能。一次情報へのトレーサビリティを保ちながら、戦略立案の壁打ち相手となる機能。
-高度専門職・研究者・データサイエンティスト（アカデミア・R&D層）
-現状の課題: 毎週何十本もの英語論文や専門書をスクリーニングし、自身の研究テーマとの関連性や先行研究のギャップ（空白地帯）を見出したい。MendeleyやZoteroといった既存の文献管理ツールは情報の「ストック」には向いているが、論文間の横断的な関係性（知識グラフ）の発見や、未知の仮説生成には役立たない。
-期待する価値: 膨大な論文群を意味論的に繋ぎ合わせ、自分が設定した特定の研究軸（時間軸、評価指標の違い、アルゴリズムの系譜など）でダイナミックにマインドマップを組み替える機能。
-資格試験受験者・学生・リカレント学習者（学習層）
-現状の課題: 分厚い参考書や難解な学術テキストを前に、「文字を追う・ハイライトを引く・暗記する」という受動的な学習スタイルに限界を感じている。孤独な学習は即時のフィードバックが得られず、退屈、眠気、そして「数日後には忘れている」という徒労感・苦痛を伴う。
-期待する価値: スマホゲームのようにテンポ良く進められるインタラクティブなUIと、自分の理解を優しく肯定・補足してくれるAIチューターとの音声対話機能。学習の進捗が「知識の木の成長」として可視化される自己効力感の醸成。
-2. 解決すべき課題とコアコンセプト
-2.1 課題（Pain Points）の科学的・心理学的深掘り
-認知過負荷とLost-in-the-Middle（中間情報の忘却）: ジョン・スウェラーの「認知負荷理論（Cognitive Load Theory）」によれば、人間のワーキングメモリは一度に5〜9チャンクの新しい情報しか保持・処理できない。数万文字に及ぶ長大なテキストを線形（1ページ目から最後まで順番に）読むことは、この認知的限界を容易に突破する。読者の脳内で「内在的負荷（情報そのものの難しさ）」と「外在的負荷（不要な修飾語やノイズ）」が飽和すると、情報の処理が停止する。結果として、文書の中間部分の重要なコンテキストがごっそり抜け落ちる現象（LLMにおけるLost-in-the-Middle現象は、人間にも全く同様に発生する）や、全体構造を見失う「文脈の迷子」を引き起こす。
-受動的学習の非効率性とモチベーションの枯渇: 「完成された完璧な要約」や「他人が綺麗に整理したマインドマップ」をただ眺めるだけの行為は、ベンジャミン・ブルームの教育目標分類学（Bloom's Taxonomy）における最下層の「記憶（Remember）」にすら到達しづらい。なぜなら、脳の「生成学習（情報を自らの既存の知識体系と結びつけ、統合・組織化する能動的プロセス）」が起動しないためである。その結果、情報は短期記憶に留まり、エビングハウスの忘却曲線に従って急速に失われる。また、一方的な情報のインプットは「自分が理解できているか」という即時のフィードバックがないため、学習者の自己効力感を低下させ、極めて高い確率で学習の離脱（挫折）を招く。
-システム化における「As-Is」トラップ（現状維持バイアス）とサイロ化の弊害: 既存の業務マニュアルをシステム開発の要件定義に落とし込む際、人間は無意識にマニュアルの目次構造や現在の部署割りに引きずられる。その結果、「非効率なアナログ業務（ハンコ押し、不要なダブルチェック、Excelへの二重入力など）までそのまま電子化してしまう」というシステム化の罠（DXの失敗）が頻発する。真に優れたシステムやソフトウェアを作るには、既存のドキュメントをシステム設計の純粋な視点（アクター、データフロー、状態遷移、エンティティ関係など）でゼロベースで再構成（To-Be設計）する多大な認知的労力と、過去の慣習を疑う客観性が必要となる。
-2.2 コアコンセプト（ソリューション）の具体化
-matomeは、UI/UXデザインとバックエンドAIの力で、これらの「学習と業務における摩擦」を極限までゼロにし、ユーザーをフロー状態（完全に没頭した状態）へと導きます。
-先行オーガナイザーのUI化（プログレッシブ・ディクロージャーとセマンティック・ズーミング）: デイヴィッド・オーズベルの学習理論「先行オーガナイザー（Advance Organizer）」に基づく設計。最初から何万文字もの詳細テキストを見せるのではなく、まずは全体像（目次や主要コンセプトの階層ツリー）を視覚的に提示する。ユーザーが特定の領域に関心を持ったタイミングで、そこだけ解像度を上げていく（ズームインする）インターフェースを採用。常に「森全体を把握した上で、特定の木を観察する」体験を作ることで、未知の複雑な情報に対する認知負荷を劇的に下げる。
-摩擦ゼロのSQ3R自動化（マイクロ・ゲーミフィケーション）: 科学的に最強の学習法とされるSQ3R（Survey: 概観、Question: 発問、Read: 精読、Recite: 暗唱、Review: 復習）を、UIの操作フロー上に強制的に組み込む。ノードを開く前の「AIからの発問（Question）」に答え、読み終えた後に音声で「言語化（Recite）」することをシステムを進めるための必須アクションとする。正解すればノードが弾ける美しいパーティクルエフェクトや、AIからの即時の称賛（マイクロ報酬）を与える。これにより、苦痛であった能動的学習を「快感」を伴う陣取りゲームへと変容させる。
-多次元的・構造的理解の創発 (MD-SKJ: Multi-Dimensional Semantic KJ): 文化人類学者・川喜田二郎のKJ法を、LLMのベクトル処理能力で高度化。「Pivot KJ」機能により、著者の設定した論理（目次）を一度バラバラに解体し、ユーザー独自の視点、あるいは「システム要件定義軸」「SWOT軸」といった新しい多次元軸で知識ネットワークを再構築する。これは単なる情報のインプットにとどまらず、新しいシステムワークフロー、事業アイデア、あるいは学術的な仮説の創出という「アウトプット」までをシームレスに支援し、エコーチェンバー現象（著者のバイアス）から読者を解放する。
-3. 機能要件 (Functional Requirements)
-3.1 インジェストとAI前処理エンジン (AI Preprocessing)
-ユーザーがドキュメントをアップロードした裏側で実行される、完全自動かつスケーラブルなドキュメント解析パイプライン。
-FR-1.1: マルチモーダル対応と文脈を保持したノイズ正規化:
-対応フォーマット: PDF, EPUB, Web URL, Notion連携, Markdown, 画像ファイル。
-Vision-Language Model (VLM) を活用し、テキスト化が難しいPDF内の複雑な図表、グラフのトレンド（例：「棒グラフが右肩上がりである」という文脈の抽出）、数式（LaTeX形式への変換）も周囲の文脈と共に認識し、セマンティックなマークダウン形式に構造化して読み込む。マルチモーダル処理の実行にはConfigで指定された画像専用モデル（例：GPT-4o等）を呼び出す。
-ヘッダー、フッター、ページ番号、目次ページ自体などの「意味を持たないノイズ」は、ヒューリスティクスとAIの組み合わせにより自動で正規化・除去する。
-FR-1.2: 意味論的分割 (Semantic Chunking) とエンティティの抽出:
-機械的な固定文字数（例：1000文字ごと）での分割は行わない。日本語特有の文脈（句読点の曖昧さ、主語の省略、指示代名詞の多用）に対応した高度なSemantic Chunkerを用いる。
-隣接する文同士のコサイン類似度を計算し、類似度が急激に低下する転換点（パーセンタイル閾値、通常は上位5〜10%のドロップ）を検出して、テキストを「命題（Proposition）レベル」で動的分割する。
-分割と同時に、各チャンクから主要なエンティティ（固有名詞、専門用語、システムのアクター、日付、金額など）をNER（固有表現抽出）によって抽出し、ベクトルDBのメタデータとして保存する。
-FR-1.3: RAPTOR階層ツリーの生成と最適化:
-分割された数千〜数万のチャンクに対し、UMAP（Uniform Manifold Approximation and Projection）による高次元ベクトルの次元削減（ノイズ除去）と、GMM（ガウス混合モデル）によるソフトクラスタリングを実行する。
-GMMを用いることで、一つのチャンクが複数のクラスタに属すること（例えば「予算」に関する記述が「マーケティング」と「開発」の両方に属する状態）を許容し、文脈の欠落を防ぐ。
-BIC（ベイズ情報量基準）を用いて最適なクラスタ数を自動決定し、著者の目次に沿った階層的要約ツリー（Root: 全体要約 -> Node: 章/節要約 -> Leaf: 具体的事実）をボトムアップで生成し、「インプットの網羅性」を担保する。
-FR-1.4: 情報の超高密度化 (Chain of Density: CoD) プロセス:
-生成された各ノードの要約テキストに対して、CoD（Chain of Density）プロンプトを適用する。
-「現在の要約に欠落している重要なエンティティを1〜3つ追加し、かつ全体の文字数を維持するように書き換える」という反復処理（通常3〜5回）をAI内部で自動実行する。これにより、冗長な修飾語が削ぎ落とされ、情報密度が極限まで高まった状態（最も認知負荷の低い状態）のテキストが完成する。
-FR-1.5: 多次元軸の事前タグ付与 (MD-SKJ基盤):
-全てのチャンクに対して「時間軸（過去・現在・未来）」「論理軸（事実・主張・根拠・例示・反論）」「極性軸（ポジティブ・ネガティブ・中立・懸念）」を判定しタグ付けする。
-加えて、ソフトウェア設計向けの「システム設計軸（アクター、データフロー、制約条件、トリガー）」のメタデータタグも事前計算し、付与しておく。これが後述の「Pivot KJ」を瞬時に実行するための強力なインデックス基盤となる。
-3.2 セマンティック・ズームUI (Survey & Read)
-学習のメイン画面となる、直感的でなめらか、かつ視覚的に美しく疲れにくい無限キャンバスUI。
-FR-2.1: 初期マインドマップ表示 (The Big Pictureの提示):
-初期状態では、最も抽象度の高いルートノード（章レベルの表札やコアコンセプト）のみをキャンバス上に美しいシャボン玉（またはミニマルなカード）として表示する。画面を開いた瞬間にテキストの海に溺れる「情報疲労症候群」を未然に防ぐ。
-FR-2.2: なめらかなズームとプログレッシブ開示:
-ユーザーが特定のノードを拡大（ピンチアウト、スクロール、またはダブルクリック）する操作をトリガーに、物理演算に基づくシームレスなアニメーション（スプリングエフェクト等の自然なイージング）と共に、下位階層のノードが展開される。
-見たい部分の解像度だけが上がり、関係のないノードはフェードアウトまたは縮小される「意味論的ズーム（Semantic Zooming）」を実現する。
-FR-2.3: 既読/未読の視覚的表現と学習ナビゲーション:
-未学習のノードは「ロック状態（南京錠アイコン、すりガラス状のぼかし、またはモノクロ表示）」で提示され、ユーザーがどこから手をつけるべきか、読解の順序を自然にナビゲートする。
-学習が完了したノードは鮮やかなブランドカラーに変わり、プログレスリングが満たされる。「知識の木が成長していく」ような視覚的フィードバックを提供し、進捗の可視化による達成感を提供する。
-FR-2.4: 空間コンテキストの維持機能:
-深くズームインして詳細を読んでいる最中でも、画面の隅に全体のミニマップ（レーダー機能）を表示する。
-画面上部にはインタラクティブなパンくずリスト（例：第1章 イントロダクション > 1.2 市場環境 > 競合A社の動向）を常時表示し、クリックで即座にその階層へ戻れるようにすることで、ユーザーが広大な情報空間の中で現在位置を見失わないようにする。
-3.3 インタラクティブ・アンロック発問 (Question)
-受動的な読書を物理的に防ぎ、脳を「検索モード（情報のアンテナを立てた状態）」にする強力なフック機能。
-FR-3.1: 適応型（アダプティブ）発問プロンプト生成:
-ユーザーがロックされたノードを開こうとした際、中身を直接見せるのではなく、AIがそのノードの核心を突く「問い」をポップアップまたは音声で投げかける。
-ユーザーの事前設定（初学者モード / 専門家モード）に応じ、問いの難易度と種類が適応的に変化する。
-Fact-recall（事実の想起）: 「この章のテーマである〇〇について、現在の市場規模はいくらだと記述されていると予想しますか？」
-Inference（推論）: 「著者はA戦略を推奨していますが、B戦略に対する致命的な欠点を一つ挙げています。それは何だと推測しますか？」
-Application（応用）: 「このノードで解説される『状態管理』の概念を、あなたが今関わっているプロジェクトに当てはめるとどうなりますか？」
-FR-3.2: 摩擦のない回答アクションと多段ヒント提示:
-ユーザーは数秒間思考して「パス」をタップするか、短いキーワードをテキスト入力、あるいは音声発話したことを検知してロックを即座に解除する。
-フリーズした（答えが出ない）ユーザー向けには、「ヒントを表示」ボタンを用意。最初は一部の文字を隠した虫食い状態、次は多肢選択式のクイズへと段階的にフォールバックさせ、認知のブロックを優しく解除する。
-FR-3.3: 即時の報酬エフェクト:
-ロック解除時には、心地よいサウンド（ハプティックフィードバック対応デバイスであれば軽い振動も伴う）と視覚的なエフェクト（アンロック・アニメーションや紙吹雪など）と共に、CoDで洗練された高密度要約（Read）が展開される。この「マイクロ報酬」が学習のドーパミンループを回す原動力となる。
-3.4 音声対話型「Recite（ファインマン・メソッド）」フェーズ
-文字入力の苦痛を排除し、「他人に教えるように自分の言葉で説明する（ファインマン・テクニック）」ことで長期記憶への定着を図る機能。
-FR-4.1: コンテキスト・アウェアなマイク・アクティベーション:
-一つのノード（またはセクション全体）の学習を終えて上位階層に戻る（ズームアウトする）際、画面の中央下部に波形を示すマイクボタンがアクティブになる。
-FR-4.2: 音声による概念化（壁打ち対話）:
-ユーザーはマイクに向かって「要するに、こういうことだよね」「私が理解したところによると〜」とAIに向かって要点を言語化（暗唱）する。
-オフィス環境や公共交通機関での利用を想定し、テキスト入力へのシームレスなフォールバックもサポートする。
-FR-4.3: CAHMによる即時ファクトチェックとハルシネーション検知:
-AIはユーザーの音声入力をWhisper API等で瞬時にテキスト化する。
-Context-Aware Hierarchical Merging (CAHM) アルゴリズムを用いて、ユーザーの発言内容を元の原文ファクト（ベクトルDB内の対応チャンク）と即座に照合する。ユーザーの記憶がハルシネーション（独自解釈による暴走、用語の混同、誤認識）を起こしていないかを厳密に判定する。
-FR-4.4: 肯定・補完のサンドイッチ・フィードバック（AIチューターの振る舞い）:
-照合結果に基づき、AIから即座にフィードバックが返される。AIのトーンは「厳格な教師」ではなく「伴走する優秀なコーチ」に設定される。
-正解・惜しい場合: 「素晴らしいです！『コスト削減』という核心を見事に突いていますね。ちなみに、原文では『ランニングコストの圧縮』という表現でさらに具体化されていました。」
-誤認の場合: 「なるほど、面白い視点ですね！ただ、著者の主張としては逆で、『初期投資は増えても長期的にはリターンが上回る』という文脈でした。もう一度該当部分のグラフを確認してみますか？」という具合に、心理的安全性を最大限に担保しながら軌道修正を行う。
-3.5 Pivot KJ による要件定義と知識の再構築 (Review & Insight)
-目次ベースの学習（インプット）を終えた後に行う、最高次のインサイト生成（アウトプット）機能。読書を「消費」から「生産」へと変える本プロダクトのキラー機能。
-FR-5.1: Pivot KJの起動とバージョン・スナップショット:
-キャンバス上の「Pivot（再構成）」ボタンを押下すると、MD-SKJエンジンが起動する。現在のキャンバス状態（配置、完了ステータスなど）は履歴として非破壊的に保存され、いつでも元の「目次ツリー（著者の構造）」に戻ることができる。
-FR-5.2: 目的特化型・多次元軸の選択インターフェース:
-ユーザーはドロップダウンメニューから、目的に応じた新しい切り口（分析フレームワーク）を選択できる。
-ビジネス分析用: 「時間軸（過去/現在/未来）」「SWOT分析」「PESTLE分析」「カスタマージャーニー軸」
-ソフトウェア設計用: 「アクター軸（誰が操作するか）」「ステート（状態遷移）軸」「ユースケース軸」「データフロー軸」
-カスタム: ユーザーが自然言語で独自の軸（例：「〇〇技術と△△技術の比較」）を定義することも可能。
-FR-5.3: ダイナミック・リロケーションと空間アニメーション:
-選択された軸に基づき、キャンバス上の全ノードが物理演算エンジン（Force-directed graphやD3.jsベースのレイアウト）を用いた流麗なアニメーションと共に移動する。業務マニュアルの文脈（As-Is）から切り離され、新しいシステムワークフロー（To-Be）や全く新しいクラスタの形へとダイナミックに再配置される。
-FR-5.4: Web-Grounding（外部事実検証）とバイアス解除サジェスト:
-AIは、再構成されたワークフローやクラスタの論理を、現代のSaaSベストプラクティスや最新のWeb検索結果（Tavily等を使用）とリアルタイムに照合する。
-例えば「元マニュアルには『紙の領収書を台紙に貼って経理部長に提出』という承認プロセスが含まれていますが、最新のシステム要件ではスマホOCR＋AI自動チェックが一般的です。このアナログプロセスを要件から削除（スキップ）しますか？」といった、人間の「現状維持バイアス」を破壊するインサイトをUI上で提案する。
-FR-5.5: 要件定義書・UMLの自動エクスポート機能:
-ユーザーがAIの提案を受け入れ、カードの配置関係や矢印（依存関係）を確定させると、AIがその新しい配置から「要求仕様書（PRD）」や「エグゼクティブ・サマリー」を自動生成する。
-さらに、**Mermaid.jsやPlantUMLのコードスニペット（シーケンス図、フローチャート、ステートマシン図、ER図等）**を同時に出力する。これにより、要件定義から開発チームへの引き継ぎ、あるいは経営陣へのプレゼン資料作成がシームレスに行われる。
-3.6 AIモデル構成とAPIキー管理 (Config Management)
-OpenRouterを活用し、コスト、処理速度、精度のバランスを極限まで最適化するための設定基盤機能。
-FR-6.1: ユーザーレベルのBYOK (Bring Your Own Key) サポート:
-プラットフォームとしてSaaS提供する場合、システムのデフォルトAPIキーを使用するプランの他、ユーザー（またはテナント管理者）が自身のOpenRouter APIキーを登録して利用できるBYOKモードをサポートする。
-キー情報は強固に暗号化（AES-256-GCM等）され、環境変数またはセキュアなDBに格納される。
-FR-6.2: JSON/UIによるタスク別モデル・ルーティング設定:
-ユーザーは設定画面（UI）または config.json を通じて、バックエンドで実行されるタスクごとに使用するモデルを細かく指定できる。
-以下のようなデフォルト構成をシステムが保持し、ユーザーがオーバーライド可能にする。
-text_fast_model (大量テキストのチャンキング、初期要約、メタデータ付与用): 安価で高速かつコンテキストウィンドウが広いモデル（例：google/gemini-2.5-flash）。
-text_reasoning_model (Pivot KJ時のインサイト抽出、To-Be要件の生成、Web-Groundingの判定用): 高度な論理推論能力を持つモデル（例：deepseek/deepseek-reasoner, anthropic/claude-3.7-sonnet）。
-multimodal_model (PDF内の複雑な図表、アーキテクチャ図、UIモックアップ画像の解析用): 視覚的理解力に優れたマルチモーダル特化モデル（例：google/gemini-2.5-pro, openai/gpt-4o）。
-FR-6.3: 自動フォールバックとヘルスチェック:
-OpenRouterの特性上、特定のモデルプロバイダーが一時的にダウンする可能性がある。システムは設定されたモデルへのリクエストがタイムアウトまたはエラーになった場合、あらかじめConfigに登録された代替モデル（例：Geminiが落ちた場合はGPT-4o-miniへ等）へ自動的にフォールバックする耐障害メカニズムを実装する。
-4. 非機能要件 (Non-Functional Requirements)
-4.1 UI/UX パフォーマンスとアクセシビリティ
-超高速レンダリング最適化: キャンバス上のノード数が5,000を超えるような超長文・複数ドキュメントの統合分析であっても、ズーム/パン操作は常時60fpsを維持すること。React Flow等のライブラリをベースに、WebGLやCanvas APIをフル活用する。画面外のDOMエレメントの過度な生成を抑制する高度なVirtualization（仮想化）技術を実装する。
-超低レイテンシ応答 (Real-time Feel): 音声入力完了からAIによるフィードバック返却までの遅延（レイテンシ）は2.5秒以内を厳守する。LLMのストリーミング出力を徹底的に活用し、最初の文字の表示（TTFT: Time To First Token）は1.0秒以内とし、ユーザーに「待たされている感覚」を与えない。
-環境適応とアクセシビリティ (a11y): ユーザーの目の疲労を軽減し集中力を高めるための「ダークモード/セピアモード」を標準搭載。WCAG（Web Content Accessibility Guidelines）準拠のコントラスト比を維持し、フルキーボード操作（ショートカットキーでのズーム、ノード間の移動、発話の開始など）を完全にサポートする。
-4.2 アーキテクチャ・技術選定（推奨スタック）
-フロントエンド: React ＋ React Flow（ノードとエッジの明示的な管理、ミニマップ、カスタムノードの拡張性に優れ、パフォーマンスが高い）を採用する。Web Workerを用いてテキストのパース処理や物理演算（レイアウト計算）をメインスレッドから分離し、UIのフリーズ（カクつき）を完全に防ぐ。
-バックエンド: Python (FastAPI) ＋ LangChain / LangGraph。特にLangGraphを用いて、複雑なAIワークフロー（テキスト抽出→チャンキング→タグ付け→クラスタリング→Web検証→自己修正ループ）をステートマシンとしてオーケストレーションする。これにより、途中で処理が失敗した場合のエラー回復（リトライ）や、処理の途中再開を強靭化する。
-ベクトルデータベース: Pinecone または Qdrant を採用。HNSW（Hierarchical Navigable Small World）アルゴリズムにより、数十万トークンのチャンクに対するミリ秒単位の類似度検索を実現する。さらに、メタデータ（時間軸などのタグ）を用いた事前フィルタリング（ハイブリッド検索）を高速に行う。
-AIモデルルーティング (OpenRouter活用によるコスト・性能最適化):
-OpenRouterのAPIエンドポイントを単一のゲートウェイとして使用し、アプリケーション層のコードを変更することなく、最先端のモデルを切り替えるアーキテクチャを採用する。
-config.json の設定に基づき、タスク（ルーティング先のワーカー）が要求する能力と予算に合わせて、最適なリクエストヘッダ（例：HTTP-Referer, X-Title 等のOpenRouter必須項目）を自動付与してディスパッチする。
-音声技術: 音声認識にはリアルタイム性の高い Whisper API またはブラウザネイティブのWeb Speech APIをフォールバックとして使用。音声合成（TTS）には、極めて自然な抑揚と感情表現を持つ ElevenLabs または OpenAI TTS を使用し、無機質な機械音による学習意欲の低下（不気味の谷現象）を防ぐ。
-4.3 セキュリティとプライバシー（エンタープライズ対応要件）
-データ保持と学習利用のオプトアウト (Zero-Data Retention): ユーザーがアップロードした機密文書（社内マニュアル、未公開論文、顧客データを含む仕様書など）は、外部のAIモデルの学習データとして一切使用されないことをEnterprise APIの規約を通じて技術的・法的に確約する。
-エンタープライズ認証と細粒度権限管理: SAML/OAuth2によるシングルサインオン（SSO）をサポートし、既存の企業ID基盤（Entra ID, Okta等）と統合する。チーム機能（コラボレーション・キャンバス）におけるRBAC（Role-Based Access Control: 閲覧者、編集者、管理者など）を厳密に実装し、ドキュメントごとのアクセス制御を可能にする。
-ローカル推論オプション (オンプレミス拡張性): 極めて機密性の高い医療情報（PHI）や軍事・法務文書向けに、クラウドのLLMを一切使用せず、ローカル環境またはVPC内で稼働するLLM（Llama 3等の量子化モデル）へ推論リクエストを逃がす、ハイブリッド/オンプレミスアーキテクチャへの切り替え機能を設計段階から保持する。
-4.4 学習アナリティクスとコスト管理
-忘却曲線に基づく復習アルゴリズム (Spaced Repetition / FSRS): ユーザーごとの学習ダッシュボードを提供。各学習セッションの滞在時間、Questionの正答率（ヒント利用の有無）、Recite時のキーワード網羅率をデータとして蓄積する。最新のFSRS（Free Spaced Repetition Scheduler）アルゴリズムをバックエンドで回し、記憶が定着しづらいノードを最適なタイミング（例：翌日、3日後、2週間後）でハイライト表示して再復習を促す。
-プロンプトキャッシングによる極限のコスト制御: APIコールの肥大化による赤字を防ぐため、AnthropicやGeminiが提供する「プロンプトキャッシング機能」を極限まで活用する。長大なシステムプロンプトや、同一文書への反復アクセス時（ズームイン/アウト時など）のコンテキストトークン費用を大幅に削減する。目標は、1ドキュメント（10万トークン規模）あたりの全AI処理コストを100円未満に抑え、SaaSとしての高い粗利率を持続可能にすること。
-5. ユースケース・シナリオ（「苦痛からの解放」の具体的な体験）
-シナリオ1：多忙な新規事業開発担当者のリサーチ（ビジネス層）
-[Survey] 担当者が『2025年 AIエージェント市場の最前線』という100ページの分厚く難解な英語のPDFレポートをアップロードする。コーヒーを淹れている数分の間に、画面には5つの大きなシャボン玉（章の概要）が美しい日本語のレイアウトで浮かび上がる。
-[Question] 「第2章：自律型エージェントの壁」のシャボン玉をタップすると、シャボン玉が震え、AIの軽快な声が鳴る。「第2章を開きますね。さて、技術的な壁よりも深刻な『人間側の壁』が論じられていますが、何だと思いますか？」
-[Read] 担当者が「AIに仕事を奪われる恐怖、とか？」とつぶやくと、シャボン玉がパチンと弾け、洗練された図解と共に「正解は『責任の所在（アカウンタビリティ）への不安』です」という高密度要約が現れる。自分の予想（問い）に対する答えを探すため、担当者は思わず食い入るようにテキストの核心部分を読む。
-[Recite] 読み終えるとマイクアイコンが光る。「今の内容、上司にエレベーターピッチするつもりで説明してみてください」。担当者がスマホに向かって「自律型エージェント普及の最大の壁は技術ではなく、ミスが起きた際に誰が責任を取るかという法的・心理的な不安だ」と喋る。AIが「完璧な要約です！明日の会議でそのまま使えますね」と称賛し、承認欲求を満たすエフェクトが画面を彩る。
-[Review / Pivot] 全章を読破した後、「Pivot KJ」ボタンを押す。「SWOT分析」の軸を選ぶと、画面のノードが竜巻のように再配置され、レポート全体に散らばっていた情報が「強み・弱み・機会・脅威」の4象限に自動分類される。担当者は「法規制の不確実性」のカードを「脅威」から「機会（参入障壁になるため）」へ自らの手でドラッグ＆ドロップして微調整を行う。ワンクリックでこれを「新規事業の提案スライド原案」としてエクスポートし、退屈な情報収集がエキサイティングな事業創造のアクティビティへと劇的に変化した。
-シナリオ2：試験勉強に疲弊する大学生（学習層）
-大学生が難解な『マクロ経済学』の分厚い参考書スキャンデータをアップロードする。試験は1週間後に迫っているが、文字を見るだけで眠気が襲ってくる状態。
-勉強のモチベーションが全く湧かない日でも、キャンバス上のシャボン玉を「ゲームのステージをクリアする感覚」で次々とタップしていく。文字の壁に圧倒されることはなく、一口サイズ（Bite-sized）の情報だけが提示される。
-Recite機能により、まるで優秀で優しく、絶対に否定しない家庭教師と雑談をしているような感覚で知識が定着していく。IS-LM分析について間違えて発言しても「惜しい！投資は利子率の減少関数でしたね。もう一度グラフを見てみましょう！」と励ましてくれるため、勉強の孤独な苦痛が癒やされる。
-試験前日には「Pivot KJ」を用いて「時代別（古典派 vs ケインズ派 vs マネタリスト）」や「政策効果別（財政政策 vs 金融政策）」にマインドマップを一瞬で組み替える。これにより、単なるキーワードの丸暗記では太刀打ちできない「複数の理論を横断的に比較させる応用問題」への対応力を、無意識のうちに身につけている。
-シナリオ3：未知の論文を調査する研究者（アカデミア・R&D層）
-研究者が、自身の専門分野に少し関連する英語論文（PDF）を10本まとめてシステムに流し込む。
-従来の「Ctrl+F（検索）」やアブストラクトを1本ずつ順に読むのではなく、システムが自動生成した「概念の依存関係グラフ（GraphRAG）」を俯瞰する。これにより、「この論文群の最大の争点は『評価指標の妥当性』にある」という学術的な対立構造（コンテキスト）を瞬時に把握する。
-「Pivot KJ」を起動し、「研究手法の進化（時間軸）」を選択する。バラバラだった論文が、古いベースライン手法から最新の提案手法への「系譜図」として再配置される。さらにWeb-Grounding機能が働き、「最新のプレプリントサーバー（arXiv）には、これら全ての手法を凌駕するXというモデルが昨日発表されています」とポップアップが提示される。研究者は、既に陳腐化した手法を追いかけるという致命的なリスク（競争の出遅れ）を回避できた。
-シナリオ4：レガシー業務のソフトウェア化（DX・プロダクト開発層）
-[Survey（網羅的インプット）] DX推進担当のPdMが、社内のレガシーな「出張経費精算マニュアル（全50ページ）」のPDFをアップロードする。AIのRAPTORエンジンがこれを解析し、As-Is（現状）の業務手順に沿った美しい階層ツリーをキャンバス上に展開する。
-[Question & Read（業務ルールの理解）] 「第3章：海外出張の特例」ノードを開こうとすると、AIが問う。「この特例において、経理部ではなく『役員』の承認が必要になる条件は何だと思いますか？」。PdMが「金額が一定以上の場合？」と答えてロックを解除すると、正確な条件（50万円以上かつ特定地域）の高密度要約が現れる。PdMは目次（ツリー）に沿ってズームとReciteを繰り返し、複雑な業務ドメインとエッジケースを脳内に網羅的にインストールする。
-[Pivot KJ（要件の構造化とTo-Be設計）] 業務ルールのインプットを終えたPdMは「Pivot KJ」ボタンを押し、「アクター（役割）× 状態遷移」の軸を選択する。すると、章立てに沿っていたマインドマップが弾け、「申請者」「直属上司」「経理担当」「役員」という4つのレーンを持つスイムレーン形式のワークフロー図へとダイナミックに再配置される。
-[Web-Grounding（システム化バイアスの解除）] AIがキャンバス上で警告（サジェスト）を出す。「元マニュアルには『紙の領収書を台紙に貼って経理に提出』というエッジケースが含まれています。しかし最新のSaaS要件では『スマホでの領収書OCR読み込み＋電子帳簿保存法対応』が一般的です。この手作業プロセスを要件から削除（または代替要件に変換）しますか？」PdMはAIの提案を受け入れ、不要なノードを削除・書き換えする。
-[Export（要件定義ドキュメント化）] 完成したTo-Beのワークフローを確認し、「要件定義書として出力」をクリック。matomeは、再構成されたKJボードの構造に基づき、洗練された**「経費精算システム要求仕様書（Markdown）」と、開発者がそのまま会議で使える「Mermaidシーケンス図」**を即座に生成した。数週間かかるはずの要件ヒアリングとドキュメント化の苦痛が、数時間のエキサイティングな再構築ゲームへと変わった。
-シナリオ5：新入社員のオンボーディング（HR・コーポレート層）
-新しく入社した社員が、500ページを超える自社プロダクトの仕様書とコンプライアンス規程を3日で理解しなければならない状況。
-matomeが生成した「オンボーディング・ツリー」に沿って、クイズ形式でテンポよく知識を吸収していく。
-Recite機能により、「自社のクレーム対応フロー」についてAI相手に模擬演習（ロープレ）を行う。間違った対応をしても先輩社員に怒られることはなく、AIが優しく訂正してくれるため、心理的安全性が保たれたまま実践的なスキルが身につく。HR担当者は学習ダッシュボードから新入社員の理解度（弱点ノード）を正確に把握し、的確なフォローアップを行うことができる。
+# Product Requirements Document (PRD): matome
+
+## 1. Product Overview
+
+### 1.1 Product Name and Core Philosophy
+**Product Name:** matome (Japanese for "summary")
+
+**Vision:** "To liberate humanity from the pain of digesting information, transforming knowledge acquisition and the creation of new insights into an exhilarating intellectual game."
+
+**Mission:** To seamlessly integrate cognitive psychology principles (such as the SQ3R method, cognitive load theory, the Feynman technique, and the spacing effect) with the latest generative AI technologies (including RAPTOR, GraphRAG, and Multi-Dimensional Semantic KJ). This creates a "frictionless active learning platform" where users unconsciously practice the most efficient learning and analysis processes. This product is not merely a "time-saving tool" that shortens long texts. It is an ultimate knowledge workspace designed to build a robust "knowledge network" within the user's brain, supporting the entire process from information input to innovative output (e.g., requirements documents, project proposals, research paper outlines).
+
+### 1.2 Target Users and Persona Details
+This product targets professionals who regularly process massive amounts of text data to generate high value and make decisions. We define the current limitations and the value provided for each persona below:
+
+**Product Managers (PdM), Systems Engineers (SE), and Digital Transformation (DX) Leaders (Product Development & DX Tier)**
+*   **Current Challenges:** They must decipher existing complex business manuals, siloed departmental regulations, or legacy system specifications (often thousands of pages of Excel or Word documents) and redesign them into "Requirements Documents" and "Workflows" for new software. However, extracting system requirements from analogue manuals requires extremely high cognitive effort. This often leads to oversights or the "As-Is trap" (status quo bias), where inefficient existing processes are digitised exactly as they are.
+*   **Expected Value:** The ability to automatically deconstruct and reconstruct bundles of documents from a system design perspective (e.g., actors, data flows, state transitions) and instantly output Unified Modeling Language (UML) diagrams (like sequence diagrams) or PRD drafts. This provides an environment where humans can focus on the "core business logic."
+
+**New Business Developers, Consultants, and Corporate Planners (Business Tier)**
+*   **Current Challenges:** They need to read hundreds of pages of macro-economic market reports, complex technical specifications of competitors, and overseas trend articles in a very short time to extract "unique insights" for presentations to management. They are always short on time and rush to understand the "conclusions" and "evidence" structurally, but skimming often leads to missing fundamental risks or opportunities.
+*   **Expected Value:** The ability to analyse multiple reports cross-sectionally and instantly relocate (Pivot) information along business frameworks such as SWOT analysis, PESTLE analysis, and Porter's Five Forces. It acts as a sounding board for strategy formulation while maintaining traceability to primary information sources.
+
+**Highly Skilled Professionals, Researchers, and Data Scientists (Academia & R&D Tier)**
+*   **Current Challenges:** They screen dozens of English papers and academic books weekly to find relevance to their research themes or gaps in previous research. Existing reference management tools like Mendeley or Zotero are good for "stocking" information, but not for discovering cross-sectional relationships (knowledge graphs) between papers or generating unknown hypotheses.
+*   **Expected Value:** The ability to semantically connect vast amounts of papers and dynamically rearrange mind maps based on specific research axes set by the user (e.g., timeline, evaluation metrics, algorithm lineage).
+
+**Certification Exam Candidates, Students, and Adult Learners (Learning Tier)**
+*   **Current Challenges:** Faced with thick reference books and difficult academic texts, they feel the limits of passive learning styles like "reading words, highlighting, and memorising." Solitary learning lacks immediate feedback, leading to boredom, sleepiness, and the painful feeling of wasted effort when they "forget it all a few days later."
+*   **Expected Value:** An interactive User Interface (UI) that progresses rhythmically like a smartphone game, and a voice dialogue feature with an AI tutor who gently affirms and supplements their understanding. It fosters a sense of self-efficacy by visualising learning progress as the "growth of a knowledge tree."
+
+## 2. Problems to Solve and Core Concepts
+
+### 2.1 Scientific and Psychological Analysis of Pain Points
+*   **Cognitive Overload and Lost-in-the-Middle:** According to John Sweller's Cognitive Load Theory, human working memory can only hold and process 5 to 9 chunks of new information at once. Reading a long text of tens of thousands of words linearly easily exceeds this limit. When "intrinsic load" (the difficulty of the information itself) and "extraneous load" (unnecessary modifiers and noise) saturate the brain, information processing stops. This results in the complete loss of important context in the middle of a document (the "Lost-in-the-Middle" phenomenon, seen in LLMs, happens exactly the same way in humans) and losing sight of the overall structure.
+*   **Inefficiency of Passive Learning and Loss of Motivation:** Simply looking at a "completed, perfect summary" or a "mind map neatly organised by someone else" struggles to even reach the lowest tier of "Remember" in Benjamin Bloom's Taxonomy of Educational Objectives. This is because the brain's "generative learning" (the active process of linking, integrating, and organising information with one's existing knowledge system) is not triggered. Consequently, information remains in short-term memory and is rapidly lost according to Ebbinghaus's forgetting curve. Furthermore, one-way information input lacks immediate feedback on whether one has understood it, lowering the learner's self-efficacy and very likely leading to dropout (frustration).
+*   **The "As-Is" Trap (Status Quo Bias) and Silo Effects in Systematisation:** When translating existing business manuals into system requirements, humans unconsciously fall back on the manual's table of contents or current departmental divisions. As a result, the trap of digitising "inefficient analogue operations (e.g., physical stamps, unnecessary double-checking, double entry into Excel)" occurs frequently. Creating truly excellent software requires the immense cognitive effort of reconstructing existing documents from a pure system design perspective (To-Be design) and the objectivity to doubt past customs.
+
+### 2.2 Core Concepts (Solutions)
+matome reduces these "frictions in learning and business" to absolute zero using the power of UI/UX design and backend AI, guiding users into a state of "flow" (complete immersion).
+
+*   **UI as an Advance Organizer (Progressive Disclosure and Semantic Zooming):** Based on David Ausubel's "Advance Organizer" learning theory. Instead of showing thousands of words of detailed text from the start, the system visually presents the big picture (the hierarchical tree of the table of contents and core concepts). When the user shows interest in a specific area, the interface increases the resolution (zooms in) only there. By constantly creating the experience of "observing a specific tree while grasping the whole forest," the cognitive load of unknown, complex information is dramatically reduced.
+*   **Frictionless SQ3R Automation (Micro-Gamification):** The SQ3R method (Survey, Question, Read, Recite, Review), scientifically proven to be the most powerful learning method, is forcibly integrated into the UI flow. Answering a "Question from the AI" before opening a node, and verbalising the content ("Recite") via voice after reading, are mandatory actions to progress. Correct answers trigger beautiful particle effects on the node and immediate praise from the AI (micro-rewards). This transforms the pain of active learning into a pleasurable game of territory acquisition.
+*   **Emergence of Multi-Dimensional and Structural Understanding (MD-SKJ):** Elevating anthropologist Jiro Kawakita's KJ method using the vector processing power of LLMs. The "Pivot KJ" feature allows users to dismantle the author's logic (table of contents) and reconstruct a knowledge network from their own perspective, or from new multi-dimensional axes like "system requirements axis" or "SWOT axis." This goes beyond mere information input; it seamlessly supports the "output" of new system workflows, business ideas, or academic hypotheses, freeing the reader from the author's bias.
+
+## 3. Functional Requirements
+
+### 3.1 Ingestion and AI Preprocessing Engine
+A fully automated and scalable document analysis pipeline executed in the background when a user uploads a document.
+
+*   **FR-1.1: Multi-Modal Support and Context-Preserving Noise Normalisation:**
+    *   Supported formats: PDF, EPUB, Web URLs, Notion integration, Markdown, image files.
+    *   Utilising Vision-Language Models (VLMs), complex charts, graph trends (e.g., extracting the context "the bar chart is trending upwards"), and mathematical formulas (converting to LaTeX) within PDFs are recognised alongside surrounding context and structured into semantic Markdown format. The system calls image-specific models (e.g., GPT-4o) specified in the Config for multi-modal processing.
+    *   Meaningless noise such as headers, footers, page numbers, and the table of contents pages themselves are automatically normalised and removed using a combination of heuristics and AI.
+*   **FR-1.2: Semantic Chunking and Entity Extraction:**
+    *   The system does not divide text by mechanical, fixed character counts. It uses an advanced Semantic Chunker that accommodates language-specific contexts (e.g., ambiguous punctuation, omitted subjects in Japanese).
+    *   It calculates the cosine similarity between adjacent sentences and detects turning points where similarity drops sharply to dynamically divide the text at the "proposition level".
+    *   Simultaneously, key entities (proper nouns, technical terms, system actors, dates, amounts, etc.) are extracted from each chunk via Named Entity Recognition (NER) and saved as metadata in the vector database.
+*   **FR-1.3: RAPTOR Hierarchical Tree Generation and Optimisation:**
+    *   For the thousands to tens of thousands of chunks generated, the system performs dimensionality reduction (noise removal) using UMAP and soft clustering using Gaussian Mixture Models (GMM).
+    *   Using GMM allows a single chunk to belong to multiple clusters (e.g., a statement about "budget" belonging to both "marketing" and "development"), preventing context loss.
+    *   The system automatically determines the optimal number of clusters and generates a bottom-up hierarchical summary tree (Root: Overall Summary -> Node: Chapter/Section Summary -> Leaf: Concrete Facts), ensuring the comprehensiveness of the input.
+*   **FR-1.4: Information Super-Densification (Chain of Density: CoD) Process:**
+    *   The CoD prompt is applied to the summary text generated for each node.
+    *   The AI automatically executes an iterative process (usually 3 to 5 times): "Add 1 to 3 important entities missing from the current summary, and rewrite it while maintaining the overall word count." This strips away redundant modifiers and creates text with the highest possible information density (the lowest cognitive load).
+*   **FR-1.5: Pre-tagging for Multi-Dimensional Axes (MD-SKJ Foundation):**
+    *   All chunks are evaluated and tagged along axes such as the "Time Axis" (Past/Present/Future), "Logic Axis" (Fact/Claim/Evidence/Example/Counterargument), and "Polarity Axis" (Positive/Negative/Neutral/Concern).
+    *   Additionally, metadata tags for "System Design Axes" (Actors, Data Flows, Constraints, Triggers) are pre-calculated and applied. This serves as a powerful index foundation for instantly executing the "Pivot KJ" feature.
+
+### 3.2 Semantic Zoom UI (Survey & Read)
+The main learning screen, featuring an intuitive, smooth, visually beautiful, and fatigue-free infinite canvas UI.
+
+*   **FR-2.1: Initial Mind Map Display (Presenting the Big Picture):**
+    *   Initially, only the highest-level root nodes (chapter titles or core concepts) are displayed on the canvas as beautiful bubbles (or minimalist cards). This prevents the "information fatigue syndrome" of drowning in text the moment the screen opens.
+*   **FR-2.2: Smooth Zooming and Progressive Disclosure:**
+    *   Triggered by the user magnifying a specific node (pinch-out, scroll, or double-click), lower-level nodes expand with seamless animation based on physics (natural easing like spring effects).
+    *   This realises "Semantic Zooming," where only the resolution of the area of interest increases, and unrelated nodes fade out or shrink.
+*   **FR-2.3: Visual Representation of Read/Unread Status and Learning Navigation:**
+    *   Unlearned nodes are presented in a "locked state" (padlock icon, frosted glass blur, or monochrome display), naturally guiding the user on where to start and the order of reading.
+    *   Completed nodes change to a vibrant brand colour, and a progress ring fills up. This provides visual feedback like a "growing tree of knowledge" and fosters a sense of accomplishment by visualising progress.
+*   **FR-2.4: Spatial Context Maintenance Feature:**
+    *   Even when zoomed in deeply reading details, an overall minimap (radar feature) is displayed in the corner of the screen.
+    *   An interactive breadcrumb trail (e.g., Chapter 1 Introduction > 1.2 Market Environment > Competitor A's Trends) is constantly displayed at the top. Clicking it allows immediate return to that level, preventing the user from losing their current position in the vast information space.
+
+### 3.3 Interactive Unlock Questions (Question)
+A powerful hook feature that physically prevents passive reading and puts the brain in "search mode."
+
+*   **FR-3.1: Adaptive Question Prompt Generation:**
+    *   When the user attempts to open a locked node, instead of showing the contents directly, the AI throws a "question" that strikes at the core of that node via pop-up or voice.
+    *   The difficulty and type of question adapt based on user settings (Beginner Mode / Expert Mode).
+        *   **Fact-recall:** "What do you expect the text says the current market size is regarding this chapter's theme?"
+        *   **Inference:** "The author recommends Strategy A, but points out one fatal flaw with Strategy B. What do you guess that is?"
+        *   **Application:** "How would the concept of 'state management' explained in this node apply to the project you are currently working on?"
+*   **FR-3.2: Frictionless Answer Action and Multi-stage Hints:**
+    *   Users can think for a few seconds and tap "Pass," enter a short keyword, or speak into the microphone to instantly unlock the node.
+    *   For "frozen" users (unable to answer), a "Show Hint" button is provided. It gently unblocks cognition by gradually providing hints, first hiding some letters, then offering a multiple-choice quiz.
+*   **FR-3.3: Immediate Reward Effects:**
+    *   Upon unlocking, a pleasant sound (and light vibration for haptic-supported devices) and visual effects (unlock animations or confetti) accompany the display of the highly dense summary refined by CoD. This "micro-reward" is the driving force behind the learning dopamine loop.
+
+### 3.4 Voice Interactive "Recite" (Feynman Method) Phase
+A feature that eliminates the pain of typing and aims to anchor information in long-term memory by "explaining it in your own words as if teaching someone else" (the Feynman technique).
+
+*   **FR-4.1: Context-Aware Microphone Activation:**
+    *   When finishing learning one node (or an entire section) and returning to a higher level (zooming out), a microphone button showing a waveform becomes active at the bottom centre of the screen.
+*   **FR-4.2: Conceptualisation via Voice (Sounding Board Dialogue):**
+    *   The user speaks into the microphone, verbalising the main points to the AI (e.g., "In short, it means this," "From what I understand...").
+    *   It also supports seamless fallback to text input for use in office environments or public transport.
+*   **FR-4.3: Immediate Fact-Checking and Hallucination Detection via CAHM:**
+    *   The AI instantly transcribes the user's voice input into text using Whisper API or similar.
+    *   Using the Context-Aware Hierarchical Merging (CAHM) algorithm, it immediately cross-references the user's statements with the original facts (corresponding chunks in the vector DB). It strictly determines if the user's memory is suffering from hallucinations (running wild with personal interpretations, confusing terms, or misrecognition).
+*   **FR-4.4: Affirmative and Complementary Sandwich Feedback (AI Tutor Behaviour):**
+    *   Based on the cross-referencing results, the AI returns immediate feedback. The AI's tone is set as an "accompanying excellent coach," not a "strict teacher."
+    *   **Correct/Close:** "Excellent! You perfectly captured the core idea of 'cost reduction.' By the way, the original text made it even more specific with the expression 'compressing running costs'."
+    *   **Misunderstanding:** "I see, that's an interesting perspective! However, the author's argument was actually the opposite, stating 'initial investment increases, but long-term returns exceed it.' Shall we check the graph in that section again?" The AI corrects the course while ensuring maximum psychological safety.
+
+### 3.5 Pivot KJ for Requirements Definition and Knowledge Reconstruction (Review & Insight)
+The highest-order insight generation (output) feature, used after completing the table-of-contents-based learning (input). This killer feature transforms reading from "consumption" to "production."
+
+*   **FR-5.1: Pivot KJ Activation and Version Snapshots:**
+    *   Pressing the "Pivot" button on the canvas activates the MD-SKJ engine. The current canvas state (layout, completion status, etc.) is saved non-destructively as history, allowing the user to return to the original "Table of Contents Tree" at any time.
+*   **FR-5.2: Purpose-Specific, Multi-Dimensional Axis Selection Interface:**
+    *   Users can select new analytical frameworks from a drop-down menu based on their goals.
+        *   **Business Analysis:** "Time Axis," "SWOT Analysis," "PESTLE Analysis," "Customer Journey Axis."
+        *   **Software Design:** "Actor Axis" (who operates it), "State Transition Axis," "Use Case Axis," "Data Flow Axis."
+        *   **Custom:** Users can define their own custom axes using natural language (e.g., "Comparing Technology A and Technology B").
+*   **FR-5.3: Dynamic Relocation and Spatial Animation:**
+    *   Based on the selected axis, all nodes on the canvas move with elegant animation using a physics engine (e.g., Force-directed graph). They are detached from the context of the business manual (As-Is) and dynamically rearranged into a new system workflow (To-Be) or completely new cluster shapes.
+*   **FR-5.4: Web-Grounding (External Fact Verification) and Bias Removal Suggestions:**
+    *   The AI cross-references the logic of the reconstructed workflow or clusters with modern SaaS best practices and recent web search results in real-time.
+    *   For example, it provides UI pop-ups to break human "status quo bias": "The original manual includes an approval process of 'pasting paper receipts onto a sheet and submitting them to the accounting manager.' However, modern system requirements generally use 'smartphone OCR + AI auto-checking.' Would you like to remove this analogue process from the requirements?"
+*   **FR-5.5: Automatic Export of Requirements Documents and UML:**
+    *   When the user accepts the AI's suggestions and finalises the arrangement and dependencies (arrows) of the cards, the AI automatically generates a PRD or Executive Summary from that new layout.
+    *   Furthermore, it simultaneously outputs Mermaid.js or PlantUML code snippets (sequence diagrams, flowcharts, state machine diagrams, ER diagrams). This allows seamless handover from requirements definition to the development team, or the creation of presentation materials for management.
+
+### 3.6 AI Model Configuration and API Key Management (Config Management)
+A configuration foundation feature to perfectly balance cost, processing speed, and accuracy using OpenRouter.
+
+*   **FR-6.1: User-Level BYOK (Bring Your Own Key) Support:**
+    *   If provided as a SaaS platform, it supports a BYOK mode where users (or tenant administrators) can register and use their own OpenRouter API keys, in addition to plans using the system's default API keys.
+    *   Key information is strongly encrypted (e.g., AES-256-GCM) and stored in environment variables or a secure database.
+*   **FR-6.2: Task-Specific Model Routing Configuration via JSON/UI:**
+    *   Users can specify the model to use for each background task via a settings screen or `config.json`.
+    *   The system maintains default configurations like the following, which users can override:
+        *   `text_fast_model` (for chunking massive text, initial summarisation, tagging): Cheap, fast models with large context windows (e.g., google/gemini-2.5-flash).
+        *   `text_reasoning_model` (for insight extraction during Pivot KJ, To-Be requirement generation, Web-Grounding): Models with advanced logical reasoning capabilities (e.g., deepseek/deepseek-reasoner, anthropic/claude-3.7-sonnet).
+        *   `multimodal_model` (for analysing complex charts in PDFs, architecture diagrams, UI mockups): Models excelling in visual understanding (e.g., google/gemini-2.5-pro, openai/gpt-4o).
+*   **FR-6.3: Automatic Fallback and Health Checks:**
+    *   Due to the nature of OpenRouter, specific model providers may temporarily go down. The system implements a fault-tolerance mechanism that automatically falls back to an alternative model registered in the Config (e.g., switching to GPT-4o-mini if Gemini fails) when a request times out or errors.
+
+## 4. Non-Functional Requirements
+
+### 4.1 UI/UX Performance and Accessibility
+*   **Ultra-High-Speed Rendering Optimisation:** Even for integrated analysis of ultra-long texts and multiple documents where the number of nodes on the canvas exceeds 5,000, zoom and pan operations must constantly maintain 60fps. Based on libraries like React Flow, WebGL or Canvas APIs will be fully utilised. Advanced virtualization technology will be implemented to suppress the excessive generation of DOM elements off-screen.
+*   **Ultra-Low Latency Response (Real-time Feel):** The delay from the completion of voice input to the return of AI feedback must be strictly under 2.5 seconds. The streaming output of LLMs will be thoroughly utilised, keeping the Time To First Token (TTFT) under 1.0 second, ensuring the user never feels they are "waiting."
+*   **Environmental Adaptation and Accessibility (a11y):** A "Dark Mode/Sepia Mode" will be standard to reduce eye strain and increase concentration. It will maintain WCAG-compliant contrast ratios and fully support full keyboard navigation (zooming with shortcuts, moving between nodes, starting speech input).
+
+### 4.2 Architecture and Technology Stack (Recommended)
+*   **Frontend:** React + React Flow (excellent for explicit node and edge management, minimaps, custom node extensibility, and high performance). Web Workers will be used to separate text parsing and physics engine layout calculations from the main thread, completely preventing UI freezing or stuttering.
+*   **Backend:** Python (FastAPI) + LangChain / LangGraph. LangGraph, in particular, will be used to orchestrate complex AI workflows (text extraction -> chunking -> tagging -> clustering -> web verification -> self-correction loops) as a state machine. This strengthens error recovery (retries) or resuming processing halfway if it fails.
+*   **Vector Database:** Pinecone or Qdrant. Using the HNSW (Hierarchical Navigable Small World) algorithm, it will achieve millisecond-level similarity searches against hundreds of thousands of token chunks. Furthermore, it will perform high-speed pre-filtering (hybrid search) using metadata (tags like the time axis).
+*   **AI Model Routing (Cost and Performance Optimisation via OpenRouter):**
+    *   OpenRouter's API endpoint will be used as a single gateway, adopting an architecture that switches state-of-the-art models without modifying application layer code.
+    *   Based on `config.json` settings, it will automatically append optimal request headers and dispatch to the appropriate model based on the task's required capability and budget.
+*   **Voice Technology:** Real-time Whisper API or browser-native Web Speech API as a fallback for voice recognition. For Text-to-Speech (TTS), ElevenLabs or OpenAI TTS, which possess extremely natural intonation and emotional expression, will be used to prevent the loss of learning motivation caused by robotic voices (the Uncanny Valley phenomenon).
+
+### 4.3 Security and Privacy (Enterprise Requirements)
+*   **Data Retention and Opt-out from Learning Use (Zero-Data Retention):** It must be technically and legally guaranteed through Enterprise API terms that confidential documents uploaded by users (internal manuals, unpublished papers, customer data specifications) are never used as training data for external AI models.
+*   **Enterprise Authentication and Fine-Grained Access Control:** Support Single Sign-On (SSO) via SAML/OAuth2 to integrate with existing corporate ID infrastructure (Entra ID, Okta). Strictly implement Role-Based Access Control (RBAC: Viewer, Editor, Admin) for team features (collaboration canvas), allowing access control per document.
+*   **Local Inference Option (On-Premise Extensibility):** For highly sensitive medical information (PHI) or military/legal documents, the architecture must be designed from the ground up to support a hybrid/on-premise mode. This routes inference requests to LLMs running in local environments or VPCs (like quantised Llama 3 models) without using cloud LLMs at all.
+
+### 4.4 Learning Analytics and Cost Management
+*   **Review Algorithm Based on the Forgetting Curve (Spaced Repetition / FSRS):** Provide a learning dashboard per user. Accumulate data on time spent per learning session, correct answer rate for Questions, and keyword coverage rate during Recite. Run the latest FSRS algorithm in the backend to highlight nodes that are difficult to remember at optimal timings (e.g., next day, 3 days later, 2 weeks later) to prompt review.
+*   **Extreme Cost Control via Prompt Caching:** To prevent deficits caused by bloated API calls, fully utilise the "Prompt Caching" features provided by Anthropic or Gemini. This significantly reduces the context token costs for long system prompts or repeated access to the same document (e.g., during zoom in/out). The goal is to keep the total AI processing cost per document (100,000 token scale) below $1.00, ensuring high gross margins as a sustainable SaaS.
