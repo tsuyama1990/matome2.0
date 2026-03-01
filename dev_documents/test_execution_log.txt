@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.0.0, asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 29 items
+
+tests/unit/infrastructure/test_llm.py ....                               [ 13%]
+tests/unit/infrastructure/test_storage.py .....                          [ 31%]
+tests/unit/infrastructure/test_vector_store.py ......                    [ 51%]
+tests/unit/test_config.py .....                                          [ 68%]
+tests/unit/test_dependencies.py .                                        [ 72%]
+tests/unit/test_models.py ........                                       [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.12-final-0 _______________
+
+Name                                 Stmts   Miss  Cover   Missing
+------------------------------------------------------------------
+src/__init__.py                          0      0   100%
+src/api/__init__.py                      0      0   100%
+src/api/dependencies.py                 12      0   100%
+src/core/__init__.py                     0      0   100%
+src/core/config.py                      18      0   100%
+src/domain/__init__.py                   0      0   100%
+src/domain/models/__init__.py            4      0   100%
+src/domain/models/base.py                3      0   100%
+src/domain/models/document.py           10      0   100%
+src/domain/models/node.py               19      0   100%
+src/domain/ports/llm.py                  7      0   100%
+src/domain/ports/storage.py              8      0   100%
+src/domain/ports/vector_store.py         9      0   100%
+src/infrastructure/llm.py               38      4    89%   31, 48-50
+src/infrastructure/storage.py           37      0   100%
+src/infrastructure/vector_store.py      44      4    91%   35-36, 66-67
+------------------------------------------------------------------
+TOTAL                                  209      8    96%
+============================== 29 passed in 3.05s ==============================
+/app/.venv/lib/python3.12/site-packages/coverage/inorout.py:561: CoverageWarning: Module dev_src was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-module-not-imported
+  self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")
+/app/.venv/lib/python3.12/site-packages/coverage/report_core.py:113: CoverageWarning: Couldn't parse '/app/src/dependency_injector/containers.pyx': No source for code: '/app/src/dependency_injector/containers.pyx'. (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-couldnt-parse
+  coverage._warn(msg, slug="couldnt-parse")
+/app/.venv/lib/python3.12/site-packages/coverage/report_core.py:113: CoverageWarning: Couldn't parse '/app/src/dependency_injector/providers.pyx': No source for code: '/app/src/dependency_injector/providers.pyx'. (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-couldnt-parse
+  coverage._warn(msg, slug="couldnt-parse")
