@@ -4,3 +4,7 @@ DEFAULT_RETRY_MAX_ATTEMPTS = "3"
 DEFAULT_RETRY_DELAY_SECONDS = "1"
 DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD = "5"
 DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS = "30"
+
+ERR_MSG_NODE_NOT_FOUND = "Knowledge node with ID {node_id} was not found."
+ERR_MSG_INVALID_CHUNK_STATE = "Chunk {chunk_id} is in an invalid state: {reason}."
+ERR_MSG_LLM_PROVIDER_ERROR = "LLM Provider {provider_name} encountered an error: {detail}."

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -35,33 +36,41 @@ def test_document_malicious_path() -> None:
         Document(id=uuid4(), title="Valid", file_path="/path/&rm -rf")
 
 
-def test_document_path_traversal(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_document_path_traversal() -> None:
     doc = Document(id=uuid4(), title="Test", file_path="/app/data/../etc/passwd")
     with pytest.raises(ValueError, match="Directory traversal"):
-        doc._validate_path_security("/app/data")
+        await doc._validate_path_security_async("/app/data")
 
 
-def test_document_path_outside_allowed(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_document_path_outside_allowed() -> None:
     doc = Document(id=uuid4(), title="Test", file_path="/etc/passwd")
     with pytest.raises(ValueError, match="File path must be within"):
-        doc._validate_path_security("/app/data")
+        await doc._validate_path_security_async("/app/data")
 
 
-def test_document_path_traversal_prefix_bypass() -> None:
+@pytest.mark.asyncio
+async def test_document_path_traversal_prefix_bypass() -> None:
     # Ensure strings like /app/data_bypass do not bypass check when the real folder is /app/data
     doc = Document(id=uuid4(), title="Test", file_path="/app/data_bypass/file.txt")
     with pytest.raises(ValueError, match="File path must be within"):
-        doc._validate_path_security("/app/data")
+        await doc._validate_path_security_async("/app/data")
 
 
 @pytest.mark.asyncio
 async def test_document_stream_chunks_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     doc = Document(id=uuid4(), title="Test Doc", file_path="/app/data/nonexistent.txt")
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
     with pytest.raises(FileNotFoundError):
-        [chunk async for chunk in doc.stream_chunks(allowed_dir="/app/data")]
+        async for _chunk in doc.stream_chunks(allowed_dir="/app/data"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -72,13 +81,14 @@ async def test_document_stream_chunks_read_error(
     test_file.write_text("Test")
     doc = Document(id=uuid4(), title="Test Doc", file_path=str(test_file))
 
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
 
     # Mock aiofiles.open to raise an OSError upon reading
-    from typing import Any
-
     class BrokenFileAsyncMock:
         async def __aenter__(self) -> "BrokenFileAsyncMock":
             return self
@@ -96,7 +106,8 @@ async def test_document_stream_chunks_read_error(
     monkeypatch.setattr("aiofiles.open", lambda *args, **kwargs: BrokenFileAsyncMock())
 
     with pytest.raises(OSError, match="Failed to read document"):
-        [chunk async for chunk in doc.stream_chunks(allowed_dir="/app/data")]
+        async for _chunk in doc.stream_chunks(allowed_dir="/app/data"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -110,12 +121,62 @@ async def test_document_stream_chunks_valid(
         await f.write("Line 1\nLine 2\nLine 3\n")
 
     doc = Document(id=uuid4(), title="Test Doc", file_path=str(test_file))
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
 
-    chunks = [chunk async for chunk in doc.stream_chunks(allowed_dir="/app/data", block_size=10)]
+    chunks = []
+    async for chunk in doc.stream_chunks(allowed_dir="/app/data", block_size=10):
+        chunks.append(chunk)
     assert len(chunks) > 1
 
     full_content = "".join(chunk.content for chunk in chunks)
     assert full_content == "Line 1\nLine 2\nLine 3\n"
+
+
+@pytest.mark.asyncio
+async def test_document_stream_chunks_empty_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    test_file = tmp_path / "empty_doc.txt"
+    test_file.write_text("")
+
+    doc = Document(id=uuid4(), title="Empty Doc", file_path=str(test_file))
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
+    )
+
+    chunks = []
+    async for chunk in doc.stream_chunks(allowed_dir=str(tmp_path)):
+        chunks.append(chunk)
+
+    assert len(chunks) == 0
+
+
+@pytest.mark.asyncio
+async def test_document_stream_chunks_encoding_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    test_file = tmp_path / "bad_encoding.txt"
+    test_file.write_bytes(b"\xff\xfe\xfd")  # Invalid UTF-8
+
+    doc = Document(id=uuid4(), title="Bad Encoding", file_path=str(test_file))
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
+    )
+
+    with pytest.raises(UnicodeDecodeError):
+        async for _chunk in doc.stream_chunks(allowed_dir=str(tmp_path)):
+            pass

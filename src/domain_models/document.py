@@ -13,12 +13,16 @@ class Document(BaseModel):
     title: str = Field(..., min_length=1, max_length=255, pattern=r"^[^<>;&]*$")
     file_path: str = Field(..., min_length=1, max_length=1024, pattern=r"^[^<>;&]*$")
 
-    def _validate_path_security(self, allowed_dir: str | Path) -> None:
-        """Ensures the file path is safe and does not traverse outside allowed directories."""
+    async def _validate_path_security_async(self, allowed_dir: str | Path) -> None:
+        """Ensures the file path is safe and does not traverse outside allowed directories asynchronously."""
+        import asyncio
         from pathlib import Path
 
-        allowed_path = Path(allowed_dir).resolve()
-        resolved_path = Path(self.file_path).resolve()
+        def _resolve_paths() -> tuple[Path, Path]:
+            return Path(allowed_dir).resolve(), Path(self.file_path).resolve()
+
+        # Offload synchronous path resolution which hits the disk to a thread pool
+        allowed_path, resolved_path = await asyncio.to_thread(_resolve_paths)
 
         if ".." in Path(self.file_path).parts:
             msg = "Directory traversal detected in file_path"
@@ -39,7 +43,7 @@ class Document(BaseModel):
         import aiofiles
         import anyio
 
-        self._validate_path_security(allowed_dir)
+        await self._validate_path_security_async(allowed_dir)
 
         path = anyio.Path(self.file_path)
         if not await path.exists():

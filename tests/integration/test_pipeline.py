@@ -16,8 +16,13 @@ async def test_full_pipeline_ingestion(tmp_path: Path, monkeypatch: pytest.Monke
     test_file.write_text("Hello\nWorld\nIntegration\nTest")
 
     doc = Document(id=uuid4(), title="Int Test", file_path=str(test_file))
+    from typing import Any
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
 
     # 2. Extract Chunks
@@ -29,7 +34,7 @@ async def test_full_pipeline_ingestion(tmp_path: Path, monkeypatch: pytest.Monke
     assert chunks[0].document_id == doc.id
 
     # 3. Batch insert into VDB
-    vdb = PineconeVectorStore()
+    vdb = PineconeVectorStore(api_url="http://test")
 
     # We mock the upsert_chunks as pinecone is an external API
     vdb.upsert_chunks = AsyncMock(return_value=True)  # type: ignore[method-assign]
@@ -38,3 +43,5 @@ async def test_full_pipeline_ingestion(tmp_path: Path, monkeypatch: pytest.Monke
 
     assert res is True
     assert vdb.upsert_chunks.call_count == (len(chunks) + 1) // 2
+
+    await vdb.close()

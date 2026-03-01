@@ -59,9 +59,7 @@ def test_semantic_chunk_malicious_content() -> None:
         )
 
     with pytest.raises(ValidationError, match="Potentially malicious content detected"):
-        SemanticChunk(
-            id=uuid4(), document_id=uuid4(), content="<img src='x' onerror='alert(1)'>"
-        )
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content="<img src='x' onerror='alert(1)'>")
 
 
 def test_semantic_chunk_invalid_encoding() -> None:
@@ -84,6 +82,11 @@ def test_semantic_chunk_invalid_encoding() -> None:
 def test_semantic_chunk_metadata_invalid_key() -> None:
     with pytest.raises(ValidationError):
         SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={1: "test"})  # type: ignore[dict-item]
+
+
+def test_semantic_chunk_metadata_empty_value() -> None:
+    with pytest.raises(ValidationError, match="Metadata string values cannot be empty"):
+        SemanticChunk(id=uuid4(), document_id=uuid4(), content="test", metadata={"empty": "   "})
 
 
 def test_semantic_chunk_limits() -> None:

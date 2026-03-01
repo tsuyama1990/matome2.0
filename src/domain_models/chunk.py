@@ -41,10 +41,13 @@ class SemanticChunk(BaseModel):
             msg = "Content contains invalid UTF-8 characters"
             raise ValueError(msg) from e
 
-        for key in self.metadata:
+        for key, value in self.metadata.items():
             if not isinstance(key, str):
                 msg = "Metadata keys must be strings"
                 raise TypeError(msg)
+            if isinstance(value, str) and not value.strip():
+                msg = "Metadata string values cannot be empty"
+                raise ValueError(msg)
         return self
 
     def compress_content(self) -> bytes:

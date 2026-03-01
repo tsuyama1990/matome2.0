@@ -30,11 +30,20 @@ class AppSettings(BaseSettings):
         ge=0,
     )
     CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = Field(
-        default_factory=lambda: int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD)),
+        default_factory=lambda: int(
+            os.getenv(
+                "CIRCUIT_BREAKER_FAILURE_THRESHOLD", DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD
+            )
+        ),
         ge=1,
     )
     CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS: int = Field(
-        default_factory=lambda: int(os.getenv("CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS", DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS)),
+        default_factory=lambda: int(
+            os.getenv(
+                "CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS",
+                DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS,
+            )
+        ),
         ge=1,
     )
     ALLOWED_DOCUMENT_DIR: Path = Field(...)
@@ -59,6 +68,7 @@ class AppSettings(BaseSettings):
             raise ValueError(msg)
 
         import os
+
         if not os.access(allowed_dir, os.R_OK | os.W_OK):
             msg = f"ALLOWED_DOCUMENT_DIR must be readable and writable: {allowed_dir}"
             raise ValueError(msg)

@@ -55,7 +55,9 @@ class BaseService(ABC):
         self._failure_count += 1
         if self._failure_count >= self.config.CIRCUIT_BREAKER_FAILURE_THRESHOLD:
             self._circuit_open = True
-            self._circuit_reset_time = time.time() + self.config.CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS
+            self._circuit_reset_time = (
+                time.time() + self.config.CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS
+            )
             self.logger.warning("Circuit breaker opened due to %d failures", self._failure_count)
 
     async def execute_with_retry(

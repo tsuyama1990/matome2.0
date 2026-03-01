@@ -20,8 +20,13 @@ async def test_large_dataset_streaming_memory_usage(
     test_file.write_text("".join(lines))
 
     doc = Document(id=uuid4(), title="Performance Test", file_path=str(test_file))
+    from typing import Any
+
+    async def mock_validate(*args: Any, **kwargs: Any) -> None:
+        pass
+
     monkeypatch.setattr(
-        "src.domain_models.document.Document._validate_path_security", lambda self, allowed_dir: None
+        "src.domain_models.document.Document._validate_path_security_async", mock_validate
     )
 
     start_time = time.time()
