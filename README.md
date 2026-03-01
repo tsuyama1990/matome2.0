@@ -79,12 +79,16 @@ graph TD
 
 ## Usage
 
-**Quick Start**
-
-Currently in the architectural setup phase. To run the baseline verification and interactive tutorials, you will use Marimo.
+**Start the API Server**
 
 ```bash
-uv run marimo edit tutorials/UAT_AND_TUTORIAL.py
+uv run uvicorn src.main:app --reload
+```
+
+The health check endpoint is available at `GET /health`.
+
+```bash
+curl http://127.0.0.1:8000/health
 ```
 
 ## Development Workflow
@@ -93,11 +97,11 @@ This project enforces strict code quality standards utilizing `ruff`, `mypy` (st
 
 - **Run Linters:**
   ```bash
-  uv run ruff check
+  uv run ruff check .
   ```
 - **Run Type Checking:**
   ```bash
-  uv run mypy src dev_src main.py
+  uv run mypy .
   ```
 - **Run Tests:**
   ```bash
