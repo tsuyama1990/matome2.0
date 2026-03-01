@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from src.api.dependencies import ApplicationContainer
+from src.api.dependencies import ContainerFactory
 from src.core.config import settings
 
 
@@ -13,8 +13,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup actions
     settings.validate_keys()
 
-    container = ApplicationContainer()
-    container.config.from_pydantic(settings)
+    container = ContainerFactory.create_container(settings)
     app.container = container  # type: ignore
     yield
     # Shutdown actions

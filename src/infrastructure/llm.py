@@ -14,7 +14,7 @@ class OpenRouterClient(ILLMProvider):
         api_key: str,
         default_model: str,
         client: httpx.AsyncClient,
-        base_url: str = "https://openrouter.ai/api/v1/chat/completions",
+        base_url: str,
     ) -> None:
         self.api_key = api_key
         self.default_model = default_model

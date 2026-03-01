@@ -1,6 +1,7 @@
 import codecs
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 
@@ -10,8 +11,12 @@ from src.domain.ports.storage import IFileStorage
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 
-    def __init__(self, base_dir: Path, create_dir: bool = True) -> None:
-        self.base_dir = base_dir
+    def __init__(self, base_dir: Path, create_dir: bool = True, path_class: Any = Path) -> None:
+        self.path_class = path_class
+        # Attempt to wrap the base_dir in the path_class if it's strictly a string/path
+        self.base_dir = (
+            self.path_class(base_dir) if not isinstance(base_dir, self.path_class) else base_dir
+        )
         if create_dir:
             self.base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +58,7 @@ class LocalStorage(IFileStorage):
         else:
             # Atomic rename after successfully downloading stream
             temp_path.replace(safe_path)
-            return safe_path
+            return Path(safe_path)  # Cast back to standard Path to satisfy return type
 
     def read_file_stream(self, path: Path) -> Generator[bytes, None, None]:
         """Reads a file yielding bytes as a stream."""

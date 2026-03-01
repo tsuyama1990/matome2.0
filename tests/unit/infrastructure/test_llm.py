@@ -14,7 +14,10 @@ def mock_httpx_client() -> AsyncMock:
 @pytest.fixture
 def llm_client(mock_httpx_client: AsyncMock) -> OpenRouterClient:
     return OpenRouterClient(
-        api_key="dummy_key", default_model="dummy-model", client=mock_httpx_client
+        api_key="dummy_key",
+        default_model="dummy-model",
+        client=mock_httpx_client,
+        base_url="http://test",
     )
 
 

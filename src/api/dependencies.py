@@ -30,6 +30,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         api_key=providers.Callable(lambda s: s.openrouter_api_key.get_secret_value(), app_settings),
         default_model=app_settings.provided.text_fast_model,
         client=http_client,
+        base_url=app_settings.provided.openrouter_base_url,
     )
 
     vector_store = providers.Factory(
@@ -40,4 +41,18 @@ class ApplicationContainer(containers.DeclarativeContainer):
     file_storage = providers.Factory(
         LocalStorage,
         base_dir=Path("./data"),  # Default storage directory
+        path_class=Path,
     )
+
+
+class ContainerFactory:
+    """Factory to create and initialize the Dependency Injection container."""
+
+    @staticmethod
+    def create_container(settings: AppSettings | None = None) -> ApplicationContainer:
+        """Creates the container and handles its lifecycle wiring."""
+        container = ApplicationContainer()
+        if settings:
+            container.config.from_pydantic(settings)
+            container.app_settings.override(settings)
+        return container
