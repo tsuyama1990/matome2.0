@@ -30,6 +30,20 @@ class IHttpClient(ABC):
         """
 
     @abstractmethod
+    def stream_post(
+        self,
+        url: str,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: float,
+    ) -> Any:
+        """Performs an asynchronous POST request and yields chunks of the response.
+
+        This method should return an asynchronous context manager that yields a response
+        object capable of asynchronously yielding lines or chunks.
+        """
+
+    @abstractmethod
     async def put(
         self,
         url: str,

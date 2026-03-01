@@ -21,6 +21,15 @@ class HttpxAdapter(IHttpClient):
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
 
+    def stream_post(
+        self,
+        url: str,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: float,
+    ) -> Any:
+        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)
+
     async def post(
         self,
         url: str,

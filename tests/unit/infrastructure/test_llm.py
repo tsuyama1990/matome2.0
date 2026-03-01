@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import httpx
@@ -5,6 +6,7 @@ import pytest
 
 from src.core.config import AppSettings
 from src.domain.ports.http import IHttpClient
+from src.infrastructure.http import HttpxAdapter
 from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 
 
@@ -77,3 +79,95 @@ async def test_extract_structured_data_invalid_json(
     mock_httpx_client.post.return_value = mock_response
     with pytest.raises(ValueError, match="Failed to parse LLM response into JSON"):
         await llm_client.extract_structured_data("Extract this", {"type": "object"})
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_success(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    """Test successful text streaming."""
+
+    class MockStreamResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices": [{"delta": {"content": "Hello"}}]}'
+            yield 'data: {"choices": [{"delta": {"content": " World"}}]}'
+            yield "data: [DONE]"
+
+        async def __aenter__(self) -> "MockStreamResponse":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+    mock_httpx_client.stream_post.return_value = MockStreamResponse()
+
+    chunks = []
+    async for chunk in llm_client.stream_generate_text("test prompt"):
+        chunks.append(chunk)
+
+    assert chunks == ["Hello", " World"]
+    mock_httpx_client.stream_post.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_httpx_adapter_methods() -> None:
+    """Test HttpxAdapter basic methods to cover IHttpClient mapping."""
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    adapter = HttpxAdapter(client=mock_client)
+
+    # get
+    mock_client.get.return_value = "get_response"
+    assert await adapter.get("url", {}, 10.0) == "get_response"
+    mock_client.get.assert_called_once_with("url", headers={}, timeout=10.0)
+
+    # post
+    mock_client.post.return_value = "post_response"
+    assert await adapter.post("url", {}, {"json": "data"}, 10.0) == "post_response"
+    mock_client.post.assert_called_once_with("url", headers={}, json={"json": "data"}, timeout=10.0)
+
+    # stream_post
+    mock_client.stream.return_value = "stream_response"
+    assert adapter.stream_post("url", {}, {"json": "data"}, 10.0) == "stream_response"
+    mock_client.stream.assert_called_once_with(
+        "POST", "url", headers={}, json={"json": "data"}, timeout=10.0
+    )
+
+    # exceptions
+    mock_client.get.side_effect = httpx.TimeoutException("timeout")
+    with pytest.raises(TimeoutError):
+        await adapter.get("url", {}, 10.0)
+
+    mock_client.get.side_effect = httpx.RequestError("error")
+    with pytest.raises(ConnectionError):
+        await adapter.get("url", {}, 10.0)
+
+    mock_client.post.side_effect = httpx.TimeoutException("timeout")
+    with pytest.raises(TimeoutError):
+        await adapter.post("url", {}, {}, 10.0)
+
+    mock_client.post.side_effect = httpx.RequestError("error")
+    with pytest.raises(ConnectionError):
+        await adapter.post("url", {}, {}, 10.0)
+
+    mock_client.put.side_effect = httpx.TimeoutException("timeout")
+    with pytest.raises(TimeoutError):
+        await adapter.put("url", {}, {}, 10.0)
+
+    mock_client.put.side_effect = httpx.RequestError("error")
+    with pytest.raises(ConnectionError):
+        await adapter.put("url", {}, {}, 10.0)
+
+    mock_client.delete.side_effect = httpx.TimeoutException("timeout")
+    with pytest.raises(TimeoutError):
+        await adapter.delete("url", {}, 10.0)
+
+    mock_client.delete.side_effect = httpx.RequestError("error")
+    with pytest.raises(ConnectionError):
+        await adapter.delete("url", {}, 10.0)
+
+    # close
+    await adapter.close()
+    mock_client.aclose.assert_called_once()

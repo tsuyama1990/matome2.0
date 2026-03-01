@@ -72,9 +72,57 @@ class OpenRouterClient(ILLMProvider):
         system_prompt: str = "",
     ) -> Any:
         """Stream implementation."""
-        # Simple non-streaming fallback for now if strict streams are unsupported or require special headers
-        text = await self.generate_text(prompt, system_prompt)
-        yield text
+        headers = {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        payload = {
+            "model": self.config.default_model,
+            "messages": messages,
+            "stream": True,
+        }
+
+        try:
+            async with self.client.stream_post(
+                self.config.base_url, headers=headers, json=payload, timeout=self.config.timeout
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    chunk = self._parse_stream_line(line)
+                    if chunk == "[DONE]":
+                        break
+                    if chunk:
+                        yield chunk
+        except TimeoutError as e:
+            msg = f"OpenRouter API stream request timed out: {e}"
+            raise TimeoutError(msg) from e
+        except ConnectionError as e:
+            msg = f"Error communicating with OpenRouter stream: {e}"
+            raise ConnectionError(msg) from e
+        except Exception as e:
+            msg = f"Unexpected error during OpenRouter API stream call: {e}"
+            raise ConnectionError(msg) from e
+
+    def _parse_stream_line(self, line: str) -> str | None:
+        if not line or not line.startswith("data: "):
+            return None
+        data_str = line[len("data: ") :].strip()
+        if data_str == "[DONE]":
+            return "[DONE]"
+        try:
+            data = json.loads(data_str)
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0].get("delta", {}).get("content")
+                return str(content) if content is not None else None
+        except json.JSONDecodeError:
+            pass
+        return None
 
     async def extract_structured_data(
         self,
