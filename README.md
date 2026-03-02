@@ -4,8 +4,18 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?style=flat&logo=FastAPI&logoColor=white)
 
+*Turn information into insight with matome, an active learning knowledge workspace.*
+
 ## Overview
+
+### What
 **matome** is a revolutionary knowledge workspace designed to transform the painful process of reading and summarising large documents into an engaging, interactive game of intellectual discovery. By integrating cognitive psychology principles (SQ3R method, Feynman technique) with advanced generative AI (RAPTOR, Multi-Dimensional Semantic KJ), matome seamlessly converts overwhelming text into dynamic knowledge networks and actionable insights.
+
+### Why
+Information overload stops learning and productivity. Current tools just summarise; they don't help you build knowledge. Matome uses cognitive science and active learning to force you to actively engage with the material. We help prevent the "As-Is trap" by forcing you to extract system requirements and logic instead of just rephrasing text.
+
+### Demo
+*Screenshots and demo video coming soon...*
 
 ## Features
 
