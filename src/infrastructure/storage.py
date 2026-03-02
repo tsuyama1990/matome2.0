@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import codecs
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
@@ -14,7 +16,7 @@ class StorageFactory:
     @staticmethod
     def create_local_storage(
         base_dir: str | Path, create_dir: bool = True, path_class: type[Path] = Path
-    ) -> "LocalStorage":
+    ) -> LocalStorage:
         """Initializes and returns a LocalStorage instance."""
         return LocalStorage(
             base_dir=path_class(base_dir) if isinstance(base_dir, str) else base_dir,

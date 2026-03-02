@@ -25,12 +25,14 @@ class ILLMProvider(ABC):
         Args:
             prompt (str): The main user prompt to pass to the model.
             system_prompt (str): System prompt to configure the model's behavior.
+            timeout (float): Maximum time to wait for a response before timing out.
 
         Raises:
             TimeoutError: If the underlying API call exceeds the timeout period. Implementations
                           should ideally wrap library-specific timeouts to this built-in error.
-                          They should also configure a resilient retry logic (e.g. exponential backoff)
-                          to handle transient API downtime before failing.
+                          They MUST configure a resilient retry logic (e.g., maximum 3 retries
+                          with exponential backoff) to handle transient API downtime, 5xx errors,
+                          or 429 throttling before ultimately failing and bubbling up the error.
             ConnectionError: If a connection error happens during interaction with the API.
         """
         ...

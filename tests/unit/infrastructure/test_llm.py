@@ -448,6 +448,7 @@ def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
         timeout=10.0,
     )
     from src.infrastructure.llm import OpenRouterClient
+
     client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="API key fails pattern validation"):
         client._get_headers()

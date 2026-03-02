@@ -53,6 +53,7 @@ def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.M
 
 from pydantic import SecretStr
 
+
 def test_app_settings_post_init_validates() -> None:
     # Testing that model_post_init is implicitly called and raises
     # if we bypass the environment variables
@@ -60,14 +61,21 @@ def test_app_settings_post_init_validates() -> None:
 
     with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is not set"):
         # We explicitly supply empty strings to bypass defaults and force validation
-        AppSettings(llm=LLMSettings(api_key=SecretStr("")), vector_store=VectorStoreSettings(api_key=SecretStr("mock")))
+        AppSettings(
+            llm=LLMSettings(api_key=SecretStr("")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("mock")),
+        )
 
     with pytest.raises(ValueError, match="PINECONE_API_KEY environment variable is not set"):
-        AppSettings(llm=LLMSettings(api_key=SecretStr("mock")), vector_store=VectorStoreSettings(api_key=SecretStr("")))
+        AppSettings(
+            llm=LLMSettings(api_key=SecretStr("mock")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("")),
+        )
 
 
 def test_validate_keys_fails_on_missing_production_keys() -> None:
     from src.core.config import LLMSettings, VectorStoreSettings
+
     with pytest.raises(
         ValueError,
         match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY.",
