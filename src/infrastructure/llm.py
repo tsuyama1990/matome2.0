@@ -1,7 +1,8 @@
+import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable, Coroutine
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -17,6 +18,23 @@ class OpenRouterConfig:
     default_model: str
     base_url: str
     timeout: float
+
+
+T = TypeVar("T")
+
+
+async def _with_retries(
+    func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
+) -> T:
+    for attempt in range(max_retries):
+        try:
+            return await func()
+        except (TimeoutError, ConnectionError):
+            if attempt == max_retries - 1:
+                raise
+            await asyncio.sleep(base_delay * (2**attempt))
+    msg = "Should not reach here"
+    raise RuntimeError(msg)
 
 
 class OpenRouterClient(ILLMProvider):
@@ -57,17 +75,22 @@ class OpenRouterClient(ILLMProvider):
             "messages": messages,
         }
 
-        try:
-            response = await self.client.post(self.config.base_url, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return str(data["choices"][0]["message"]["content"])
-        except TimeoutError as e:
-            msg = f"OpenRouter API request timed out: {e}"
-            raise TimeoutError(msg) from e
-        except ConnectionError as e:
-            msg = f"Error communicating with OpenRouter: {e}"
-            raise ConnectionError(msg) from e
+        async def _call() -> str:
+            try:
+                response = await self.client.post(
+                    self.config.base_url, headers=headers, json=payload
+                )
+                response.raise_for_status()
+                data = response.json()
+                return str(data["choices"][0]["message"]["content"])
+            except TimeoutError as e:
+                msg = f"OpenRouter API request timed out: {e}"
+                raise TimeoutError(msg) from e
+            except ConnectionError as e:
+                msg = f"Error communicating with OpenRouter: {e}"
+                raise ConnectionError(msg) from e
+
+        return await _with_retries(_call)
 
     async def stream_generate_text(
         self,
@@ -88,23 +111,43 @@ class OpenRouterClient(ILLMProvider):
             "stream": True,
         }
 
+        async def _connect() -> Any:
+            try:
+                cm = self.client.stream_post(self.config.base_url, headers=headers, json=payload)
+                resp = await cm.__aenter__()
+                resp.raise_for_status()
+            except Exception as e:
+                if "cm" in locals():
+                    await cm.__aexit__(type(e), e, e.__traceback__)
+                if isinstance(e, TimeoutError):
+                    msg = f"OpenRouter API stream request timed out: {e}"
+                    raise TimeoutError(msg) from e
+                if isinstance(e, ConnectionError):
+                    msg = f"Error communicating with OpenRouter stream: {e}"
+                    raise ConnectionError(msg) from e
+                raise
+            else:
+                return cm, resp
+
+        response_cm, response = await _with_retries(_connect)
+
+        # Now stream from the established connection
         try:
-            async with self.client.stream_post(
-                self.config.base_url, headers=headers, json=payload
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    chunk = self._parse_stream_line(line)
-                    if chunk == "[DONE]":
-                        break
-                    if chunk:
-                        yield chunk
-        except TimeoutError as e:
-            msg = f"OpenRouter API stream request timed out: {e}"
-            raise TimeoutError(msg) from e
-        except ConnectionError as e:
-            msg = f"Error communicating with OpenRouter stream: {e}"
+            async for line in response.aiter_lines():
+                chunk = self._parse_stream_line(line)
+                if chunk == "[DONE]":
+                    break
+                if chunk:
+                    yield chunk
+        except (TimeoutError, ConnectionError) as e:
+            # We raise a new error here to signal the stream broke mid-way, but we don't retry.
+            if isinstance(e, TimeoutError):
+                msg = f"OpenRouter API stream request timed out mid-stream: {e}"
+                raise TimeoutError(msg) from e
+            msg = f"Error communicating with OpenRouter stream mid-stream: {e}"
             raise ConnectionError(msg) from e
+        finally:
+            await response_cm.__aexit__(None, None, None)
 
     def _parse_stream_line(self, line: str) -> str | None:
         if not line or not line.startswith("data: "):

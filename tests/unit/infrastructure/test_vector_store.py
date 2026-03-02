@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -81,3 +82,78 @@ async def test_search_similar_connection_error(
 
     with pytest.raises(ConnectionError, match="Pinecone query failed"):
         await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_retry_success(
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
+) -> None:
+    chunk = DocumentChunk(
+        chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
+    )
+
+    mock_pinecone_index.upsert.side_effect = [Exception("Network down"), None]
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        await vector_client.upsert_chunks([chunk])
+    assert mock_pinecone_index.upsert.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_retry_failure(
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
+) -> None:
+    chunk = DocumentChunk(
+        chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
+    )
+
+    mock_pinecone_index.upsert.side_effect = Exception("Network down")
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(ConnectionError, match="Pinecone upsert failed"):
+            await vector_client.upsert_chunks([chunk])
+
+    assert mock_pinecone_index.upsert.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_search_similar_retry_success(
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
+) -> None:
+    mock_match = MagicMock()
+    mock_match.id = str(uuid4())
+    mock_match.values = [0.1, 0.2, 0.3]
+    mock_match.metadata = {
+        "document_id": str(uuid4()),
+        "text": "Test result",
+        "extra_meta": "value",
+    }
+
+    mock_response = MagicMock()
+    mock_response.matches = [mock_match]
+
+    mock_pinecone_index.query.side_effect = [Exception("Network down"), mock_response]
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+
+    assert len(results) == 1
+    assert results[0].text == "Test result"
+    assert mock_pinecone_index.query.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_search_similar_retry_failure(
+    vector_client: PineconeClient, mock_pinecone_index: MagicMock
+) -> None:
+    mock_pinecone_index.query.side_effect = Exception("Network down")
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(ConnectionError, match="Pinecone query failed"):
+            await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+
+    assert mock_pinecone_index.query.call_count == 3

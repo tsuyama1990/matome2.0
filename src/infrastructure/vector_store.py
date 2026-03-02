@@ -1,7 +1,31 @@
-from typing import Any, Protocol
+import asyncio
+from collections.abc import Callable, Coroutine
+from typing import Any, Protocol, TypeVar
 
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
+
+T = TypeVar("T")
+
+
+async def _with_retries(
+    func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
+) -> T:
+    for attempt in range(max_retries):
+        try:
+            return await func()
+        except ConnectionError as e:
+            if "not initialized" in str(e):
+                raise
+            if attempt == max_retries - 1:
+                raise
+            await asyncio.sleep(base_delay * (2**attempt))
+        except Exception:
+            if attempt == max_retries - 1:
+                raise
+            await asyncio.sleep(base_delay * (2**attempt))
+    msg = "Should not reach here"
+    raise RuntimeError(msg)
 
 
 class PineconeIndexProtocol(Protocol):
@@ -51,36 +75,52 @@ class PineconeClient(IVectorStore):
                 }
             )
 
-        # Batch upsert logic could be added here for large datasets
-        self._index.upsert(vectors=vectors)
+        async def _call() -> None:
+            if not self._index:
+                msg = "Pinecone client is not initialized"
+                raise ConnectionError(msg)
+            try:
+                # Batch upsert logic could be added here for large datasets
+                self._index.upsert(vectors=vectors)
+            except Exception as e:
+                msg = f"Pinecone upsert failed: {e}"
+                raise ConnectionError(msg) from e
+
+        await _with_retries(_call)
 
     async def search_similar(
         self, query_embedding: list[float], top_k: int = 5, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         """Search for semantically similar chunks."""
-        if not self._index:
-            msg = "Pinecone client is not initialized"
-            raise ConnectionError(msg)
 
-        try:
-            results = self._index.query(
-                vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
-            )
-        except Exception as e:
-            msg = f"Pinecone query failed: {e}"
-            raise ConnectionError(msg) from e
-        else:
-            chunks = []
-            for match in getattr(results, "matches", []):
-                meta = match.metadata or {}
-                # Recover original chunk
-                chunks.append(
-                    DocumentChunk(
-                        chunk_id=match.id,
-                        document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
-                        text=meta.pop("text", ""),
-                        metadata=meta,
-                        embedding=match.values,
-                    )
+        async def _call() -> list[DocumentChunk]:
+            if not self._index:
+                msg = "Pinecone client is not initialized"
+                raise ConnectionError(msg)
+
+            try:
+                results = self._index.query(
+                    vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
                 )
-            return chunks
+            except Exception as e:
+                msg = f"Pinecone query failed: {e}"
+                raise ConnectionError(msg) from e
+            else:
+                chunks = []
+                for match in getattr(results, "matches", []):
+                    meta = match.metadata or {}
+                    # Recover original chunk
+                    chunks.append(
+                        DocumentChunk(
+                            chunk_id=match.id,
+                            document_id=meta.pop(
+                                "document_id", "00000000-0000-0000-0000-000000000000"
+                            ),
+                            text=meta.pop("text", ""),
+                            metadata=meta,
+                            embedding=match.values,
+                        )
+                    )
+                return chunks
+
+        return await _with_retries(_call)

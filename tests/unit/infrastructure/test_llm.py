@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -172,3 +173,71 @@ async def test_httpx_adapter_methods() -> None:
     # close
     await adapter.close()
     mock_client.aclose.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_text_retry_success(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    # Fail on first call, succeed on second
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": {"content": "Retry success"}}]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+
+    mock_httpx_client.post.side_effect = [TimeoutError("Timeout 1"), mock_response]
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        result = await llm_client.generate_text("Hello")
+
+    assert result == "Retry success"
+    assert mock_httpx_client.post.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_retry_success(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    class MockStreamResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices": [{"delta": {"content": "Retry stream"}}]}'
+            yield "data: [DONE]"
+
+        async def __aenter__(self) -> "MockStreamResponse":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+    mock_httpx_client.stream_post.side_effect = [
+        ConnectionError("Network Error"),
+        MockStreamResponse(),
+    ]
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        chunks = []
+        async for chunk in llm_client.stream_generate_text("test"):
+            chunks.append(chunk)
+
+    assert chunks == ["Retry stream"]
+    assert mock_httpx_client.stream_post.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_retry_failure(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+) -> None:
+    mock_httpx_client.stream_post.side_effect = TimeoutError("Timeout")
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(TimeoutError, match="OpenRouter API stream request timed out"):
+            async for _ in llm_client.stream_generate_text("test"):
+                pass
+    assert mock_httpx_client.stream_post.call_count == 3
