@@ -1,11 +1,11 @@
-import asyncio
 import json
-from collections.abc import AsyncIterator, Callable, Coroutine
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 
+from src.core.utils import _with_retries
 from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
 
@@ -20,37 +20,29 @@ class OpenRouterConfig:
     timeout: float
 
 
-T = TypeVar("T")
-
-
-async def _with_retries(
-    func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
-) -> T:
-    for attempt in range(max_retries):
-        try:
-            return await func()
-        except (TimeoutError, ConnectionError):
-            if attempt == max_retries - 1:
-                raise
-            await asyncio.sleep(base_delay * (2**attempt))
-    msg = "Should not reach here"
-    raise RuntimeError(msg)
-
-
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
+
+    config: OpenRouterConfig
+    client: IHttpClient
 
     def __init__(
         self,
         config: OpenRouterConfig,
         client: IHttpClient,
     ) -> None:
+        if not config.base_url.startswith(("http://", "https://")):
+            msg = "base_url must be a valid HTTP/HTTPS URL"
+            raise ValueError(msg)
         self.config = config
         self.client = client
 
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
-        token = getattr(self.config, "api_key", "")
+        token = self.config.api_key
+        if not token:
+            msg = "api_key must not be empty"
+            raise ValueError(msg)
         auth_value = f"Bearer {token}"
         return {
             "Authorization": auth_value,
@@ -171,6 +163,10 @@ class OpenRouterClient(ILLMProvider):
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema using httpx."""
+        if isinstance(schema, dict) and not schema:
+            msg = "schema dictionary cannot be empty"
+            raise ValueError(msg)
+
         schema_dict = schema if isinstance(schema, dict) else schema.model_json_schema()
         extended_prompt = (
             f"{prompt}\n\nYou must return strictly valid JSON matching the following schema:\n"

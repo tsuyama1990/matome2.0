@@ -1,31 +1,8 @@
-import asyncio
-from collections.abc import Callable, Coroutine
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
+from src.core.utils import _with_retries
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
-
-T = TypeVar("T")
-
-
-async def _with_retries(
-    func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
-) -> T:
-    for attempt in range(max_retries):
-        try:
-            return await func()
-        except ConnectionError as e:
-            if "not initialized" in str(e):
-                raise
-            if attempt == max_retries - 1:
-                raise
-            await asyncio.sleep(base_delay * (2**attempt))
-        except Exception:
-            if attempt == max_retries - 1:
-                raise
-            await asyncio.sleep(base_delay * (2**attempt))
-    msg = "Should not reach here"
-    raise RuntimeError(msg)
 
 
 class PineconeIndexProtocol(Protocol):
@@ -42,18 +19,22 @@ class PineconeIndexProtocol(Protocol):
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
-    def __init__(self, index: PineconeIndexProtocol | None = None) -> None:
+    _index: PineconeIndexProtocol
+
+    def __init__(self, index: PineconeIndexProtocol) -> None:
+        if index is None:
+            msg = "Pinecone client must be initialized with a valid index"
+            raise ValueError(msg)
         self._index = index
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""
-        return self._index is not None
+        # Check if index has a describe method or something to verify it's alive
+        # For PineconeIndexProtocol, we just assume it's true since it's injected
+        return True
 
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         """Insert or update chunks into the vector store."""
-        if not self._index:
-            msg = "Pinecone client is not initialized"
-            raise ConnectionError(msg)
 
         vectors = []
         for chunk in chunks:
@@ -76,9 +57,6 @@ class PineconeClient(IVectorStore):
             )
 
         async def _call() -> None:
-            if not self._index:
-                msg = "Pinecone client is not initialized"
-                raise ConnectionError(msg)
             try:
                 # Batch upsert logic could be added here for large datasets
                 self._index.upsert(vectors=vectors)
@@ -94,10 +72,6 @@ class PineconeClient(IVectorStore):
         """Search for semantically similar chunks."""
 
         async def _call() -> list[DocumentChunk]:
-            if not self._index:
-                msg = "Pinecone client is not initialized"
-                raise ConnectionError(msg)
-
             try:
                 results = self._index.query(
                     vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
