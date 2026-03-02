@@ -81,6 +81,13 @@ The easiest way to experience the "Aha! Moment" of matome is to run the User Acc
 ```bash
 uv run pytest tests/uat/test_uat.py -v -s
 ```
+
+You can also run our interactive visual tutorial powered by Marimo, which brings the "Aha! Moment" right into your browser:
+
+```bash
+uv run marimo edit tutorials/UAT_AND_TUTORIAL.py
+```
+
 This script acts as our active tutorial, demonstrating the ingestion of simulated documents, answering AI questions to unlock cognitive nodes, and restructuring them via our multi-dimensional Pivot KJ analytical engine.
 
 ### Running the API Server
