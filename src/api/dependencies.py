@@ -6,10 +6,10 @@ import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
+from src.infrastructure.factories import LLMClientFactory, VectorStoreFactory
 from src.infrastructure.http import HttpxAdapter
-from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
+from src.infrastructure.llm import OpenRouterConfig
 from src.infrastructure.storage import LocalStorage
-from src.infrastructure.vector_store import PineconeClient
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -49,9 +49,10 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     llm_provider = providers.Factory(
-        OpenRouterClient,
+        LLMClientFactory.create,
+        provider_type="openrouter",
         config=llm_config,
-        client=http_client,
+        http_client=http_client,
     )
 
     @staticmethod
@@ -70,7 +71,8 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     vector_store = providers.Factory(
-        PineconeClient,
+        VectorStoreFactory.create,
+        store_type="pinecone",
         index=pinecone_index,
     )
 
