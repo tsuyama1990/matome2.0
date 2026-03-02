@@ -7,9 +7,9 @@ from dependency_injector import containers, providers
 from src.core.config import AppSettings, ConfigFactory
 from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpClientFactory
-from src.infrastructure.llm import OpenRouterClientFactory, OpenRouterConfig
+from src.infrastructure.llm import LLMClientFactory, OpenRouterConfig
 from src.infrastructure.storage import StorageFactory
-from src.infrastructure.vector_store import PineconeClient, PineconeIndexFactory
+from src.infrastructure.vector_store import PineconeIndexFactory, VectorStoreFactory
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -36,20 +36,20 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     http_client = providers.Resource(
         init_async_client,
-        timeout=config_settings.provided.llm_timeout,
+        timeout=config_settings.provided.llm.timeout,
     )
 
     # Infrastructure Implementations
     llm_config = providers.Factory(
         OpenRouterConfig,
-        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_settings),
-        default_model=config_settings.provided.text_fast_model,
-        base_url=config_settings.provided.openrouter_base_url,
-        timeout=config_settings.provided.llm_timeout,
+        api_key=providers.Callable(lambda s: s.llm.api_key, config_settings),
+        default_model=config_settings.provided.llm.text_fast_model,
+        base_url=config_settings.provided.llm.base_url,
+        timeout=config_settings.provided.llm.timeout,
     )
 
     llm_provider = providers.Factory(
-        OpenRouterClientFactory.create_client,
+        LLMClientFactory.create_openrouter_client,
         config=llm_config,
         client=http_client,
     )
@@ -57,19 +57,19 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     pinecone_index = providers.Singleton(
         PineconeIndexFactory.create_index,
         api_key=providers.Callable(
-            lambda s: s.pinecone_api_key.get_secret_value(), config_settings
+            lambda s: s.vector_store.api_key.get_secret_value(), config_settings
         ),
-        index_name=config_settings.provided.pinecone_index_name,
+        index_name=config_settings.provided.vector_store.index_name,
     )
 
     vector_store = providers.Factory(
-        PineconeClient,
+        VectorStoreFactory.create_pinecone_client,
         index=pinecone_index,
     )
 
     file_storage = providers.Factory(
         StorageFactory.create_local_storage,
-        base_dir=config_settings.provided.storage_base_dir,
+        base_dir=config_settings.provided.storage.base_dir,
         path_class=Path,
     )
 

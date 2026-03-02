@@ -30,6 +30,15 @@ class PineconeIndexFactory:
         return pc.Index(index_name) # type: ignore[return-value]
 
 
+class VectorStoreFactory:
+    """Factory to create and configure IVectorStore instances."""
+
+    @staticmethod
+    def create_pinecone_client(index: PineconeIndexProtocol) -> "PineconeClient":
+        """Initializes and returns a PineconeClient."""
+        return PineconeClient(index=index)
+
+
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 

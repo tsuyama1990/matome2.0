@@ -22,11 +22,11 @@ class OpenRouterConfig:
     timeout: float
 
 
-class OpenRouterClientFactory:
-    """Factory to create and configure OpenRouterClient instances."""
+class LLMClientFactory:
+    """Factory to create and configure ILLMProvider instances."""
 
     @staticmethod
-    def create_client(config: OpenRouterConfig, client: IHttpClient) -> "OpenRouterClient":
+    def create_openrouter_client(config: OpenRouterConfig, client: IHttpClient) -> "OpenRouterClient":
         """Initializes and returns an OpenRouterClient."""
         return OpenRouterClient(config=config, client=client)
 
