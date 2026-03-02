@@ -5,6 +5,9 @@ from typing import Any, TypeVar
 T = TypeVar("T")
 
 
+_ERROR_MSG_SHOULD_NOT_REACH_HERE = "Should not reach here"
+
+
 async def _with_retries(
     func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
 ) -> T:
@@ -22,5 +25,4 @@ async def _with_retries(
             if attempt == max_retries - 1:
                 raise
             await asyncio.sleep(base_delay * (2**attempt))
-    msg = "Should not reach here"
-    raise RuntimeError(msg)
+    raise RuntimeError(_ERROR_MSG_SHOULD_NOT_REACH_HERE)

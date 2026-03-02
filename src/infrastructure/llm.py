@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from src.core.utils import _with_retries
 from src.domain.ports.http import IHttpClient
@@ -14,7 +14,7 @@ from src.domain.ports.llm import ILLMProvider
 class OpenRouterConfig:
     """Configuration wrapper for OpenRouterClient."""
 
-    api_key: str
+    api_key: SecretStr
     default_model: str
     base_url: str
     timeout: float
@@ -39,10 +39,15 @@ class OpenRouterClient(ILLMProvider):
 
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
-        token = self.config.api_key
+        token = self.config.api_key.get_secret_value()
         if not token:
             msg = "api_key must not be empty"
             raise ValueError(msg)
+
+        if "\n" in token or "\r" in token:
+            msg = "Invalid characters in API key"
+            raise ValueError(msg)
+
         auth_value = f"Bearer {token}"
         return {
             "Authorization": auth_value,

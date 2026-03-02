@@ -6,7 +6,7 @@ from src.domain.ports.vector_store import IVectorStore
 
 
 class PineconeIndexProtocol(Protocol):
-    def upsert(self, vectors: list[dict[str, Any]]) -> Any: ...
+    def upsert(self, vectors: list[dict[str, Any]]) -> None: ...
     def query(
         self,
         vector: list[float],

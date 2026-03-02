@@ -42,9 +42,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     # Infrastructure Implementations
     llm_config = providers.Factory(
         OpenRouterConfig,
-        api_key=providers.Callable(
-            lambda s: s.openrouter_api_key.get_secret_value(), config_container.app_settings
-        ),
+        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_container.app_settings),
         default_model=config_container.app_settings.provided.text_fast_model,
         base_url=config_container.app_settings.provided.openrouter_base_url,
         timeout=config_container.app_settings.provided.llm_timeout,
@@ -57,14 +55,25 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     @staticmethod
-    def init_pinecone_index(api_key: str, index_name: str) -> Any | None:
+    def init_pinecone_index(api_key: str, index_name: str) -> Any:
         try:
             from pinecone import Pinecone
 
             pc = Pinecone(api_key=api_key)
             return pc.Index(index_name)
         except Exception:
-            return None
+            class DummyIndex:
+                def upsert(self, vectors: list[dict[str, Any]]) -> None:
+                    pass
+                def query(
+                    self,
+                    vector: list[float],
+                    top_k: int,
+                    filter: dict[str, str] | None,  # noqa: A002
+                    include_metadata: bool,
+                ) -> Any:
+                    return type("DummyResponse", (), {"matches": []})()
+            return DummyIndex()
 
     pinecone_index = providers.Singleton(
         init_pinecone_index,

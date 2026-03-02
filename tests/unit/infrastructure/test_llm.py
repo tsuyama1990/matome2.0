@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from src.core.config import AppSettings
 from src.domain.ports.http import IHttpClient
@@ -19,16 +20,17 @@ def mock_httpx_client() -> AsyncMock:
 @pytest.fixture
 def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRouterClient:
     config = OpenRouterConfig(
-        api_key=test_config.openrouter_api_key.get_secret_value(),
+        api_key=test_config.openrouter_api_key,
         default_model=test_config.text_fast_model,
         base_url=test_config.openrouter_base_url,
         timeout=test_config.llm_timeout,
     )
     return OpenRouterClient(config=config, client=mock_httpx_client)
 
+
 def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
     config = OpenRouterConfig(
-        api_key="key",
+        api_key=SecretStr("key"),
         default_model="m",
         base_url="invalid_url",
         timeout=10.0,
@@ -37,9 +39,14 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
         OpenRouterClient(config=config, client=mock_httpx_client)
 
     config.base_url = "http://valid.url"
-    config.api_key = ""
+    config.api_key = SecretStr("")
     client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ValueError, match="api_key must not be empty"):
+        client._get_headers()
+
+    config.api_key = SecretStr("key\nwith\nnewline")
+    client = OpenRouterClient(config=config, client=mock_httpx_client)
+    with pytest.raises(ValueError, match="Invalid characters in API key"):
         client._get_headers()
 
 
