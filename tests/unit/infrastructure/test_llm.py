@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -144,19 +144,19 @@ async def test_httpx_adapter_methods() -> None:
     adapter = HttpxAdapter(client=mock_client)
 
     # get
-    mock_resp_get = AsyncMock()
+    mock_resp_get = Mock()
     mock_client.get.return_value = mock_resp_get
     assert await adapter.get("url", {}) == mock_resp_get
     mock_client.get.assert_called_once_with("url", headers={}, timeout=30.0)
 
     # post
-    mock_resp_post = AsyncMock()
+    mock_resp_post = Mock()
     mock_client.post.return_value = mock_resp_post
     assert await adapter.post("url", {}, {"json": "data"}) == mock_resp_post
     mock_client.post.assert_called_once_with("url", headers={}, json={"json": "data"})
 
     # stream_post
-    mock_resp_stream = AsyncMock()
+    mock_resp_stream = Mock()
     mock_client.stream.return_value = mock_resp_stream
     assert adapter.stream_post("url", {}, {"json": "data"}) == mock_resp_stream
     mock_client.stream.assert_called_once_with("POST", "url", headers={}, json={"json": "data"})

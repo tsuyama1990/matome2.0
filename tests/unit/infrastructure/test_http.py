@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -18,7 +18,7 @@ def adapter(mock_httpx_client: AsyncMock) -> HttpxAdapter:
 
 @pytest.mark.asyncio
 async def test_get_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) -> None:
-    mock_response = AsyncMock(spec=httpx.Response)
+    mock_response = Mock(spec=httpx.Response)
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.get.return_value = mock_response
 
@@ -29,7 +29,7 @@ async def test_get_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) 
 
 @pytest.mark.asyncio
 async def test_post_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) -> None:
-    mock_response = AsyncMock(spec=httpx.Response)
+    mock_response = Mock(spec=httpx.Response)
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.post.return_value = mock_response
 
@@ -40,7 +40,7 @@ async def test_post_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock)
 
 @pytest.mark.asyncio
 async def test_put_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) -> None:
-    mock_response = AsyncMock(spec=httpx.Response)
+    mock_response = Mock(spec=httpx.Response)
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.put.return_value = mock_response
 
@@ -51,7 +51,7 @@ async def test_put_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) 
 
 @pytest.mark.asyncio
 async def test_delete_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) -> None:
-    mock_response = AsyncMock(spec=httpx.Response)
+    mock_response = Mock(spec=httpx.Response)
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.delete.return_value = mock_response
 
