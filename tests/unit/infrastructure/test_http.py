@@ -24,7 +24,7 @@ async def test_get_success(adapter: HttpxAdapter, mock_httpx_client: AsyncMock) 
 
     resp = await adapter.get("url", headers={})
     assert resp == mock_response
-    mock_httpx_client.get.assert_called_once_with("url", headers={})
+    mock_httpx_client.get.assert_called_once_with("url", headers={}, timeout=30.0)
 
 
 @pytest.mark.asyncio

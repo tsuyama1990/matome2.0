@@ -1,6 +1,7 @@
 from typing import Any, Protocol
 
 from src.core.utils import with_retries
+from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
 
@@ -25,10 +26,10 @@ class PineconeClient(IVectorStore):
     def __init__(self, index: PineconeIndexProtocol) -> None:
         if index is None:
             msg = "Pinecone client must be initialized with a valid index"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
         self._index = index
 
-    async def check_health(self) -> bool:
+    async def check_health(self, timeout: float = 5.0) -> bool:
         """Verifies if the vector store is reachable and configured."""
         try:
             self._index.describe_index_stats()

@@ -23,10 +23,10 @@ class ConfigContainer(containers.DeclarativeContainer):
 class InfrastructureContainer(containers.DeclarativeContainer):
     """Container for infrastructure dependencies."""
 
-    config_container = providers.DependenciesContainer()
+    config_settings = providers.Configuration()
 
     @staticmethod
-    async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:  # noqa: ASYNC109
+    async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:
         client = httpx.AsyncClient(timeout=timeout)
         adapter = HttpxAdapter(client=client)
         try:
@@ -36,16 +36,16 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     http_client = providers.Resource(
         init_async_client,
-        timeout=config_container.app_settings.provided.llm_timeout,
+        timeout=config_settings.provided.llm_timeout,
     )
 
     # Infrastructure Implementations
     llm_config = providers.Factory(
         OpenRouterConfig,
-        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_container.app_settings),
-        default_model=config_container.app_settings.provided.text_fast_model,
-        base_url=config_container.app_settings.provided.openrouter_base_url,
-        timeout=config_container.app_settings.provided.llm_timeout,
+        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_settings),
+        default_model=config_settings.provided.text_fast_model,
+        base_url=config_settings.provided.openrouter_base_url,
+        timeout=config_settings.provided.llm_timeout,
     )
 
     llm_provider = providers.Factory(
@@ -64,9 +64,9 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     pinecone_index = providers.Singleton(
         init_pinecone_index,
         api_key=providers.Callable(
-            lambda s: s.pinecone_api_key.get_secret_value(), config_container.app_settings
+            lambda s: s.pinecone_api_key.get_secret_value(), config_settings
         ),
-        index_name=config_container.app_settings.provided.pinecone_index_name,
+        index_name=config_settings.provided.pinecone_index_name,
     )
 
     vector_store = providers.Factory(
@@ -76,7 +76,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     file_storage = providers.Factory(
         LocalStorage,
-        base_dir=config_container.app_settings.provided.storage_base_dir,
+        base_dir=config_settings.provided.storage_base_dir,
         path_class=Path,
     )
 
@@ -87,7 +87,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
     config_container = providers.Container(ConfigContainer)
     infrastructure_container = providers.Container(
         InfrastructureContainer,
-        config_container=config_container,
+        config_settings=config_container.app_settings,
     )
 
 

@@ -18,6 +18,7 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
+        timeout: float = 30.0,
     ) -> str:
         """Generates text from the LLM provider.
 
@@ -39,6 +40,7 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
+        timeout: float = 30.0,
     ) -> AsyncIterator[str]:
         """Generates text from the LLM provider as an asynchronous stream.
 

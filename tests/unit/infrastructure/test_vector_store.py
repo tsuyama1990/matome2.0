@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
 from src.infrastructure.vector_store import PineconeClient, PineconeIndexProtocol
 
@@ -25,7 +26,7 @@ async def test_check_health(vector_client: PineconeClient) -> None:
 
 @pytest.mark.asyncio
 async def test_check_health_failure() -> None:
-    with pytest.raises(ValueError, match="Pinecone client must be initialized with a valid index"):
+    with pytest.raises(ConfigurationError, match="Pinecone client must be initialized with a valid index"):
         PineconeClient(index=None)  # type: ignore
 
 

@@ -28,7 +28,7 @@ class IHttpClient(ABC):
     """
 
     @abstractmethod
-    async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:
+    async def get(self, url: str, headers: dict[str, str], timeout: float = 30.0) -> IHttpResponse:
         """Performs an asynchronous GET request.
 
         Raises:

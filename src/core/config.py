@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import Field, SecretStr
+from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +15,7 @@ class AppSettings(BaseSettings):
     text_reasoning_model: str = Field(default="deepseek/deepseek-reasoner")
     multimodal_model: str = Field(default="google/gemini-2.5-pro")
 
-    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1/chat/completions")
+    openrouter_base_url: HttpUrl | str = Field(default="https://openrouter.ai/api/v1/chat/completions")
     pinecone_index_name: str = Field(default="matome-index")
     storage_base_dir: str = Field(default="./data")
     llm_timeout: float = Field(default=30.0)

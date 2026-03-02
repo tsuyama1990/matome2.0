@@ -7,6 +7,7 @@ import pytest
 from pydantic import SecretStr
 
 from src.core.config import AppSettings
+from src.domain.exceptions import ConfigurationError
 from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpxAdapter
 from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
@@ -35,18 +36,18 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
         base_url="invalid_url",
         timeout=10.0,
     )
-    with pytest.raises(ValueError, match="base_url must be a valid HTTP/HTTPS URL"):
+    with pytest.raises(ConfigurationError, match="base_url must be a valid HTTP/HTTPS URL"):
         OpenRouterClient(config=config, client=mock_httpx_client)
 
     config.base_url = "http://valid.url"
     config.api_key = SecretStr("")
     client = OpenRouterClient(config=config, client=mock_httpx_client)
-    with pytest.raises(ValueError, match="api_key must not be empty"):
+    with pytest.raises(ConfigurationError, match="api_key must not be empty"):
         client._get_headers()
 
     config.api_key = SecretStr("sk-or-v1-key\nwith\nnewline")
     client = OpenRouterClient(config=config, client=mock_httpx_client)
-    with pytest.raises(ValueError, match="Invalid characters in API key"):
+    with pytest.raises(ConfigurationError, match="Invalid characters in API key"):
         client._get_headers()
 
 
@@ -57,7 +58,7 @@ async def test_generate_text_success(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Test response"}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
 
     mock_httpx_client.post.return_value = mock_response
@@ -82,7 +83,7 @@ async def test_extract_structured_data_success(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": '```json\n{"key": "value"}\n```'}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
 
     mock_httpx_client.post.return_value = mock_response
@@ -97,11 +98,11 @@ async def test_extract_structured_data_invalid_json(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Not JSON at all"}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
 
     mock_httpx_client.post.return_value = mock_response
-    with pytest.raises(ValueError, match="Failed to parse LLM response into JSON"):
+    with pytest.raises(ConfigurationError, match="Failed to parse LLM response into JSON"):
         await llm_client.extract_structured_data("Extract this", {"type": "object"})
 
 
@@ -146,7 +147,7 @@ async def test_httpx_adapter_methods() -> None:
     mock_resp_get = AsyncMock()
     mock_client.get.return_value = mock_resp_get
     assert await adapter.get("url", {}) == mock_resp_get
-    mock_client.get.assert_called_once_with("url", headers={})
+    mock_client.get.assert_called_once_with("url", headers={}, timeout=30.0)
 
     # post
     mock_resp_post = AsyncMock()
@@ -206,7 +207,7 @@ async def test_generate_text_retry_success(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Retry success"}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
 
     mock_httpx_client.post.side_effect = [TimeoutError("Timeout 1"), mock_response]
@@ -314,7 +315,7 @@ async def test_generate_text_invalid_format(
     mock_response = httpx.Response(
         200,
         json=[],  # Invalid root
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     with pytest.raises(TypeError, match="Invalid response format"):
@@ -323,16 +324,16 @@ async def test_generate_text_invalid_format(
     mock_response = httpx.Response(
         200,
         json={"choices": {}},  # Invalid choices
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
-    with pytest.raises(ValueError, match="Missing or invalid 'choices' in response"):
+    with pytest.raises(ConfigurationError, match="Missing or invalid 'choices' in response"):
         await llm_client.generate_text("Hello")
 
     mock_response = httpx.Response(
         200,
         json={"choices": [[]]},  # Invalid message type
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
@@ -341,16 +342,16 @@ async def test_generate_text_invalid_format(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {}}]},  # Missing content
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
-    with pytest.raises(ValueError, match="Missing 'content' in response"):
+    with pytest.raises(ConfigurationError, match="Missing 'content' in response"):
         await llm_client.generate_text("Hello")
 
 
 @pytest.mark.asyncio
 async def test_extract_structured_data_empty_schema(llm_client: OpenRouterClient) -> None:
-    with pytest.raises(ValueError, match="schema dictionary cannot be empty"):
+    with pytest.raises(ConfigurationError, match="schema dictionary cannot be empty"):
         await llm_client.extract_structured_data("Extract", {})
 
 
@@ -361,7 +362,7 @@ async def test_extract_structured_data_not_dict(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": '["Not a dict"]'}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
 
     mock_httpx_client.post.return_value = mock_response
@@ -371,7 +372,7 @@ async def test_extract_structured_data_not_dict(
 
 @pytest.mark.asyncio
 async def test_generate_text_empty_prompt(llm_client: OpenRouterClient) -> None:
-    with pytest.raises(ValueError, match="Prompt cannot be empty"):
+    with pytest.raises(ConfigurationError, match="Prompt cannot be empty"):
         await llm_client.generate_text("")
 
 
@@ -447,7 +448,7 @@ def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
         timeout=10.0,
     )
     client = OpenRouterClient(config=config, client=mock_httpx_client)
-    with pytest.raises(ValueError, match="API key fails pattern validation"):
+    with pytest.raises(ConfigurationError, match="API key fails pattern validation"):
         client._get_headers()
 
 
@@ -458,7 +459,7 @@ async def test_generate_text_with_system_prompt(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": "Test response"}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     result = await llm_client.generate_text("Hello", system_prompt="System Prompt")
@@ -472,7 +473,7 @@ async def test_generate_text_choice_not_dict(
     mock_response = httpx.Response(
         200,
         json={"choices": ["not a dict"]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
@@ -486,7 +487,7 @@ async def test_generate_text_message_not_dict(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": "not a dict"}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
@@ -553,7 +554,7 @@ async def test_extract_structured_data_pydantic_schema(
     mock_response = httpx.Response(
         200,
         json={"choices": [{"message": {"content": '{"key": "value"}'}}]},
-        request=httpx.Request("POST", test_config.openrouter_base_url),
+        request=httpx.Request("POST", str(test_config.openrouter_base_url)),
     )
     mock_httpx_client.post.return_value = mock_response
     result = await llm_client.extract_structured_data("Extract", DummyModel)

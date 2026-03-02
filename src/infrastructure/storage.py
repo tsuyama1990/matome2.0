@@ -19,6 +19,9 @@ class LocalStorage(IFileStorage):
         self.base_dir = (
             self.path_class(base_dir) if not isinstance(base_dir, self.path_class) else base_dir
         )
+        if not self.base_dir.is_absolute():
+            self.base_dir = self.base_dir.resolve()
+
         if create_dir:
             self.base_dir.mkdir(parents=True, exist_ok=True)
 

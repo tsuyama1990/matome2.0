@@ -11,7 +11,7 @@ class IVectorStore(ABC):
     """
 
     @abstractmethod
-    async def check_health(self) -> bool:
+    async def check_health(self, timeout: float = 5.0) -> bool:
         """Verifies if the vector store is reachable and configured.
 
         Implementations must enforce strict timeout boundaries (e.g. 5 seconds)

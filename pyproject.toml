@@ -42,6 +42,7 @@ select = [
 ]
 
 ignore = [
+    "ASYNC109",
     "PTH123", "PT012", "E402", "SIM105", "EM101",
     "ANN101", "ANN002", "ANN003", "ANN001", "ANN401", "ARG001", "ARG005",
     "PLR2004", "E501", "TRY003", "D", "ANN201", "N806", "PLC0415", "BLE001",
