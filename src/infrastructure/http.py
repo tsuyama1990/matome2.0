@@ -9,6 +9,8 @@ from src.domain.ports.http import IHttpClient, IHttpResponse
 class HttpxAdapter(IHttpClient):
     """Adapter wrapping httpx.AsyncClient for IHttpClient."""
 
+    client: httpx.AsyncClient
+
     def __init__(self, client: httpx.AsyncClient) -> None:
         self.client = client
 

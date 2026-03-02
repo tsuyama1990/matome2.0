@@ -32,8 +32,10 @@ class OpenRouterClient(ILLMProvider):
 
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
+        token = getattr(self.config, "api_key", "")
+        auth_value = f"Bearer {token}"
         return {
-            "Authorization": "Bearer " + self.config.api_key,
+            "Authorization": auth_value,
             "Content-Type": "application/json",
         }
 
