@@ -23,6 +23,8 @@ class ILLMProvider(ABC):
         Raises:
             TimeoutError: If the underlying API call exceeds the timeout period. Implementations
                           should ideally wrap library-specific timeouts to this built-in error.
+                          They should also configure a resilient retry logic (e.g. exponential backoff)
+                          to handle transient API downtime before failing.
             ConnectionError: If a connection error happens during interaction with the API.
         """
         ...

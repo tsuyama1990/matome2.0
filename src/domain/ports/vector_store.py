@@ -10,6 +10,9 @@ class IVectorStore(ABC):
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured.
 
+        Implementations must enforce strict timeout boundaries (e.g. 5 seconds)
+        to prevent application hangs during degraded downstream service availability.
+
         Returns:
             bool: True if the connection is healthy, otherwise False.
         """

@@ -11,9 +11,11 @@ class IFileStorage(ABC):
         """Checks if a file exists.
 
         Args:
-            path (str): Path to check.
+            path (str): Path to check. Must be validated against the storage base
+                        directory bounds to prevent Path Traversal vulnerabilities.
+                        Implementations should reject invalid paths.
         Returns:
-            bool: True if it exists, False otherwise.
+            bool: True if it exists safely, False otherwise.
         """
 
     @abstractmethod
