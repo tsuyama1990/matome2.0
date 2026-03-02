@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -82,6 +82,7 @@ class StorageSettings(BaseModel):
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
 
+    environment: Literal["dev", "staging", "prod"] = Field(default="dev")
     llm: LLMSettings = Field(default_factory=LLMSettings)
     vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
@@ -96,6 +97,12 @@ class AppSettings(BaseSettings):
 
     def validate_keys(self) -> None:
         """Validates that critical API keys are present."""
+        if self.environment == "prod" and (
+            not self.llm.api_key.get_secret_value()
+            or not self.vector_store.api_key.get_secret_value()
+        ):
+            msg = "Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."
+            raise ValueError(msg)
         if not self.llm.api_key.get_secret_value():
             msg = (
                 "OPENROUTER_API_KEY environment variable is not set or is empty. "

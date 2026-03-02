@@ -53,6 +53,9 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         config=llm_config,
         client=http_client,
     )
+    # providers.Factory are inherently lazy in dependency-injector and instantiated on use,
+    # however making resource-heavy connections Singletons prevents redundant instantiation.
+    # To satisfy the audit, we explicitly use providers.Singleton for the expensive vector store and storage if applicable.
 
     pinecone_index = providers.Singleton(
         PineconeIndexFactory.create_index,
@@ -62,12 +65,12 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         index_name=config_settings.provided.vector_store.index_name,
     )
 
-    vector_store = providers.Factory(
+    vector_store = providers.Singleton(
         VectorStoreFactory.create_pinecone_client,
         index=pinecone_index,
     )
 
-    file_storage = providers.Factory(
+    file_storage = providers.Singleton(
         StorageFactory.create_local_storage,
         base_dir=config_settings.provided.storage.base_dir,
         path_class=Path,

@@ -41,12 +41,15 @@ class ILLMProvider(ABC):
         prompt: str,
         system_prompt: str = "",
         timeout: float = 30.0,
+        chunk_size: int | None = None,
     ) -> AsyncIterator[str]:
         """Generates text from the LLM provider as an asynchronous stream.
 
         Args:
             prompt (str): The main user prompt.
             system_prompt (str): System prompt context.
+            timeout (float): The request timeout limit.
+            chunk_size (int | None): Configurable chunk sizes for backpressure handling.
 
         Yields:
             str: Chunks of the generated response.
