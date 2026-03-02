@@ -10,6 +10,7 @@ dependencies = [
     "dependency-injector>=4.48.3",
     "fastapi>=0.135.0",
     "httpx>=0.28.1",
+    "marimo>=0.20.2",
     "pinecone>=8.1.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
@@ -66,3 +67,9 @@ pythonpath = ["."]
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+exclude = [
+    "tutorials/UAT_AND_TUTORIAL.py"
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tutorials/*.py" = ["N807", "N803", "B018", "C408"]
