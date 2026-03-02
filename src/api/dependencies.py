@@ -1,6 +1,5 @@
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any
 
 import httpx
 from dependency_injector import containers, providers
@@ -9,7 +8,7 @@ from src.core.config import AppSettings
 from src.infrastructure.http import HttpxAdapter
 from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 from src.infrastructure.storage import LocalStorage
-from src.infrastructure.vector_store import PineconeClient
+from src.infrastructure.vector_store import PineconeClient, PineconeIndexProtocol
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -42,9 +41,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     # Infrastructure Implementations
     llm_config = providers.Factory(
         OpenRouterConfig,
-        api_key=providers.Callable(
-            lambda s: s.openrouter_api_key.get_secret_value(), config_container.app_settings
-        ),
+        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_container.app_settings),
         default_model=config_container.app_settings.provided.text_fast_model,
         base_url=config_container.app_settings.provided.openrouter_base_url,
         timeout=config_container.app_settings.provided.llm_timeout,
@@ -57,14 +54,11 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     @staticmethod
-    def init_pinecone_index(api_key: str, index_name: str) -> Any | None:
-        try:
-            from pinecone import Pinecone
+    def init_pinecone_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
+        from pinecone import Pinecone
 
-            pc = Pinecone(api_key=api_key)
-            return pc.Index(index_name)
-        except Exception:
-            return None
+        pc = Pinecone(api_key=api_key)
+        return pc.Index(index_name)  # type: ignore
 
     pinecone_index = providers.Singleton(
         init_pinecone_index,

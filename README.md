@@ -98,26 +98,7 @@ To start the main FastAPI backend server for development:
 uv run uvicorn main:app --reload
 ```
 
-## Development Workflow
-
-This project adheres to strict code quality standards, enforced through `ruff` and `mypy`. All development follows a Test-Driven Development (TDD) approach in 8 sequential implementation cycles.
-
-*   **Run Linters and Formatters:**
-    ```bash
-    uv run ruff check .
-    uv run ruff format .
-    ```
-*   **Run Type Checking:**
-    ```bash
-    uv run mypy .
-    ```
-*   **Run Tests with Coverage:**
-    The project mandates a strict >80% code coverage.
-    ```bash
-    uv run pytest
-    ```
-
-## Project Structure
+## Architecture/Structure
 
 ```text
 matome2-0/
@@ -133,6 +114,13 @@ matome2-0/
 ├── pyproject.toml    # Project dependencies and strict linter config
 └── main.py           # Application entry point
 ```
+
+## Roadmap
+
+*   **Foundational Backend**: Schema and backend integration (Vector Store, LLM setup).
+*   **Voice Interaction**: Real-time voice interaction and audio transcription endpoints.
+*   **Semantic Zooming UI**: User interface construction with Semantic Zooming and React Flow.
+*   **Team Collaboration**: Multi-user collaboration capabilities.
 
 ## License
 

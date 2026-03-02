@@ -1,11 +1,12 @@
 from typing import Any, Protocol
 
+from src.core.utils import with_retries
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
 
 
 class PineconeIndexProtocol(Protocol):
-    def upsert(self, vectors: list[dict[str, Any]]) -> Any: ...
+    def upsert(self, vectors: list[dict[str, Any]]) -> None: ...
     def query(
         self,
         vector: list[float],
@@ -13,23 +14,35 @@ class PineconeIndexProtocol(Protocol):
         filter: dict[str, str] | None,  # noqa: A002
         include_metadata: bool,
     ) -> Any: ...
+    def describe_index_stats(self) -> Any: ...
 
 
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
-    def __init__(self, index: PineconeIndexProtocol | None = None) -> None:
+    _index: PineconeIndexProtocol
+
+    def __init__(self, index: PineconeIndexProtocol) -> None:
+        if index is None:
+            msg = "Pinecone client must be initialized with a valid index"
+            raise ValueError(msg)
         self._index = index
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""
-        return self._index is not None
+        try:
+            self._index.describe_index_stats()
+        except Exception:
+            return False
+        return True
 
+    @with_retries(max_retries=3, base_delay=1.0)
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         """Insert or update chunks into the vector store."""
-        if not self._index:
-            msg = "Pinecone client is not initialized"
-            raise ConnectionError(msg)
+
+        if len(chunks) > 10000:
+            msg = "Batch size exceeds maximum allowed (10,000)"
+            raise ValueError(msg)
 
         vectors = []
         for chunk in chunks:
@@ -51,16 +64,24 @@ class PineconeClient(IVectorStore):
                 }
             )
 
-        # Batch upsert logic could be added here for large datasets
-        self._index.upsert(vectors=vectors)
+        try:
+            # Implement batching for large datasets
+            batch_size = 100
+            for i in range(0, len(vectors), batch_size):
+                batch = vectors[i : i + batch_size]
+                self._index.upsert(vectors=batch)
+        except Exception as e:
+            msg = f"Pinecone upsert failed: {e}"
+            raise ConnectionError(msg) from e
 
+    @with_retries(max_retries=3, base_delay=1.0)
     async def search_similar(
         self, query_embedding: list[float], top_k: int = 5, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         """Search for semantically similar chunks."""
-        if not self._index:
-            msg = "Pinecone client is not initialized"
-            raise ConnectionError(msg)
+        if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
+            msg = "query_embedding must be a non-empty list of numeric values"
+            raise ValueError(msg)
 
         try:
             results = self._index.query(
@@ -70,11 +91,11 @@ class PineconeClient(IVectorStore):
             msg = f"Pinecone query failed: {e}"
             raise ConnectionError(msg) from e
         else:
-            chunks = []
+            out_chunks = []
             for match in getattr(results, "matches", []):
                 meta = match.metadata or {}
                 # Recover original chunk
-                chunks.append(
+                out_chunks.append(
                     DocumentChunk(
                         chunk_id=match.id,
                         document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
@@ -83,4 +104,4 @@ class PineconeClient(IVectorStore):
                         embedding=match.values,
                     )
                 )
-            return chunks
+            return out_chunks
