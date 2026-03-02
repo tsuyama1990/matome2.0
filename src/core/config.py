@@ -18,6 +18,15 @@ def _load_defaults() -> dict[str, Any]:
 
 _defaults = _load_defaults()
 
+class ConfigFactory:
+    """Factory to create and configure AppSettings instances."""
+
+    @staticmethod
+    def create_settings(**kwargs: Any) -> "AppSettings":
+        """Initializes and returns an AppSettings instance."""
+        return AppSettings(**kwargs)
+
+
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
 

@@ -50,7 +50,7 @@ async def test_init_async_client() -> None:
 def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:
     from unittest.mock import MagicMock
 
-    from src.api.dependencies import InfrastructureContainer
+    from src.infrastructure.vector_store import PineconeIndexFactory
 
     mock_pinecone = MagicMock()
     mock_pinecone_instance = MagicMock()
@@ -66,8 +66,8 @@ def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:
     sys.modules["pinecone"] = module
 
     try:
-        index = InfrastructureContainer.init_pinecone_index("test_key", "test_index")
-        assert index == "MockIndex"
+        index = PineconeIndexFactory.create_index("test_key", "test_index")
+        assert index == "MockIndex"  # type: ignore[comparison-overlap]
         mock_pinecone.assert_called_once_with(api_key="test_key")
         mock_pinecone_instance.Index.assert_called_once_with("test_index")
     finally:

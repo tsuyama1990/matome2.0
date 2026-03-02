@@ -9,8 +9,8 @@ from pydantic import SecretStr
 from src.core.config import AppSettings
 from src.domain.exceptions import ConfigurationError
 from src.domain.ports.http import IHttpClient
-from src.infrastructure.http import HttpxAdapter
-from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
+from src.infrastructure.http import HttpClientFactory
+from src.infrastructure.llm import OpenRouterClient, OpenRouterClientFactory, OpenRouterConfig
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRo
         base_url=test_config.openrouter_base_url,
         timeout=test_config.llm_timeout,
     )
-    return OpenRouterClient(config=config, client=mock_httpx_client)
+    return OpenRouterClientFactory.create_client(config=config, client=mock_httpx_client)
 
 
 def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
@@ -37,16 +37,16 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
         timeout=10.0,
     )
     with pytest.raises(ConfigurationError, match="base_url must be a valid HTTP/HTTPS URL"):
-        OpenRouterClient(config=config, client=mock_httpx_client)
+        OpenRouterClientFactory.create_client(config=config, client=mock_httpx_client)
 
     config.base_url = "http://valid.url"
     config.api_key = SecretStr("")
-    client = OpenRouterClient(config=config, client=mock_httpx_client)
+    client = OpenRouterClientFactory.create_client(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="api_key must not be empty"):
         client._get_headers()
 
     config.api_key = SecretStr("sk-or-v1-key\nwith\nnewline")
-    client = OpenRouterClient(config=config, client=mock_httpx_client)
+    client = OpenRouterClientFactory.create_client(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="Invalid characters in API key"):
         client._get_headers()
 
@@ -141,7 +141,7 @@ async def test_stream_generate_text_success(
 async def test_httpx_adapter_methods() -> None:
     """Test HttpxAdapter basic methods to cover IHttpClient mapping."""
     mock_client = AsyncMock(spec=httpx.AsyncClient)
-    adapter = HttpxAdapter(client=mock_client)
+    adapter = HttpClientFactory.create_httpx_adapter(client=mock_client)
 
     # get
     mock_resp_get = Mock()
@@ -447,7 +447,7 @@ def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
         base_url="http://valid.url",
         timeout=10.0,
     )
-    client = OpenRouterClient(config=config, client=mock_httpx_client)
+    client = OpenRouterClientFactory.create_client(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="API key fails pattern validation"):
         client._get_headers()
 

@@ -12,12 +12,15 @@ def test_settings_initialization(test_config: AppSettings) -> None:
     assert test_config.multimodal_model == "test-vision"
 
 
+from src.core.config import ConfigFactory
+
+
 def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default fallbacks when environment variables are missing."""
     # Temporarily set dummy keys so validation passes during initialization
     monkeypatch.setenv("OPENROUTER_API_KEY", "dummy")
     monkeypatch.setenv("PINECONE_API_KEY", "dummy")
-    settings = AppSettings()
+    settings = ConfigFactory.create_settings()
     assert settings.text_fast_model == "google/gemini-2.5-flash"
     assert settings.text_reasoning_model == "deepseek/deepseek-reasoner"
     assert settings.multimodal_model == "google/gemini-2.5-pro"
@@ -29,7 +32,7 @@ def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.M
     with pytest.raises(
         ValueError, match="OPENROUTER_API_KEY environment variable is not set or is empty."
     ):
-        AppSettings()
+        ConfigFactory.create_settings()
 
 
 def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -38,13 +41,13 @@ def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.Mon
     with pytest.raises(
         ValueError, match="PINECONE_API_KEY environment variable is not set or is empty."
     ):
-        AppSettings()
+        ConfigFactory.create_settings()
 
 
 def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_router_key")
     monkeypatch.setenv("PINECONE_API_KEY", "dummy_pinecone_key")
-    settings = AppSettings()
+    settings = ConfigFactory.create_settings()
     # Should not raise any exception
     settings.validate_keys()
 
@@ -58,10 +61,10 @@ def test_app_settings_post_init_validates() -> None:
 
     with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is not set"):
         # We explicitly supply empty strings to bypass defaults and force validation
-        AppSettings(openrouter_api_key=SecretStr(""), pinecone_api_key=SecretStr("mock"))
+        ConfigFactory.create_settings(openrouter_api_key=SecretStr(""), pinecone_api_key=SecretStr("mock"))
 
     with pytest.raises(ValueError, match="PINECONE_API_KEY environment variable is not set"):
-        AppSettings(openrouter_api_key=SecretStr("mock"), pinecone_api_key=SecretStr(""))
+        ConfigFactory.create_settings(openrouter_api_key=SecretStr("mock"), pinecone_api_key=SecretStr(""))
 
 from pathlib import Path
 

@@ -17,7 +17,8 @@ class TestConfigFactory:
         monkeypatch.setenv("TEXT_REASONING_MODEL", "test-reason")
         monkeypatch.setenv("MULTIMODAL_MODEL", "test-vision")
         monkeypatch.setenv("OPENROUTER_BASE_URL", "http://test-api")
-        return AppSettings()
+        from src.core.config import ConfigFactory
+        return ConfigFactory.create_settings()
 
 
 @pytest.fixture

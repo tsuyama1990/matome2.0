@@ -1,15 +1,14 @@
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any
 
 import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
-from src.infrastructure.http import HttpxAdapter
-from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
-from src.infrastructure.storage import LocalStorage
-from src.infrastructure.vector_store import PineconeClient
+from src.infrastructure.http import HttpClientFactory, HttpxAdapter
+from src.infrastructure.llm import OpenRouterClientFactory, OpenRouterConfig
+from src.infrastructure.storage import StorageFactory
+from src.infrastructure.vector_store import PineconeClient, PineconeIndexFactory
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -28,7 +27,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     @staticmethod
     async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:
         client = httpx.AsyncClient(timeout=timeout)
-        adapter = HttpxAdapter(client=client)
+        adapter = HttpClientFactory.create_httpx_adapter(client=client)
         try:
             yield adapter
         finally:
@@ -49,20 +48,13 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     llm_provider = providers.Factory(
-        OpenRouterClient,
+        OpenRouterClientFactory.create_client,
         config=llm_config,
         client=http_client,
     )
 
-    @staticmethod
-    def init_pinecone_index(api_key: str, index_name: str) -> Any:
-        from pinecone import Pinecone
-
-        pc = Pinecone(api_key=api_key)
-        return pc.Index(index_name)
-
     pinecone_index = providers.Singleton(
-        init_pinecone_index,
+        PineconeIndexFactory.create_index,
         api_key=providers.Callable(
             lambda s: s.pinecone_api_key.get_secret_value(), config_settings
         ),
@@ -75,7 +67,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     file_storage = providers.Factory(
-        LocalStorage,
+        StorageFactory.create_local_storage,
         base_dir=config_settings.provided.storage_base_dir,
         path_class=Path,
     )

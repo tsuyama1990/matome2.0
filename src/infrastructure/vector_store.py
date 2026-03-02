@@ -18,6 +18,18 @@ class PineconeIndexProtocol(Protocol):
     def describe_index_stats(self) -> Any: ...
 
 
+class PineconeIndexFactory:
+    """Factory to create and configure PineconeIndexProtocol instances."""
+
+    @staticmethod
+    def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
+        """Initializes and returns a configured Pinecone index."""
+        from pinecone import Pinecone
+
+        pc = Pinecone(api_key=api_key)
+        return pc.Index(index_name) # type: ignore[return-value]
+
+
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 

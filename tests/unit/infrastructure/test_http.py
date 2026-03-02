@@ -11,9 +11,12 @@ def mock_httpx_client() -> AsyncMock:
     return AsyncMock(spec=httpx.AsyncClient)
 
 
+from src.infrastructure.http import HttpClientFactory
+
+
 @pytest.fixture
 def adapter(mock_httpx_client: AsyncMock) -> HttpxAdapter:
-    return HttpxAdapter(client=mock_httpx_client)
+    return HttpClientFactory.create_httpx_adapter(client=mock_httpx_client)
 
 
 @pytest.mark.asyncio
