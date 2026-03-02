@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
+
+from pydantic import BaseModel
 
 
 class ILLMProvider(ABC):
@@ -22,13 +25,14 @@ class ILLMProvider(ABC):
                           should ideally wrap library-specific timeouts to this built-in error.
             ConnectionError: If a connection error happens during interaction with the API.
         """
+        ...
 
     @abstractmethod
-    async def stream_generate_text(
+    def stream_generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
-    ) -> Any:
+    ) -> AsyncIterator[str]:
         """Generates text from the LLM provider as an asynchronous stream.
 
         Args:
@@ -38,22 +42,24 @@ class ILLMProvider(ABC):
         Yields:
             str: Chunks of the generated response.
         """
+        ...
 
     @abstractmethod
     async def extract_structured_data(
         self,
         prompt: str,
-        schema: dict[str, Any],
+        schema: type[BaseModel] | dict[str, Any],
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema.
 
         Args:
             prompt (str): The input to base the extraction on.
-            schema (dict): The target JSON schema representing the data shape.
+            schema (type | dict): The target JSON schema representing the data shape (or a Pydantic model class).
             system_prompt (str): Additional context or formatting instructions.
 
         Raises:
             TimeoutError: If the call to the LLM times out. Implementations must wrap internal timeouts.
             ValueError: If the generated output cannot be parsed into the target schema.
         """
+        ...

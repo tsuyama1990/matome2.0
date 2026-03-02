@@ -74,14 +74,14 @@ To run this project, you will need the following tools installed:
 
 *(Note: The project is currently under active development. The following commands reflect the intended usage once the API is fully implemented).*
 
-### Quick Start (Interactive Tutorial)
+### Quick Start (Interactive Tutorial / UAT)
 
-The easiest way to experience the "Aha! Moment" of matome is to run the interactive `marimo` tutorial notebook.
+The easiest way to experience the "Aha! Moment" of matome is to run the User Acceptance Test script which demonstrates the core knowledge extraction and transformation flow.
 
 ```bash
-uv run marimo edit tutorials/UAT_AND_TUTORIAL.py
+uv run pytest tests/uat/test_uat.py -v -s
 ```
-This single notebook will guide you through ingesting a sample document (`testfiles/test_text.txt`), answering an AI question to unlock a node, and performing a Pivot KJ analysis to generate a sequence diagram.
+This script acts as our active tutorial, demonstrating the ingestion of simulated documents, answering AI questions to unlock cognitive nodes, and restructuring them via our multi-dimensional Pivot KJ analytical engine.
 
 ### Running the API Server
 
