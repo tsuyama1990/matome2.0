@@ -1,3 +1,4 @@
+from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from typing import Any
 
@@ -14,9 +15,11 @@ class HttpxAdapter(IHttpClient):
     def __init__(self, client: httpx.AsyncClient) -> None:
         self.client = client
 
-    async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:
+    async def _handle_request(
+        self, request_func: Callable[[], Awaitable[httpx.Response]]
+    ) -> IHttpResponse:
         try:
-            resp = await self.client.get(url, headers=headers)
+            resp = await request_func()
             resp.raise_for_status()
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
@@ -33,6 +36,9 @@ class HttpxAdapter(IHttpClient):
         else:
             return resp
 
+    async def get(self, url: str, headers: dict[str, str], timeout: float = 30.0) -> IHttpResponse:
+        return await self._handle_request(lambda: self.client.get(url, headers=headers, timeout=timeout))
+
     def stream_post(
         self,
         url: str,
@@ -47,22 +53,7 @@ class HttpxAdapter(IHttpClient):
         headers: dict[str, str],
         json: dict[str, Any],
     ) -> IHttpResponse:
-        try:
-            resp = await self.client.post(url, headers=headers, json=json)
-            resp.raise_for_status()
-        except httpx.TimeoutException as e:
-            msg = f"Request timed out: {e}"
-            raise TimeoutError(msg) from e
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code >= 500 or e.response.status_code == 429:
-                msg = f"HTTP {e.response.status_code} error: {e}"
-                raise ConnectionError(msg) from e
-            raise
-        except httpx.RequestError as e:
-            msg = f"HTTP connection error: {e}"
-            raise ConnectionError(msg) from e
-        else:
-            return resp
+        return await self._handle_request(lambda: self.client.post(url, headers=headers, json=json))
 
     async def put(
         self,
@@ -70,40 +61,10 @@ class HttpxAdapter(IHttpClient):
         headers: dict[str, str],
         json: dict[str, Any],
     ) -> IHttpResponse:
-        try:
-            resp = await self.client.put(url, headers=headers, json=json)
-            resp.raise_for_status()
-        except httpx.TimeoutException as e:
-            msg = f"Request timed out: {e}"
-            raise TimeoutError(msg) from e
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code >= 500 or e.response.status_code == 429:
-                msg = f"HTTP {e.response.status_code} error: {e}"
-                raise ConnectionError(msg) from e
-            raise
-        except httpx.RequestError as e:
-            msg = f"HTTP connection error: {e}"
-            raise ConnectionError(msg) from e
-        else:
-            return resp
+        return await self._handle_request(lambda: self.client.put(url, headers=headers, json=json))
 
     async def delete(self, url: str, headers: dict[str, str]) -> IHttpResponse:
-        try:
-            resp = await self.client.delete(url, headers=headers)
-            resp.raise_for_status()
-        except httpx.TimeoutException as e:
-            msg = f"Request timed out: {e}"
-            raise TimeoutError(msg) from e
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code >= 500 or e.response.status_code == 429:
-                msg = f"HTTP {e.response.status_code} error: {e}"
-                raise ConnectionError(msg) from e
-            raise
-        except httpx.RequestError as e:
-            msg = f"HTTP connection error: {e}"
-            raise ConnectionError(msg) from e
-        else:
-            return resp
+        return await self._handle_request(lambda: self.client.delete(url, headers=headers))
 
     async def close(self) -> None:
         await self.client.aclose()

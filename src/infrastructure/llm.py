@@ -4,9 +4,10 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, HttpUrl, SecretStr
 
 from src.core.utils import _with_retries, with_retries
+from src.domain.exceptions import ConfigurationError
 from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
 
@@ -17,7 +18,7 @@ class OpenRouterConfig:
 
     api_key: SecretStr
     default_model: str
-    base_url: str
+    base_url: HttpUrl | str
     timeout: float
 
 
@@ -32,28 +33,29 @@ class OpenRouterClient(ILLMProvider):
         config: OpenRouterConfig,
         client: IHttpClient,
     ) -> None:
-        if not config.base_url.startswith(("http://", "https://")):
+        if not str(config.base_url).startswith(("http://", "https://")):
             msg = "base_url must be a valid HTTP/HTTPS URL"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
         self.config = config
         self.client = client
 
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
         import re
+
         token = self.config.api_key.get_secret_value()
         if not token:
             msg = "api_key must not be empty"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
 
         if "\n" in token or "\r" in token:
             msg = "Invalid characters in API key"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
 
         # Secure string format validation
         if not re.match(r"^sk-or-v1-[a-zA-Z0-9_]+$", token) or len(token) < 20:
             msg = "API key fails pattern validation"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
 
         auth_value = f"Bearer {token}"
         return {
@@ -66,11 +68,12 @@ class OpenRouterClient(ILLMProvider):
         self,
         prompt: str,
         system_prompt: str = "",
+        timeout: float = 30.0,
     ) -> str:
         """Generates text from the LLM provider using httpx."""
         if not prompt.strip():
             msg = "Prompt cannot be empty"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
 
         headers = self._get_headers()
 
@@ -85,9 +88,7 @@ class OpenRouterClient(ILLMProvider):
         }
 
         try:
-            response = await self.client.post(
-                self.config.base_url, headers=headers, json=payload
-            )
+            response = await self.client.post(str(self.config.base_url), headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -99,9 +100,14 @@ class OpenRouterClient(ILLMProvider):
             choices = data.get("choices", [])
             if not choices or not isinstance(choices, list):
                 msg = "Missing or invalid 'choices' in response"
-                raise ValueError(msg)
+                raise ConfigurationError(msg)
 
-            message = choices[0].get("message", {})
+            choice = choices[0]
+            if not isinstance(choice, dict):
+                msg = "Missing or invalid 'message' in response"
+                raise TypeError(msg)
+
+            message = choice.get("message", {})
             if not isinstance(message, dict):
                 msg = "Missing or invalid 'message' in response"
                 raise TypeError(msg)
@@ -109,7 +115,7 @@ class OpenRouterClient(ILLMProvider):
             content = message.get("content")
             if content is None:
                 msg = "Missing 'content' in response"
-                raise ValueError(msg)
+                raise ConfigurationError(msg)
 
             return str(content)
         except TimeoutError as e:
@@ -123,6 +129,7 @@ class OpenRouterClient(ILLMProvider):
         self,
         prompt: str,
         system_prompt: str = "",
+        timeout: float = 30.0,
     ) -> AsyncIterator[str]:
         """Stream implementation."""
         headers = self._get_headers()
@@ -140,7 +147,7 @@ class OpenRouterClient(ILLMProvider):
 
         async def _connect() -> Any:
             try:
-                cm = self.client.stream_post(self.config.base_url, headers=headers, json=payload)
+                cm = self.client.stream_post(str(self.config.base_url), headers=headers, json=payload)
                 resp = await cm.__aenter__()
                 resp.raise_for_status()
             except Exception as e:
@@ -215,7 +222,7 @@ class OpenRouterClient(ILLMProvider):
         """Extracts JSON matching a specific schema using httpx."""
         if isinstance(schema, dict) and not schema:
             msg = "schema dictionary cannot be empty"
-            raise ValueError(msg)
+            raise ConfigurationError(msg)
 
         schema_dict = schema if isinstance(schema, dict) else schema.model_json_schema()
         extended_prompt = (
@@ -232,7 +239,7 @@ class OpenRouterClient(ILLMProvider):
             result = json.loads(raw_text)
         except json.JSONDecodeError as e:
             msg = f"Failed to parse LLM response into JSON: {raw_text}"
-            raise ValueError(msg) from e
+            raise ConfigurationError(msg) from e
         else:
             if not isinstance(result, dict):
                 msg = "Parsed JSON is not a dictionary"

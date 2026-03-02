@@ -1,8 +1,22 @@
+import json
+from pathlib import Path
 from typing import Any
 
-from pydantic import Field, SecretStr
+from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
+def _load_defaults() -> dict[str, Any]:
+    default_path = Path("config.json")
+    if default_path.exists():
+        try:
+            res = json.loads(default_path.read_text())
+            return dict(res) if isinstance(res, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+_defaults = _load_defaults()
 
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
@@ -11,14 +25,14 @@ class AppSettings(BaseSettings):
     openrouter_api_key: SecretStr = Field(default=SecretStr(""))
     pinecone_api_key: SecretStr = Field(default=SecretStr(""))
 
-    text_fast_model: str = Field(default="google/gemini-2.5-flash")
-    text_reasoning_model: str = Field(default="deepseek/deepseek-reasoner")
-    multimodal_model: str = Field(default="google/gemini-2.5-pro")
+    text_fast_model: str = Field(default_factory=lambda: _defaults.get("text_fast_model", "google/gemini-2.5-flash"))
+    text_reasoning_model: str = Field(default_factory=lambda: _defaults.get("text_reasoning_model", "deepseek/deepseek-reasoner"))
+    multimodal_model: str = Field(default_factory=lambda: _defaults.get("multimodal_model", "google/gemini-2.5-pro"))
 
-    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1/chat/completions")
-    pinecone_index_name: str = Field(default="matome-index")
-    storage_base_dir: str = Field(default="./data")
-    llm_timeout: float = Field(default=30.0)
+    openrouter_base_url: HttpUrl | str = Field(default_factory=lambda: _defaults.get("openrouter_base_url", "https://openrouter.ai/api/v1/chat/completions"))
+    pinecone_index_name: str = Field(default_factory=lambda: _defaults.get("pinecone_index_name", "matome-index"))
+    storage_base_dir: str = Field(default_factory=lambda: _defaults.get("storage_base_dir", "./data"))
+    llm_timeout: float = Field(default_factory=lambda: _defaults.get("llm_timeout", 30.0))
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"

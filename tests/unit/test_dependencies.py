@@ -1,5 +1,3 @@
-
-
 from src.api.dependencies import ContainerFactory
 from src.core.config import AppSettings
 
@@ -25,3 +23,60 @@ def test_container_wiring(test_config: AppSettings) -> None:
 
     storage = container.infrastructure_container.file_storage()
     assert storage is not None
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_init_async_client() -> None:
+    from src.api.dependencies import InfrastructureContainer
+
+    async_gen = InfrastructureContainer.init_async_client(10.0)
+    adapter = await anext(async_gen)
+
+    assert adapter is not None
+    assert adapter.client.timeout.read == 10.0
+
+    # We must manually trigger the finally block to ensure cleanup is called
+    try:
+        await anext(async_gen)
+    except StopAsyncIteration:
+        pass
+
+    assert adapter.client.is_closed
+
+
+def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:
+    from unittest.mock import MagicMock
+
+    from src.api.dependencies import InfrastructureContainer
+
+    mock_pinecone = MagicMock()
+    mock_pinecone_instance = MagicMock()
+    mock_pinecone.return_value = mock_pinecone_instance
+    mock_pinecone_instance.Index.return_value = "MockIndex"
+
+    # Patch the pinecone module that is imported inside the function
+    import sys
+    import types
+
+    module = types.ModuleType("pinecone")
+    module.Pinecone = mock_pinecone  # type: ignore
+    sys.modules["pinecone"] = module
+
+    try:
+        index = InfrastructureContainer.init_pinecone_index("test_key", "test_index")
+        assert index == "MockIndex"
+        mock_pinecone.assert_called_once_with(api_key="test_key")
+        mock_pinecone_instance.Index.assert_called_once_with("test_index")
+    finally:
+        del sys.modules["pinecone"]
+
+
+def test_container_factory_no_settings() -> None:
+    container = ContainerFactory.create_container()
+    assert container is not None
+
+    # Check default behavior when initialized without overrides
+    assert container.config_container.app_settings is not None
