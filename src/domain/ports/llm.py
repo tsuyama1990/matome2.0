@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
+
+from pydantic import BaseModel
 
 
 class ILLMProvider(ABC):
@@ -24,11 +27,11 @@ class ILLMProvider(ABC):
         """
 
     @abstractmethod
-    async def stream_generate_text(
+    def stream_generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
-    ) -> Any:
+    ) -> AsyncIterator[str]:
         """Generates text from the LLM provider as an asynchronous stream.
 
         Args:
@@ -43,7 +46,7 @@ class ILLMProvider(ABC):
     async def extract_structured_data(
         self,
         prompt: str,
-        schema: type[Any] | dict[str, Any],
+        schema: type[BaseModel] | dict[str, Any],
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema.

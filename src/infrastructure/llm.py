@@ -1,6 +1,9 @@
 import json
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
+
+from pydantic import BaseModel
 
 from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
@@ -27,20 +30,20 @@ class OpenRouterClient(ILLMProvider):
         self.config = config
         self.client = client
 
+    def _get_headers(self) -> dict[str, str]:
+        """Constructs secure headers for API communication."""
+        return {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "Content-Type": "application/json",
+        }
+
     async def generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
     ) -> str:
         """Generates text from the LLM provider using httpx."""
-        if not self.config.api_key or len(self.config.api_key) < 10:
-            msg = "Invalid OpenRouter API Key configuration."
-            raise ValueError(msg)
-
-        headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = self._get_headers()
 
         messages = []
         if system_prompt:
@@ -65,25 +68,14 @@ class OpenRouterClient(ILLMProvider):
         except ConnectionError as e:
             msg = f"Error communicating with OpenRouter: {e}"
             raise ConnectionError(msg) from e
-        except Exception as e:
-            # Fallback for unexpected HTTP client adapter errors (e.g. from raise_for_status())
-            msg = f"Unexpected error during OpenRouter API call: {e}"
-            raise ConnectionError(msg) from e
 
     async def stream_generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
-    ) -> Any:
+    ) -> AsyncIterator[str]:
         """Stream implementation."""
-        if not self.config.api_key or len(self.config.api_key) < 10:
-            msg = "Invalid OpenRouter API Key configuration."
-            raise ValueError(msg)
-
-        headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = self._get_headers()
 
         messages = []
         if system_prompt:
@@ -113,9 +105,6 @@ class OpenRouterClient(ILLMProvider):
         except ConnectionError as e:
             msg = f"Error communicating with OpenRouter stream: {e}"
             raise ConnectionError(msg) from e
-        except Exception as e:
-            msg = f"Unexpected error during OpenRouter API stream call: {e}"
-            raise ConnectionError(msg) from e
 
     def _parse_stream_line(self, line: str) -> str | None:
         if not line or not line.startswith("data: "):
@@ -135,7 +124,7 @@ class OpenRouterClient(ILLMProvider):
     async def extract_structured_data(
         self,
         prompt: str,
-        schema: type[Any] | dict[str, Any],
+        schema: type[BaseModel] | dict[str, Any],
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema using httpx."""
