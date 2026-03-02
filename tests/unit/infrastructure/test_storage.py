@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from src.infrastructure.storage import LocalStorage
+from src.infrastructure.storage import LocalStorage, StorageFactory
 
 
 @pytest.fixture
 def storage(tmp_path: Path) -> LocalStorage:
-    return LocalStorage(base_dir=tmp_path, create_dir=True)
+    return StorageFactory.create_local_storage(base_dir=tmp_path, create_dir=True)
 
 
 async def dummy_stream(content: bytes, chunks: int = 2) -> AsyncGenerator[bytes, None]:
@@ -95,7 +95,7 @@ async def test_read_file_stream_async_success(storage: LocalStorage, tmp_path: P
 
 @pytest.mark.asyncio
 async def test_save_upload_stream_cleanup_on_error(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
 
     async def err_stream() -> AsyncGenerator[bytes, None]:
         yield b"chunk1"
@@ -109,7 +109,7 @@ async def test_save_upload_stream_cleanup_on_error(tmp_path: Path) -> None:
 
 
 def test_exists(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
     f = tmp_path / "test.txt"
     f.write_text("ok")
     assert storage.exists(str(f)) is True
@@ -117,7 +117,7 @@ def test_exists(tmp_path: Path) -> None:
 
 
 def test_get_metadata(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
     f = tmp_path / "test.txt"
     f.write_text("ok")
     meta = storage.get_metadata(str(f))
@@ -127,7 +127,7 @@ def test_get_metadata(tmp_path: Path) -> None:
 
 
 def test_initialize(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path / "init_dir", create_dir=False)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path / "init_dir", create_dir=False)
     assert not (tmp_path / "init_dir").exists()
     storage.initialize()
     assert (tmp_path / "init_dir").exists()
@@ -135,7 +135,7 @@ def test_initialize(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_read_file_stream_async_invalid_path(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
 
     # Passing an invalid type that causes `resolve()` to throw an exception
     class BadPath(Path):
@@ -152,7 +152,7 @@ async def test_read_file_stream_async_invalid_path(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_read_file_stream_async_final_decode(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
     file_path = tmp_path / "test.txt"
     # Write a multi-byte character sequence that gets split, or just use a final text string
     file_path.write_bytes(b"hello")
@@ -166,7 +166,7 @@ async def test_read_file_stream_async_final_decode(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_read_file_stream_async_incomplete_unicode(tmp_path: Path) -> None:
-    storage = LocalStorage(base_dir=tmp_path)
+    storage = StorageFactory.create_local_storage(base_dir=tmp_path)
     file_path = tmp_path / "test.txt"
     # Write a multi-byte sequence, but we truncate it so the incremental decoder
     # waits for the rest and eventually decodes it with errors="replace" on the final step

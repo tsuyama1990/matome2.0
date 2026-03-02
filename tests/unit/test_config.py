@@ -5,51 +5,53 @@ from src.core.config import AppSettings
 
 def test_settings_initialization(test_config: AppSettings) -> None:
     """Test that settings correctly parse environment variables."""
-    assert test_config.openrouter_api_key.get_secret_value().startswith("sk-or-v1-testkey")
-    assert test_config.pinecone_api_key.get_secret_value().startswith("test-key-")
-    assert test_config.text_fast_model == "test-fast"
-    assert test_config.text_reasoning_model == "test-reason"
-    assert test_config.multimodal_model == "test-vision"
+    assert test_config.llm.api_key.get_secret_value().startswith("sk-or-v1-testkey")
+    assert test_config.vector_store.api_key.get_secret_value().startswith("test-key-")
+    assert test_config.llm.text_fast_model == "test-fast"
+    assert test_config.llm.text_reasoning_model == "test-reason"
+    assert test_config.llm.multimodal_model == "test-vision"
+
+
+from src.core.config import ConfigFactory
 
 
 def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default fallbacks when environment variables are missing."""
     # Temporarily set dummy keys so validation passes during initialization
-    monkeypatch.setenv("OPENROUTER_API_KEY", "dummy")
-    monkeypatch.setenv("PINECONE_API_KEY", "dummy")
-    settings = AppSettings()
-    assert settings.text_fast_model == "google/gemini-2.5-flash"
-    assert settings.text_reasoning_model == "deepseek/deepseek-reasoner"
-    assert settings.multimodal_model == "google/gemini-2.5-pro"
+    monkeypatch.setenv("LLM__API_KEY", "dummy")
+    monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy")
+    settings = ConfigFactory.create_settings()
+    assert settings.llm.text_fast_model == "google/gemini-2.5-flash"
+    assert settings.llm.text_reasoning_model == "deepseek/deepseek-reasoner"
+    assert settings.llm.multimodal_model == "google/gemini-2.5-pro"
 
 
 def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OPENROUTER_API_KEY", "")
-    monkeypatch.setenv("PINECONE_API_KEY", "dummy_key")
+    monkeypatch.setenv("LLM__API_KEY", "")
+    monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy_key")
     with pytest.raises(
         ValueError, match="OPENROUTER_API_KEY environment variable is not set or is empty."
     ):
-        AppSettings()
+        ConfigFactory.create_settings()
 
 
 def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PINECONE_API_KEY", "")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_key")
+    monkeypatch.setenv("VECTOR_STORE__API_KEY", "")
+    monkeypatch.setenv("LLM__API_KEY", "dummy_key")
     with pytest.raises(
         ValueError, match="PINECONE_API_KEY environment variable is not set or is empty."
     ):
-        AppSettings()
+        ConfigFactory.create_settings()
 
 
 def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OPENROUTER_API_KEY", "dummy_router_key")
-    monkeypatch.setenv("PINECONE_API_KEY", "dummy_pinecone_key")
-    settings = AppSettings()
+    monkeypatch.setenv("LLM__API_KEY", "dummy_router_key")
+    monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy_pinecone_key")
+    settings = ConfigFactory.create_settings()
     # Should not raise any exception
     settings.validate_keys()
 
 
-from pydantic import SecretStr
 
 
 def test_app_settings_post_init_validates() -> None:
@@ -58,10 +60,10 @@ def test_app_settings_post_init_validates() -> None:
 
     with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is not set"):
         # We explicitly supply empty strings to bypass defaults and force validation
-        AppSettings(openrouter_api_key=SecretStr(""), pinecone_api_key=SecretStr("mock"))
+        ConfigFactory.create_settings(llm={"api_key": ""}, vector_store={"api_key": "mock"})
 
     with pytest.raises(ValueError, match="PINECONE_API_KEY environment variable is not set"):
-        AppSettings(openrouter_api_key=SecretStr("mock"), pinecone_api_key=SecretStr(""))
+        ConfigFactory.create_settings(llm={"api_key": "mock"}, vector_store={"api_key": ""})
 
 from pathlib import Path
 

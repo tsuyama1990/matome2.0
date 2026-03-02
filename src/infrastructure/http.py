@@ -7,6 +7,15 @@ import httpx
 from src.domain.ports.http import IHttpClient, IHttpResponse
 
 
+class HttpClientFactory:
+    """Factory to create and configure HTTP client instances."""
+
+    @staticmethod
+    def create_httpx_adapter(client: httpx.AsyncClient) -> "HttpxAdapter":
+        """Initializes and returns an HttpxAdapter."""
+        return HttpxAdapter(client=client)
+
+
 class HttpxAdapter(IHttpClient):
     """Adapter wrapping httpx.AsyncClient for IHttpClient."""
 

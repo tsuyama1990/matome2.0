@@ -8,6 +8,21 @@ import aiofiles
 from src.domain.ports.storage import IFileStorage
 
 
+class StorageFactory:
+    """Factory to create and configure storage instances."""
+
+    @staticmethod
+    def create_local_storage(
+        base_dir: str | Path, create_dir: bool = True, path_class: type[Path] = Path
+    ) -> "LocalStorage":
+        """Initializes and returns a LocalStorage instance."""
+        return LocalStorage(
+            base_dir=path_class(base_dir) if isinstance(base_dir, str) else base_dir,
+            create_dir=create_dir,
+            path_class=path_class,
+        )
+
+
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 

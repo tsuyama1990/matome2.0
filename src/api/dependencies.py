@@ -1,15 +1,15 @@
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any
 
 import httpx
 from dependency_injector import containers, providers
 
-from src.core.config import AppSettings
-from src.infrastructure.http import HttpxAdapter
-from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
-from src.infrastructure.storage import LocalStorage
-from src.infrastructure.vector_store import PineconeClient
+from src.core.config import AppSettings, ConfigFactory
+from src.domain.ports.http import IHttpClient
+from src.infrastructure.http import HttpClientFactory
+from src.infrastructure.llm import LLMClientFactory, OpenRouterConfig
+from src.infrastructure.storage import StorageFactory
+from src.infrastructure.vector_store import PineconeIndexFactory, VectorStoreFactory
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -17,18 +17,18 @@ class ConfigContainer(containers.DeclarativeContainer):
 
     env = providers.Configuration()
     config = providers.Configuration()
-    app_settings = providers.Singleton(AppSettings)
+    app_settings = providers.Singleton(ConfigFactory.create_settings)
 
 
 class InfrastructureContainer(containers.DeclarativeContainer):
     """Container for infrastructure dependencies."""
 
-    config_settings = providers.Configuration()
+    config_settings: providers.Configuration = providers.Configuration()
 
     @staticmethod
-    async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:
+    async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:
         client = httpx.AsyncClient(timeout=timeout)
-        adapter = HttpxAdapter(client=client)
+        adapter = HttpClientFactory.create_httpx_adapter(client=client)
         try:
             yield adapter
         finally:
@@ -36,47 +36,40 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     http_client = providers.Resource(
         init_async_client,
-        timeout=config_settings.provided.llm_timeout,
+        timeout=config_settings.provided.llm.timeout,
     )
 
     # Infrastructure Implementations
     llm_config = providers.Factory(
         OpenRouterConfig,
-        api_key=providers.Callable(lambda s: s.openrouter_api_key, config_settings),
-        default_model=config_settings.provided.text_fast_model,
-        base_url=config_settings.provided.openrouter_base_url,
-        timeout=config_settings.provided.llm_timeout,
+        api_key=providers.Callable(lambda s: s.llm.api_key, config_settings),
+        default_model=config_settings.provided.llm.text_fast_model,
+        base_url=config_settings.provided.llm.base_url,
+        timeout=config_settings.provided.llm.timeout,
     )
 
     llm_provider = providers.Factory(
-        OpenRouterClient,
+        LLMClientFactory.create_openrouter_client,
         config=llm_config,
         client=http_client,
     )
 
-    @staticmethod
-    def init_pinecone_index(api_key: str, index_name: str) -> Any:
-        from pinecone import Pinecone
-
-        pc = Pinecone(api_key=api_key)
-        return pc.Index(index_name)
-
     pinecone_index = providers.Singleton(
-        init_pinecone_index,
+        PineconeIndexFactory.create_index,
         api_key=providers.Callable(
-            lambda s: s.pinecone_api_key.get_secret_value(), config_settings
+            lambda s: s.vector_store.api_key.get_secret_value(), config_settings
         ),
-        index_name=config_settings.provided.pinecone_index_name,
+        index_name=config_settings.provided.vector_store.index_name,
     )
 
     vector_store = providers.Factory(
-        PineconeClient,
+        VectorStoreFactory.create_pinecone_client,
         index=pinecone_index,
     )
 
     file_storage = providers.Factory(
-        LocalStorage,
-        base_dir=config_settings.provided.storage_base_dir,
+        StorageFactory.create_local_storage,
+        base_dir=config_settings.provided.storage.base_dir,
         path_class=Path,
     )
 

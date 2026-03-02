@@ -1,3 +1,5 @@
+import typing
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -15,6 +17,10 @@ class BaseDomainModel(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    def update(self, **kwargs: typing.Any) -> typing.Self:
+        """Creates an updated copy of the model, maintaining immutability."""
+        return self.model_copy(update=kwargs)
 
 
 class MutableBaseDomainModel(BaseModel):

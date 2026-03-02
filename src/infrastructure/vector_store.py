@@ -14,8 +14,29 @@ class PineconeIndexProtocol(Protocol):
         top_k: int,
         filter: dict[str, str] | None,  # noqa: A002
         include_metadata: bool,
-    ) -> Any: ...
-    def describe_index_stats(self) -> Any: ...
+    ) -> dict[str, Any] | object: ...
+    def describe_index_stats(self) -> dict[str, Any] | object: ...
+
+
+class PineconeIndexFactory:
+    """Factory to create and configure PineconeIndexProtocol instances."""
+
+    @staticmethod
+    def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
+        """Initializes and returns a configured Pinecone index."""
+        from pinecone import Pinecone
+
+        pc = Pinecone(api_key=api_key)
+        return pc.Index(index_name) # type: ignore[return-value]
+
+
+class VectorStoreFactory:
+    """Factory to create and configure IVectorStore instances."""
+
+    @staticmethod
+    def create_pinecone_client(index: PineconeIndexProtocol) -> "PineconeClient":
+        """Initializes and returns a PineconeClient."""
+        return PineconeClient(index=index)
 
 
 class PineconeClient(IVectorStore):
