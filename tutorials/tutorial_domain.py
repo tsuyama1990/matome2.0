@@ -16,15 +16,18 @@ class MockConceptNode(BaseModel):
     def unlock(self) -> None:
         self.is_unlocked = True
 
+
 class MockDocumentChunk(BaseModel):
     chunk_id: UUID
     document_id: UUID
     text: str
     metadata: dict[str, Any]
 
+
 class MockAnalysisAxis(BaseModel):
     name: str
     dimensions: list[str]
+
 
 class MockPivotBoard(BaseModel):
     board_id: UUID

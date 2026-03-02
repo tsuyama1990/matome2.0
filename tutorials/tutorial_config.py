@@ -39,7 +39,9 @@ class TutorialDataFactory:
         )
 
     @staticmethod
-    def create_mock_locked_node(parent_id: UUID, chunk_id: UUID, uuid4_func: Callable[[], UUID]) -> MockConceptNode:
+    def create_mock_locked_node(
+        parent_id: UUID, chunk_id: UUID, uuid4_func: Callable[[], UUID]
+    ) -> MockConceptNode:
         return MockConceptNode(
             node_id=uuid4_func(),
             parent_id=parent_id,

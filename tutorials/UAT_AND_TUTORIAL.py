@@ -5,8 +5,9 @@ import marimo
 __generated_with = "0.20.2"
 app = marimo.App()
 
+
 @app.cell
-def display_welcome_message(mo: Any) -> tuple[Any]:
+def display_welcome_message(mo: Any) -> tuple[Any, ...]:
     _message = mo.md(
         """
         # matome - User Acceptance Test & Tutorial
@@ -16,6 +17,7 @@ def display_welcome_message(mo: Any) -> tuple[Any]:
         """
     )
     return (_message,)
+
 
 @app.cell
 def import_dependencies() -> tuple[Any, ...]:
@@ -33,10 +35,27 @@ def import_dependencies() -> tuple[Any, ...]:
         MockPivotBoard,
     )
 
-    return MockAnalysisAxis, MockConceptNode, MockDocumentChunk, Path, MockPivotBoard, TutorialDataFactory, asyncio, mo, uuid4
+    mock_analysis_axis = MockAnalysisAxis
+    mock_concept_node = MockConceptNode
+    mock_document_chunk = MockDocumentChunk
+    mock_pivot_board = MockPivotBoard
+    tutorial_data_factory = TutorialDataFactory
+
+    return (
+        mock_analysis_axis,
+        mock_concept_node,
+        mock_document_chunk,
+        Path,
+        mock_pivot_board,
+        tutorial_data_factory,
+        asyncio,
+        mo,
+        uuid4,
+    )
+
 
 @app.cell
-def display_step_one(mo: Any) -> tuple[Any]:
+def display_step_one(mo: Any) -> tuple[Any, ...]:
     _message = mo.md(
         """
         ## Step 1: Ingestion & RAPTOR Tree Generation
@@ -46,18 +65,22 @@ def display_step_one(mo: Any) -> tuple[Any]:
     )
     return (_message,)
 
-@app.cell
-def generate_mock_tree(
-    MockConceptNode: Any, MockDocumentChunk: Any, TutorialDataFactory: Any, uuid4: Any
-) -> tuple[Any, ...]:
-    doc_id = uuid4()
-    chunks = TutorialDataFactory.create_mock_chunks(doc_id, uuid4)
-    root_node = TutorialDataFactory.create_mock_root_node(uuid4)
-    locked_node = TutorialDataFactory.create_mock_locked_node(root_node.node_id, chunks[0].chunk_id, uuid4)
-    return chunks, doc_id, locked_node, root_node
 
 @app.cell
-def display_step_two(locked_node: Any, mo: Any) -> tuple[Any]:
+def generate_mock_tree(
+    mock_concept_node: Any, mock_document_chunk: Any, tutorial_data_factory: Any, uuid4: Any
+) -> tuple[Any, ...]:
+    doc_id = uuid4()
+    chunks = tutorial_data_factory.create_mock_chunks(doc_id, uuid4)
+    root_node = tutorial_data_factory.create_mock_root_node(uuid4)
+    locked_node = tutorial_data_factory.create_mock_locked_node(
+        root_node.node_id, chunks[0].chunk_id, uuid4
+    )
+    return chunks, doc_id, locked_node, root_node
+
+
+@app.cell
+def display_step_two(locked_node: Any, mo: Any) -> tuple[Any, ...]:
     _message = mo.md(
         f"""
         ## Step 2: Interactive Learning (SQ3R)
@@ -69,6 +92,7 @@ def display_step_two(locked_node: Any, mo: Any) -> tuple[Any]:
     )
     return (_message,)
 
+
 @app.cell
 def get_user_answer(mo: Any) -> tuple[Any, ...]:
     user_answer = mo.ui.text(
@@ -77,6 +101,7 @@ def get_user_answer(mo: Any) -> tuple[Any, ...]:
         value="",
     )
     return (user_answer,)
+
 
 @app.cell
 async def evaluate_answer(locked_node: Any, mo: Any, user_answer: Any) -> tuple[Any, ...]:
@@ -96,10 +121,11 @@ async def evaluate_answer(locked_node: Any, mo: Any, user_answer: Any) -> tuple[
         else:
             eval_result = mo.md("**Not quite.** Try thinking about budget thresholds!")
 
-    return eval_result, simulate_llm_check
+    return (eval_result,)
+
 
 @app.cell
-def display_step_three(locked_node: Any, mo: Any) -> tuple[Any]:
+def display_step_three(locked_node: Any, mo: Any) -> tuple[Any, ...]:
     _message = mo.md(
         f"""
         **Node Status Check:** Is the node unlocked? **{locked_node.is_unlocked}**
@@ -111,26 +137,34 @@ def display_step_three(locked_node: Any, mo: Any) -> tuple[Any]:
     )
     return (_message,)
 
+
 @app.cell
 def create_pivot_board(
-    MockAnalysisAxis: Any, MockPivotBoard: Any, TutorialDataFactory: Any, doc_id: Any, locked_node: Any, mo: Any, uuid4: Any
+    mock_analysis_axis: Any,
+    mock_pivot_board: Any,
+    tutorial_data_factory: Any,
+    doc_id: Any,
+    locked_node: Any,
+    mo: Any,
+    uuid4: Any,
 ) -> tuple[Any, ...]:
-    axis = TutorialDataFactory.create_mock_axis()
-    clusters = TutorialDataFactory.create_mock_clusters(locked_node)
+    axis = tutorial_data_factory.create_mock_axis()
+    clusters = tutorial_data_factory.create_mock_clusters(locked_node)
 
-    board = MockPivotBoard(
+    board = mock_pivot_board(
         board_id=uuid4(),
         original_document_id=doc_id,
         axis=axis,
         clusters=clusters,
     )
 
-    mo.md(f"**Created Pivot Board!** Axis: {board.axis.name}")
+    _message = mo.md(f"**Created Pivot Board!** Axis: {board.axis.name}")
     return axis, board, clusters
 
+
 @app.cell
-def display_step_four(TutorialDataFactory: Any, board: Any, mo: Any) -> tuple[Any, ...]:
-    mermaid_code = TutorialDataFactory.generate_mermaid_diagram(board.clusters)
+def display_step_four(tutorial_data_factory: Any, board: Any, mo: Any) -> tuple[Any, ...]:
+    mermaid_code = tutorial_data_factory.generate_mermaid_diagram(board.clusters)
 
     _message = mo.md(
         f"""
@@ -148,6 +182,7 @@ def display_step_four(TutorialDataFactory: Any, board: Any, mo: Any) -> tuple[An
         """
     )
     return (mermaid_code, _message)
+
 
 if __name__ == "__main__":
     app.run()
