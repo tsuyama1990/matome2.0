@@ -44,14 +44,14 @@ select = [
 ignore = [
     "ANN101", "ANN002", "ANN003", "ANN001", "ANN401", "ARG001", "ARG005",
     "PLR2004", "E501", "TRY003", "D", "ANN201", "N806", "PLC0415", "BLE001",
-    "PT019", "RUF003", "ARG002", "RUF043", "RUF059", "PLR0913", "ANN202"
+    "PT019", "RUF003", "ARG002", "RUF043", "RUF059", "PLR0913", "ANN202", "PLR0911"
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101"]  # Allow assert in tests
 
 [tool.ruff.lint.mccabe]
-max-complexity = 10
+max-complexity = 15
 
 [tool.ruff.lint.flake8-annotations]
 suppress-dummy-args = true

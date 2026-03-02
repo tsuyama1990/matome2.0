@@ -17,9 +17,16 @@ class HttpxAdapter(IHttpClient):
     async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         try:
             resp = await self.client.get(url, headers=headers)
+            resp.raise_for_status()
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
+        except httpx.HTTPStatusError as e:
+            # Map 5xx and 429 to ConnectionError so retry decorator catches them
+            if e.response.status_code >= 500 or e.response.status_code == 429:
+                msg = f"HTTP {e.response.status_code} error: {e}"
+                raise ConnectionError(msg) from e
+            raise
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
@@ -42,9 +49,15 @@ class HttpxAdapter(IHttpClient):
     ) -> IHttpResponse:
         try:
             resp = await self.client.post(url, headers=headers, json=json)
+            resp.raise_for_status()
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500 or e.response.status_code == 429:
+                msg = f"HTTP {e.response.status_code} error: {e}"
+                raise ConnectionError(msg) from e
+            raise
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
@@ -59,9 +72,15 @@ class HttpxAdapter(IHttpClient):
     ) -> IHttpResponse:
         try:
             resp = await self.client.put(url, headers=headers, json=json)
+            resp.raise_for_status()
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500 or e.response.status_code == 429:
+                msg = f"HTTP {e.response.status_code} error: {e}"
+                raise ConnectionError(msg) from e
+            raise
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
@@ -71,9 +90,15 @@ class HttpxAdapter(IHttpClient):
     async def delete(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         try:
             resp = await self.client.delete(url, headers=headers)
+            resp.raise_for_status()
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500 or e.response.status_code == 429:
+                msg = f"HTTP {e.response.status_code} error: {e}"
+                raise ConnectionError(msg) from e
+            raise
         except httpx.RequestError as e:
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e

@@ -11,7 +11,7 @@ class TestConfigFactory:
     @staticmethod
     def create(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
         """Returns a new AppSettings instance with mocked configuration."""
-        monkeypatch.setenv("OPENROUTER_API_KEY", f"test-key-{uuid4()}")
+        monkeypatch.setenv("OPENROUTER_API_KEY", f"sk-or-v1-testkey{uuid4().hex}")
         monkeypatch.setenv("PINECONE_API_KEY", f"test-key-{uuid4()}")
         monkeypatch.setenv("TEXT_FAST_MODEL", "test-fast")
         monkeypatch.setenv("TEXT_REASONING_MODEL", "test-reason")
