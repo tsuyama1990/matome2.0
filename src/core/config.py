@@ -23,6 +23,7 @@ _defaults = _load_defaults()
 class LLMSettings(BaseModel):
     """Configuration specific to LLM interactions."""
 
+    provider: Literal["openrouter", "openai", "anthropic"] = Field(default="openrouter")
     api_key: SecretStr = Field(default=SecretStr(""))
     text_fast_model: str = Field(
         default_factory=lambda: _defaults.get("text_fast_model", "google/gemini-2.5-flash")

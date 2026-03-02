@@ -1,6 +1,6 @@
 import typing
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BaseDomainModel(BaseModel):
@@ -18,6 +18,10 @@ class BaseDomainModel(BaseModel):
     the modified fields without mutating the original object's internal state.
     """
 
+    schema_version: int = Field(
+        default=1, description="Schema version for data migration and backward compatibility."
+    )
+
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     def update(self, **kwargs: typing.Any) -> typing.Self:
@@ -30,5 +34,9 @@ class MutableBaseDomainModel(BaseModel):
 
     Use this base class when domain objects require modification after instantiation.
     """
+
+    schema_version: int = Field(
+        default=1, description="Schema version for data migration and backward compatibility."
+    )
 
     model_config = ConfigDict(extra="forbid")

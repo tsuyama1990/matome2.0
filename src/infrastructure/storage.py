@@ -11,18 +11,28 @@ from src.domain.ports.storage import IFileStorage
 
 
 class StorageFactory:
-    """Factory to create and configure storage instances."""
+    """Factory to create and configure storage instances for multiple backends (Local, S3, GCS)."""
 
     @staticmethod
     def create_local_storage(
         base_dir: str | Path, create_dir: bool = True, path_class: type[Path] = Path
-    ) -> LocalStorage:
+    ) -> IFileStorage:
         """Initializes and returns a LocalStorage instance."""
         return LocalStorage(
             base_dir=path_class(base_dir) if isinstance(base_dir, str) else base_dir,
             create_dir=create_dir,
             path_class=path_class,
         )
+
+    @staticmethod
+    def create_s3_storage(bucket_name: str) -> IFileStorage:
+        """Initializes and returns an S3 storage instance (stub)."""
+        raise NotImplementedError("S3 storage backend is not yet fully implemented.")
+
+    @staticmethod
+    def create_gcs_storage(bucket_name: str) -> IFileStorage:
+        """Initializes and returns a GCS storage instance (stub)."""
+        raise NotImplementedError("GCS storage backend is not yet fully implemented.")
 
 
 class LocalStorage(IFileStorage):

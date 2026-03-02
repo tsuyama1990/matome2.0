@@ -14,8 +14,8 @@ class PineconeIndexProtocol(Protocol):
         top_k: int,
         filter_dict: dict[str, str] | None,
         include_metadata: bool,
-    ) -> dict[str, Any]: ...
-    def describe_index_stats(self) -> dict[str, Any]: ...
+    ) -> Any: ...
+    def describe_index_stats(self) -> Any: ...
 
 
 class PineconeIndexAdapter(PineconeIndexProtocol):
@@ -33,13 +33,13 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         top_k: int,
         filter_dict: dict[str, str] | None,
         include_metadata: bool,
-    ) -> dict[str, Any]:
+    ) -> Any:
         res = self._index.query(
             vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
         )
         return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
 
-    def describe_index_stats(self) -> dict[str, Any]:
+    def describe_index_stats(self) -> Any:
         res = self._index.describe_index_stats()
         return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
 

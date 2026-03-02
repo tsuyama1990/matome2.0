@@ -22,9 +22,6 @@ class OpenRouterConfig:
     timeout: float
 
 
-from dependency_injector.wiring import Provide
-
-
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
@@ -34,7 +31,7 @@ class OpenRouterClient(ILLMProvider):
     def __init__(
         self,
         config: OpenRouterConfig,
-        client: IHttpClient = Provide["http_client"],
+        client: IHttpClient,
     ) -> None:
         if not str(config.base_url).startswith(("http://", "https://")):
             msg = "base_url must be a valid HTTP/HTTPS URL"
