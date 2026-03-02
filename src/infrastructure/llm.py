@@ -33,6 +33,10 @@ class OpenRouterClient(ILLMProvider):
         system_prompt: str = "",
     ) -> str:
         """Generates text from the LLM provider using httpx."""
+        if not self.config.api_key or len(self.config.api_key) < 10:
+            msg = "Invalid OpenRouter API Key configuration."
+            raise ValueError(msg)
+
         headers = {
             "Authorization": f"Bearer {self.config.api_key}",
             "Content-Type": "application/json",
@@ -72,6 +76,10 @@ class OpenRouterClient(ILLMProvider):
         system_prompt: str = "",
     ) -> Any:
         """Stream implementation."""
+        if not self.config.api_key or len(self.config.api_key) < 10:
+            msg = "Invalid OpenRouter API Key configuration."
+            raise ValueError(msg)
+
         headers = {
             "Authorization": f"Bearer {self.config.api_key}",
             "Content-Type": "application/json",
@@ -127,13 +135,14 @@ class OpenRouterClient(ILLMProvider):
     async def extract_structured_data(
         self,
         prompt: str,
-        schema: dict[str, Any],
+        schema: type[Any] | dict[str, Any],
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema using httpx."""
+        schema_dict = schema if isinstance(schema, dict) else schema.model_json_schema()
         extended_prompt = (
             f"{prompt}\n\nYou must return strictly valid JSON matching the following schema:\n"
-            f"{json.dumps(schema)}"
+            f"{json.dumps(schema_dict)}"
         )
 
         raw_text = await self.generate_text(prompt=extended_prompt, system_prompt=system_prompt)

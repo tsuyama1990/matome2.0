@@ -22,7 +22,7 @@ class HttpxAdapter(IHttpClient):
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
         else:
-            return resp  # type: ignore[return-value]
+            return resp
 
     def stream_post(
         self,
@@ -31,7 +31,7 @@ class HttpxAdapter(IHttpClient):
         json: dict[str, Any],
         timeout: float,
     ) -> AbstractAsyncContextManager[IHttpResponse]:
-        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)  # type: ignore[return-value]
+        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)
 
     async def post(
         self,
@@ -49,7 +49,7 @@ class HttpxAdapter(IHttpClient):
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
         else:
-            return resp  # type: ignore[return-value]
+            return resp
 
     async def put(
         self,
@@ -67,7 +67,7 @@ class HttpxAdapter(IHttpClient):
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
         else:
-            return resp  # type: ignore[return-value]
+            return resp
 
     async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
         try:
@@ -79,7 +79,7 @@ class HttpxAdapter(IHttpClient):
             msg = f"HTTP connection error: {e}"
             raise ConnectionError(msg) from e
         else:
-            return resp  # type: ignore[return-value]
+            return resp
 
     async def close(self) -> None:
         await self.client.aclose()

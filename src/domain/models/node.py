@@ -2,10 +2,10 @@ from uuid import UUID
 
 from pydantic import Field
 
-from src.domain.models.base import BaseDomainModel
+from src.domain.models.base import BaseDomainModel, MutableBaseDomainModel
 
 
-class ConceptNode(BaseDomainModel):
+class ConceptNode(MutableBaseDomainModel):
     """Hierarchical knowledge concept node."""
 
     node_id: UUID
@@ -15,6 +15,10 @@ class ConceptNode(BaseDomainModel):
     level: int = Field(..., ge=0)
     is_unlocked: bool = Field(default=False)
     chunk_references: list[UUID] = Field(default_factory=list)
+
+    def unlock(self) -> None:
+        """Unlocks the concept node for user access."""
+        self.is_unlocked = True
 
 
 class AnalysisAxis(BaseDomainModel):

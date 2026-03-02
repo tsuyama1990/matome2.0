@@ -43,14 +43,14 @@ class ILLMProvider(ABC):
     async def extract_structured_data(
         self,
         prompt: str,
-        schema: dict[str, Any],
+        schema: type[Any] | dict[str, Any],
         system_prompt: str = "",
     ) -> dict[str, Any]:
         """Extracts JSON matching a specific schema.
 
         Args:
             prompt (str): The input to base the extraction on.
-            schema (dict): The target JSON schema representing the data shape.
+            schema (type | dict): The target JSON schema representing the data shape (or a Pydantic model class).
             system_prompt (str): Additional context or formatting instructions.
 
         Raises:

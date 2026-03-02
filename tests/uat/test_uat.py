@@ -60,16 +60,24 @@ async def test_uat_aha_moment_scenario() -> None:
     # User attempts to answer a question to unlock the node
     user_answer = "Executive approval is needed if the budget exceeds 5000."
 
-    # Simulate LLM checking the answer (always success in this mock)
-    mock_llm_check = AsyncMock(return_value=True)
+    async def simulate_llm_check(answer: str, summary: str) -> bool:
+        """Simulates LLM context evaluation."""
+        return bool("5000" in answer or "executive" in answer.lower())
+
+    mock_llm_check = AsyncMock(side_effect=simulate_llm_check)
+
+    # Test failure path first
+    is_correct_fail = await mock_llm_check("I don't know", locked_node.summary)
+    assert not is_correct_fail
+    assert not locked_node.is_unlocked
+
+    # Test success path
     is_correct = await mock_llm_check(user_answer, locked_node.summary)
 
     if is_correct:
-        # In actual business logic, we would use `.model_copy(update={"is_unlocked": True})`
-        # because the domain model is immutable (frozen=True).
-        unlocked_node = locked_node.model_copy(update={"is_unlocked": True})
+        locked_node.unlock()
 
-    assert unlocked_node.is_unlocked
+    assert locked_node.is_unlocked
 
     # --- Step 3: Transformation (Pivot KJ) ---
     # User defines a new multi-dimensional axis
@@ -79,17 +87,17 @@ async def test_uat_aha_moment_scenario() -> None:
 
     # Simulate LLM returning a structured clustering based on the axis
     mock_llm_pivot = AsyncMock(
-        return_value={"Executive": [unlocked_node.node_id], "Manager": [], "Employee": []}
+        return_value={"Executive": [locked_node.node_id], "Manager": [], "Employee": []}
     )
 
-    _ = await mock_llm_pivot([unlocked_node], axis)
+    _ = await mock_llm_pivot([locked_node], axis)
 
     # Construct the PivotBoard domain model
     board = PivotBoard(
         board_id=uuid4(),
         original_document_id=doc_id,
         axis=axis,
-        clusters={"Executive": [unlocked_node], "Manager": [], "Employee": []},
+        clusters={"Executive": [locked_node], "Manager": [], "Employee": []},
     )
 
     # Assert final structured state

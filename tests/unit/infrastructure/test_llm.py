@@ -18,7 +18,7 @@ def mock_httpx_client() -> AsyncMock:
 @pytest.fixture
 def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRouterClient:
     config = OpenRouterConfig(
-        api_key="dummy_key",
+        api_key="dummy_key_of_valid_length",
         default_model="dummy-model",
         base_url=test_config.openrouter_base_url,
         timeout=30.0,

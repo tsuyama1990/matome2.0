@@ -7,7 +7,7 @@ from typing import Any, Protocol
 class IHttpResponse(Protocol):
     """Protocol for HTTP response objects."""
 
-    def raise_for_status(self) -> None:
+    def raise_for_status(self) -> Any:
         """Raises an exception for non-2xx status codes."""
 
     def json(self) -> Any:
