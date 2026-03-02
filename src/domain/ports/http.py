@@ -25,7 +25,12 @@ class IHttpClient(ABC):
 
     @abstractmethod
     async def get(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
-        """Performs an asynchronous GET request."""
+        """Performs an asynchronous GET request.
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout period.
+            ConnectionError: If a network connection error occurs.
+        """
         ...
 
     @abstractmethod
@@ -46,6 +51,10 @@ class IHttpClient(ABC):
 
         Returns:
             IHttpResponse: A response object.
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout period.
+            ConnectionError: If a network connection error occurs.
         """
         ...
 
@@ -61,6 +70,10 @@ class IHttpClient(ABC):
 
         This method should return an asynchronous context manager that yields a response
         object capable of asynchronously yielding lines or chunks.
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout period.
+            ConnectionError: If a network connection error occurs.
         """
         ...
 
@@ -72,12 +85,22 @@ class IHttpClient(ABC):
         json: dict[str, Any],
         timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
-        """Performs an asynchronous PUT request."""
+        """Performs an asynchronous PUT request.
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout period.
+            ConnectionError: If a network connection error occurs.
+        """
         ...
 
     @abstractmethod
     async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
-        """Performs an asynchronous DELETE request."""
+        """Performs an asynchronous DELETE request.
+
+        Raises:
+            TimeoutError: If the request exceeds the timeout period.
+            ConnectionError: If a network connection error occurs.
+        """
         ...
 
     @abstractmethod

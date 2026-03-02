@@ -40,7 +40,7 @@ src/infrastructure/storage.py           78      7    91%   27, 34-36, 97-98, 113
 src/infrastructure/vector_store.py      36      4    89%   31-32, 62-63
 ------------------------------------------------------------------
 TOTAL                                  416     32    92%
-============================== 34 passed in 2.90s ==============================
+============================== 34 passed in 2.74s ==============================
 /app/.venv/lib/python3.12/site-packages/coverage/inorout.py:561: CoverageWarning: Module dev_src was never imported. (module-not-imported); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-module-not-imported
   self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")
 /app/.venv/lib/python3.12/site-packages/coverage/report_core.py:113: CoverageWarning: Couldn't parse '/app/src/dependency_injector/providers.pyx': No source for code: '/app/src/dependency_injector/providers.pyx'. (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-couldnt-parse
