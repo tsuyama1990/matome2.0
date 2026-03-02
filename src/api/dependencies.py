@@ -26,11 +26,18 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     config_container = providers.DependenciesContainer()
 
     @staticmethod
-    async def init_async_client() -> AsyncGenerator[HttpxAdapter, None]:
-        async with httpx.AsyncClient() as client:
-            yield HttpxAdapter(client=client)
+    async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:  # noqa: ASYNC109
+        client = httpx.AsyncClient(timeout=timeout)
+        adapter = HttpxAdapter(client=client)
+        try:
+            yield adapter
+        finally:
+            await adapter.close()
 
-    http_client = providers.Resource(init_async_client)
+    http_client = providers.Resource(
+        init_async_client,
+        timeout=config_container.app_settings.provided.llm_timeout,
+    )
 
     # Infrastructure Implementations
     llm_config = providers.Factory(

@@ -121,55 +121,53 @@ async def test_httpx_adapter_methods() -> None:
     # get
     mock_resp_get = AsyncMock()
     mock_client.get.return_value = mock_resp_get
-    assert await adapter.get("url", {}, 10.0) == mock_resp_get
-    mock_client.get.assert_called_once_with("url", headers={}, timeout=10.0)
+    assert await adapter.get("url", {}) == mock_resp_get
+    mock_client.get.assert_called_once_with("url", headers={})
 
     # post
     mock_resp_post = AsyncMock()
     mock_client.post.return_value = mock_resp_post
-    assert await adapter.post("url", {}, {"json": "data"}, 10.0) == mock_resp_post
-    mock_client.post.assert_called_once_with("url", headers={}, json={"json": "data"}, timeout=10.0)
+    assert await adapter.post("url", {}, {"json": "data"}) == mock_resp_post
+    mock_client.post.assert_called_once_with("url", headers={}, json={"json": "data"})
 
     # stream_post
     mock_resp_stream = AsyncMock()
     mock_client.stream.return_value = mock_resp_stream
-    assert adapter.stream_post("url", {}, {"json": "data"}, 10.0) == mock_resp_stream
-    mock_client.stream.assert_called_once_with(
-        "POST", "url", headers={}, json={"json": "data"}, timeout=10.0
-    )
+    assert adapter.stream_post("url", {}, {"json": "data"}) == mock_resp_stream
+    mock_client.stream.assert_called_once_with("POST", "url", headers={}, json={"json": "data"})
 
     # exceptions
     mock_client.get.side_effect = httpx.TimeoutException("timeout")
     with pytest.raises(TimeoutError):
-        await adapter.get("url", {}, 10.0)
+        await adapter.get("url", {})
 
     mock_client.get.side_effect = httpx.RequestError("error")
     with pytest.raises(ConnectionError):
-        await adapter.get("url", {}, 10.0)
+        await adapter.get("url", {})
 
     mock_client.post.side_effect = httpx.TimeoutException("timeout")
     with pytest.raises(TimeoutError):
-        await adapter.post("url", {}, {}, 10.0)
+        await adapter.post("url", {}, {})
 
     mock_client.post.side_effect = httpx.RequestError("error")
     with pytest.raises(ConnectionError):
-        await adapter.post("url", {}, {}, 10.0)
+        await adapter.post("url", {}, {})
 
     mock_client.put.side_effect = httpx.TimeoutException("timeout")
     with pytest.raises(TimeoutError):
-        await adapter.put("url", {}, {}, 10.0)
+        await adapter.put("url", {}, {})
 
     mock_client.put.side_effect = httpx.RequestError("error")
     with pytest.raises(ConnectionError):
-        await adapter.put("url", {}, {}, 10.0)
+        await adapter.put("url", {}, {})
 
     mock_client.delete.side_effect = httpx.TimeoutException("timeout")
     with pytest.raises(TimeoutError):
-        await adapter.delete("url", {}, 10.0)
+        await adapter.delete("url", {})
 
     mock_client.delete.side_effect = httpx.RequestError("error")
     with pytest.raises(ConnectionError):
-        await adapter.delete("url", {}, 10.0)
+        await adapter.delete("url", {})
 
     # close
     await adapter.close()

@@ -14,9 +14,9 @@ class HttpxAdapter(IHttpClient):
     def __init__(self, client: httpx.AsyncClient) -> None:
         self.client = client
 
-    async def get(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
+    async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         try:
-            resp = await self.client.get(url, headers=headers, timeout=timeout)
+            resp = await self.client.get(url, headers=headers)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
@@ -31,19 +31,17 @@ class HttpxAdapter(IHttpClient):
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,
     ) -> AbstractAsyncContextManager[IHttpResponse]:
-        return self.client.stream("POST", url, headers=headers, json=json, timeout=timeout)
+        return self.client.stream("POST", url, headers=headers, json=json)
 
     async def post(
         self,
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
         try:
-            resp = await self.client.post(url, headers=headers, json=json, timeout=timeout)
+            resp = await self.client.post(url, headers=headers, json=json)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
@@ -58,10 +56,9 @@ class HttpxAdapter(IHttpClient):
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
         try:
-            resp = await self.client.put(url, headers=headers, json=json, timeout=timeout)
+            resp = await self.client.put(url, headers=headers, json=json)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e
@@ -71,9 +68,9 @@ class HttpxAdapter(IHttpClient):
         else:
             return resp
 
-    async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
+    async def delete(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         try:
-            resp = await self.client.delete(url, headers=headers, timeout=timeout)
+            resp = await self.client.delete(url, headers=headers)
         except httpx.TimeoutException as e:
             msg = f"Request timed out: {e}"
             raise TimeoutError(msg) from e

@@ -24,7 +24,7 @@ class IHttpClient(ABC):
     """Abstract interface for making HTTP requests."""
 
     @abstractmethod
-    async def get(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
+    async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         """Performs an asynchronous GET request.
 
         Raises:
@@ -39,7 +39,6 @@ class IHttpClient(ABC):
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
         """Performs an asynchronous POST request.
 
@@ -47,7 +46,6 @@ class IHttpClient(ABC):
             url (str): The endpoint.
             headers (dict): Request headers.
             json (dict): JSON payload.
-            timeout (float): Request timeout.
 
         Returns:
             IHttpResponse: A response object.
@@ -64,7 +62,6 @@ class IHttpClient(ABC):
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,
     ) -> AbstractAsyncContextManager[IHttpResponse]:
         """Performs an asynchronous POST request and yields chunks of the response.
 
@@ -83,7 +80,6 @@ class IHttpClient(ABC):
         url: str,
         headers: dict[str, str],
         json: dict[str, Any],
-        timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
         """Performs an asynchronous PUT request.
 
@@ -94,7 +90,7 @@ class IHttpClient(ABC):
         ...
 
     @abstractmethod
-    async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
+    async def delete(self, url: str, headers: dict[str, str]) -> IHttpResponse:
         """Performs an asynchronous DELETE request.
 
         Raises:

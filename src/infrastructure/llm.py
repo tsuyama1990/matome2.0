@@ -58,9 +58,7 @@ class OpenRouterClient(ILLMProvider):
         }
 
         try:
-            response = await self.client.post(
-                self.config.base_url, headers=headers, json=payload, timeout=self.config.timeout
-            )
+            response = await self.client.post(self.config.base_url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
             return str(data["choices"][0]["message"]["content"])
@@ -92,7 +90,7 @@ class OpenRouterClient(ILLMProvider):
 
         try:
             async with self.client.stream_post(
-                self.config.base_url, headers=headers, json=payload, timeout=self.config.timeout
+                self.config.base_url, headers=headers, json=payload
             ) as response:
                 response.raise_for_status()
                 async for line in response.aiter_lines():
