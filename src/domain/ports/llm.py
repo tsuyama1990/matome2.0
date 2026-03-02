@@ -25,6 +25,7 @@ class ILLMProvider(ABC):
                           should ideally wrap library-specific timeouts to this built-in error.
             ConnectionError: If a connection error happens during interaction with the API.
         """
+        ...
 
     @abstractmethod
     def stream_generate_text(
@@ -41,6 +42,7 @@ class ILLMProvider(ABC):
         Yields:
             str: Chunks of the generated response.
         """
+        ...
 
     @abstractmethod
     async def extract_structured_data(
@@ -60,3 +62,4 @@ class ILLMProvider(ABC):
             TimeoutError: If the call to the LLM times out. Implementations must wrap internal timeouts.
             ValueError: If the generated output cannot be parsed into the target schema.
         """
+        ...

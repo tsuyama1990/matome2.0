@@ -9,12 +9,15 @@ class IHttpResponse(Protocol):
 
     def raise_for_status(self) -> Any:
         """Raises an exception for non-2xx status codes."""
+        ...
 
     def json(self) -> Any:
         """Parses the response body as JSON."""
+        ...
 
     def aiter_lines(self) -> AsyncIterator[str]:
         """Asynchronously yields lines from the response body."""
+        ...
 
 
 class IHttpClient(ABC):
@@ -23,6 +26,7 @@ class IHttpClient(ABC):
     @abstractmethod
     async def get(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
         """Performs an asynchronous GET request."""
+        ...
 
     @abstractmethod
     async def post(
@@ -43,6 +47,7 @@ class IHttpClient(ABC):
         Returns:
             IHttpResponse: A response object.
         """
+        ...
 
     @abstractmethod
     def stream_post(
@@ -57,6 +62,7 @@ class IHttpClient(ABC):
         This method should return an asynchronous context manager that yields a response
         object capable of asynchronously yielding lines or chunks.
         """
+        ...
 
     @abstractmethod
     async def put(
@@ -67,11 +73,14 @@ class IHttpClient(ABC):
         timeout: float,  # noqa: ASYNC109
     ) -> IHttpResponse:
         """Performs an asynchronous PUT request."""
+        ...
 
     @abstractmethod
     async def delete(self, url: str, headers: dict[str, str], timeout: float) -> IHttpResponse:  # noqa: ASYNC109
         """Performs an asynchronous DELETE request."""
+        ...
 
     @abstractmethod
     async def close(self) -> None:
         """Closes the underlying client connections."""
+        ...
