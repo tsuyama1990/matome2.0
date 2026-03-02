@@ -15,6 +15,20 @@ tests/unit/test_config.py .....                                          [ 78%]
 tests/unit/test_dependencies.py .                                        [ 80%]
 tests/unit/test_models.py ........                                       [100%]
 
+=============================== warnings summary ===============================
+tests/unit/infrastructure/test_llm.py::test_httpx_adapter_methods
+  /app/src/infrastructure/http.py:20: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    resp.raise_for_status()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/infrastructure/test_llm.py::test_httpx_adapter_methods
+  /app/src/infrastructure/http.py:52: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    resp.raise_for_status()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.12.12-final-0 _______________
 
@@ -22,10 +36,10 @@ Name                                 Stmts   Miss  Cover   Missing
 ------------------------------------------------------------------
 src/__init__.py                          0      0   100%
 src/api/__init__.py                      0      0   100%
-src/api/dependencies.py                 53      7    87%   30-35, 67, 75
+src/api/dependencies.py                 45      8    82%   30-35, 59-62
 src/core/__init__.py                     0      0   100%
 src/core/config.py                      23      0   100%
-src/core/utils.py                       20      2    90%   20, 28
+src/core/utils.py                       45      5    89%   19, 21, 27, 39, 51
 src/domain/__init__.py                   0      0   100%
 src/domain/models/__init__.py            5      0   100%
 src/domain/models/base.py                5      0   100%
@@ -36,12 +50,12 @@ src/domain/ports/http.py                21      0   100%
 src/domain/ports/llm.py                 11      0   100%
 src/domain/ports/storage.py             14      0   100%
 src/domain/ports/vector_store.py         9      0   100%
-src/infrastructure/http.py              52      2    96%   69, 81
-src/infrastructure/llm.py              123     21    83%   67, 86-88, 102, 118, 125, 139-145, 151, 160-162, 172-173, 193-194
+src/infrastructure/http.py              76     20    74%   26-29, 57-60, 75, 80-83, 88, 93, 98-101, 106
+src/infrastructure/llm.py              159     38    76%   55-56, 72-73, 79, 96-97, 101-102, 106-107, 111-112, 118-120, 132, 148, 155, 170-175, 182, 189, 193, 197, 201, 205-207, 217-218, 238-239, 243
 src/infrastructure/storage.py           78      7    91%   27, 34-36, 97-98, 113
-src/infrastructure/vector_store.py      43      0   100%
+src/infrastructure/vector_store.py      54      6    89%   35-36, 44-45, 83-84
 ------------------------------------------------------------------
-TOTAL                                  492     39    92%
-============================== 42 passed in 8.84s ==============================
+TOTAL                                  580     84    86%
+======================= 42 passed, 2 warnings in 11.33s ========================
 /app/.venv/lib/python3.12/site-packages/coverage/report_core.py:113: CoverageWarning: Couldn't parse '/app/src/dependency_injector/providers.pyx': No source for code: '/app/src/dependency_injector/providers.pyx'. (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-couldnt-parse
   coverage._warn(msg, slug="couldnt-parse")

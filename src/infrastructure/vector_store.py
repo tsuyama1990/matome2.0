@@ -1,6 +1,6 @@
 from typing import Any, Protocol
 
-from src.core.utils import _with_retries
+from src.core.utils import with_retries
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
 
@@ -14,6 +14,7 @@ class PineconeIndexProtocol(Protocol):
         filter: dict[str, str] | None,  # noqa: A002
         include_metadata: bool,
     ) -> Any: ...
+    def describe_index_stats(self) -> Any: ...
 
 
 class PineconeClient(IVectorStore):
@@ -29,12 +30,19 @@ class PineconeClient(IVectorStore):
 
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured."""
-        # Check if index has a describe method or something to verify it's alive
-        # For PineconeIndexProtocol, we just assume it's true since it's injected
+        try:
+            self._index.describe_index_stats()
+        except Exception:
+            return False
         return True
 
+    @with_retries(max_retries=3, base_delay=1.0)
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         """Insert or update chunks into the vector store."""
+
+        if len(chunks) > 10000:
+            msg = "Batch size exceeds maximum allowed (10,000)"
+            raise ValueError(msg)
 
         vectors = []
         for chunk in chunks:
@@ -56,45 +64,46 @@ class PineconeClient(IVectorStore):
                 }
             )
 
-        async def _call() -> None:
-            try:
-                # Batch upsert logic could be added here for large datasets
-                self._index.upsert(vectors=vectors)
-            except Exception as e:
-                msg = f"Pinecone upsert failed: {e}"
-                raise ConnectionError(msg) from e
+        try:
+            # Implement batching for large datasets
+            batch_size = 100
+            for i in range(0, len(vectors), batch_size):
+                batch = vectors[i : i + batch_size]
+                self._index.upsert(vectors=batch)
+        except Exception as e:
+            msg = f"Pinecone upsert failed: {e}"
+            raise ConnectionError(msg) from e
 
-        await _with_retries(_call)
-
+    @with_retries(max_retries=3, base_delay=1.0)
     async def search_similar(
         self, query_embedding: list[float], top_k: int = 5, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         """Search for semantically similar chunks."""
+        if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
+            msg = "query_embedding must be a non-empty list of numeric values"
+            raise ValueError(msg)
 
-        async def _call() -> list[DocumentChunk]:
-            try:
-                results = self._index.query(
-                    vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
-                )
-            except Exception as e:
-                msg = f"Pinecone query failed: {e}"
-                raise ConnectionError(msg) from e
-            else:
-                chunks = []
-                for match in getattr(results, "matches", []):
-                    meta = match.metadata or {}
-                    # Recover original chunk
-                    chunks.append(
-                        DocumentChunk(
-                            chunk_id=match.id,
-                            document_id=meta.pop(
-                                "document_id", "00000000-0000-0000-0000-000000000000"
-                            ),
-                            text=meta.pop("text", ""),
-                            metadata=meta,
-                            embedding=match.values,
-                        )
+        try:
+            results = self._index.query(
+                vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
+            )
+        except Exception as e:
+            msg = f"Pinecone query failed: {e}"
+            raise ConnectionError(msg) from e
+        else:
+            out_chunks = []
+            for match in getattr(results, "matches", []):
+                meta = match.metadata or {}
+                # Recover original chunk
+                out_chunks.append(
+                    DocumentChunk(
+                        chunk_id=match.id,
+                        document_id=meta.pop(
+                            "document_id", "00000000-0000-0000-0000-000000000000"
+                        ),
+                        text=meta.pop("text", ""),
+                        metadata=meta,
+                        embedding=match.values,
                     )
-                return chunks
-
-        return await _with_retries(_call)
+                )
+            return out_chunks

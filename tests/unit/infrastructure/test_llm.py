@@ -30,7 +30,7 @@ def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRo
 
 def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
     config = OpenRouterConfig(
-        api_key=SecretStr("key"),
+        api_key=SecretStr("sk-or-v1-key12345678901234567890"),
         default_model="m",
         base_url="invalid_url",
         timeout=10.0,
@@ -44,7 +44,7 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
     with pytest.raises(ValueError, match="api_key must not be empty"):
         client._get_headers()
 
-    config.api_key = SecretStr("key\nwith\nnewline")
+    config.api_key = SecretStr("sk-or-v1-key\nwith\nnewline")
     client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ValueError, match="Invalid characters in API key"):
         client._get_headers()

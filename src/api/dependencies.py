@@ -56,24 +56,10 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     @staticmethod
     def init_pinecone_index(api_key: str, index_name: str) -> Any:
-        try:
-            from pinecone import Pinecone
+        from pinecone import Pinecone
 
-            pc = Pinecone(api_key=api_key)
-            return pc.Index(index_name)
-        except Exception:
-            class DummyIndex:
-                def upsert(self, vectors: list[dict[str, Any]]) -> None:
-                    pass
-                def query(
-                    self,
-                    vector: list[float],
-                    top_k: int,
-                    filter: dict[str, str] | None,  # noqa: A002
-                    include_metadata: bool,
-                ) -> Any:
-                    return type("DummyResponse", (), {"matches": []})()
-            return DummyIndex()
+        pc = Pinecone(api_key=api_key)
+        return pc.Index(index_name)
 
     pinecone_index = providers.Singleton(
         init_pinecone_index,
