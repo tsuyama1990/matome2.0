@@ -47,3 +47,18 @@ def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.M
     settings = AppSettings()
     # Should not raise any exception
     settings.validate_keys()
+
+
+from pydantic import SecretStr
+
+
+def test_app_settings_post_init_validates() -> None:
+    # Testing that model_post_init is implicitly called and raises
+    # if we bypass the environment variables
+
+    with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is not set"):
+        # We explicitly supply empty strings to bypass defaults and force validation
+        AppSettings(openrouter_api_key=SecretStr(""), pinecone_api_key=SecretStr("mock"))
+
+    with pytest.raises(ValueError, match="PINECONE_API_KEY environment variable is not set"):
+        AppSettings(openrouter_api_key=SecretStr("mock"), pinecone_api_key=SecretStr(""))

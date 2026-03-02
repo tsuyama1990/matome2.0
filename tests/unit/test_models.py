@@ -91,3 +91,10 @@ def test_document_chunk_metadata_typing() -> None:
     )
     assert chunk.metadata["score"] == 0.95
     assert len(chunk.metadata["entities"]) == 2
+
+
+def test_concept_node_unlock() -> None:
+    node = ConceptNode(node_id=uuid4(), title="Test", summary="Summary", level=1)
+    assert node.is_unlocked is False
+    node.unlock()
+    assert node.is_unlocked is True

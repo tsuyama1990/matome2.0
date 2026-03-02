@@ -98,9 +98,7 @@ class PineconeClient(IVectorStore):
                 out_chunks.append(
                     DocumentChunk(
                         chunk_id=match.id,
-                        document_id=meta.pop(
-                            "document_id", "00000000-0000-0000-0000-000000000000"
-                        ),
+                        document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
                         text=meta.pop("text", ""),
                         metadata=meta,
                         embedding=match.values,

@@ -41,6 +41,7 @@ class OpenRouterClient(ILLMProvider):
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
         import re
+
         token = self.config.api_key.get_secret_value()
         if not token:
             msg = "api_key must not be empty"
@@ -85,9 +86,7 @@ class OpenRouterClient(ILLMProvider):
         }
 
         try:
-            response = await self.client.post(
-                self.config.base_url, headers=headers, json=payload
-            )
+            response = await self.client.post(self.config.base_url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -101,7 +100,12 @@ class OpenRouterClient(ILLMProvider):
                 msg = "Missing or invalid 'choices' in response"
                 raise ValueError(msg)
 
-            message = choices[0].get("message", {})
+            choice = choices[0]
+            if not isinstance(choice, dict):
+                msg = "Missing or invalid 'message' in response"
+                raise TypeError(msg)
+
+            message = choice.get("message", {})
             if not isinstance(message, dict):
                 msg = "Missing or invalid 'message' in response"
                 raise TypeError(msg)

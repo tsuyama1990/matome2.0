@@ -264,3 +264,297 @@ async def test_stream_generate_text_retry_failure(
             async for _ in llm_client.stream_generate_text("test"):
                 pass
     assert mock_httpx_client.stream_post.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_generic_exception(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_httpx_client.stream_post.side_effect = ValueError("generic stream error")
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(ValueError, match="generic stream error"):
+            async for _ in llm_client.stream_generate_text("test"):
+                pass
+
+
+def test_parse_stream_line(llm_client: OpenRouterClient) -> None:
+    # invalid prefix
+    assert llm_client._parse_stream_line("invalid") is None
+    # done signal
+    assert llm_client._parse_stream_line("data: [DONE]") == "[DONE]"
+    # empty data
+    assert llm_client._parse_stream_line("data: ") is None
+    # invalid JSON
+    assert llm_client._parse_stream_line("data: {invalid}") is None
+    # not a dict JSON
+    assert llm_client._parse_stream_line("data: []") is None
+    # no choices list
+    assert llm_client._parse_stream_line('data: {"choices": null}') is None
+    # choices not a dict
+    assert llm_client._parse_stream_line('data: {"choices": ["invalid"]}') is None
+    # delta missing
+    assert llm_client._parse_stream_line('data: {"choices": [{}]}') is None
+    # delta not dict
+    assert llm_client._parse_stream_line('data: {"choices": [{"delta": null}]}') is None
+    # valid payload without content
+    assert llm_client._parse_stream_line('data: {"choices": [{"delta": {}}]}') is None
+    # valid payload with content
+    assert (
+        llm_client._parse_stream_line('data: {"choices": [{"delta": {"content": "data"}}]}')
+        == "data"
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_text_invalid_format(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json=[],  # Invalid root
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(TypeError, match="Invalid response format"):
+        await llm_client.generate_text("Hello")
+
+    mock_response = httpx.Response(
+        200,
+        json={"choices": {}},  # Invalid choices
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(ValueError, match="Missing or invalid 'choices' in response"):
+        await llm_client.generate_text("Hello")
+
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [[]]},  # Invalid message type
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
+        await llm_client.generate_text("Hello")
+
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": {}}]},  # Missing content
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(ValueError, match="Missing 'content' in response"):
+        await llm_client.generate_text("Hello")
+
+
+@pytest.mark.asyncio
+async def test_extract_structured_data_empty_schema(llm_client: OpenRouterClient) -> None:
+    with pytest.raises(ValueError, match="schema dictionary cannot be empty"):
+        await llm_client.extract_structured_data("Extract", {})
+
+
+@pytest.mark.asyncio
+async def test_extract_structured_data_not_dict(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": {"content": '["Not a dict"]'}}]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(TypeError, match="Parsed JSON is not a dictionary"):
+        await llm_client.extract_structured_data("Extract", {"type": "object"})
+
+
+@pytest.mark.asyncio
+async def test_generate_text_empty_prompt(llm_client: OpenRouterClient) -> None:
+    with pytest.raises(ValueError, match="Prompt cannot be empty"):
+        await llm_client.generate_text("")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_connection_error(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+) -> None:
+    mock_httpx_client.post.side_effect = ConnectionError("Connection refused")
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(ConnectionError, match="Error communicating with OpenRouter"):
+            await llm_client.generate_text("Hello")
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_mid_stream_connection_error(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+) -> None:
+    class MockStreamResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices": [{"delta": {"content": "Hello"}}]}'
+            raise ConnectionError("Mid stream error")
+
+        async def __aenter__(self) -> "MockStreamResponse":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+    mock_httpx_client.stream_post.return_value = MockStreamResponse()
+
+    with pytest.raises(
+        ConnectionError, match="Error communicating with OpenRouter stream mid-stream"
+    ):
+        async for _ in llm_client.stream_generate_text("test prompt"):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_mid_stream_timeout_error(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+) -> None:
+    class MockStreamResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices": [{"delta": {"content": "Hello"}}]}'
+            raise TimeoutError("Mid stream error")
+
+        async def __aenter__(self) -> "MockStreamResponse":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+    mock_httpx_client.stream_post.return_value = MockStreamResponse()
+
+    with pytest.raises(TimeoutError, match="OpenRouter API stream request timed out mid-stream"):
+        async for _ in llm_client.stream_generate_text("test prompt"):
+            pass
+
+
+def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
+    config = OpenRouterConfig(
+        api_key=SecretStr("sk-or-v1-tooshort"),
+        default_model="m",
+        base_url="http://valid.url",
+        timeout=10.0,
+    )
+    client = OpenRouterClient(config=config, client=mock_httpx_client)
+    with pytest.raises(ValueError, match="API key fails pattern validation"):
+        client._get_headers()
+
+
+@pytest.mark.asyncio
+async def test_generate_text_with_system_prompt(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": {"content": "Test response"}}]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    result = await llm_client.generate_text("Hello", system_prompt="System Prompt")
+    assert result == "Test response"
+
+
+@pytest.mark.asyncio
+async def test_generate_text_choice_not_dict(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json={"choices": ["not a dict"]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
+        await llm_client.generate_text("Hello")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_message_not_dict(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": "not a dict"}]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    with pytest.raises(TypeError, match="Missing or invalid 'message' in response"):
+        await llm_client.generate_text("Hello")
+
+
+@pytest.mark.asyncio
+async def test_stream_generate_text_system_prompt(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    class MockStreamResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices": [{"delta": {"content": "Hello"}}]}'
+
+        async def __aenter__(self) -> "MockStreamResponse":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+    mock_httpx_client.stream_post.return_value = MockStreamResponse()
+    async for _ in llm_client.stream_generate_text("test", system_prompt="System"):
+        pass
+    mock_httpx_client.stream_post.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_stream_connect_cm_cleanup(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock
+) -> None:
+    class BrokenCM:
+        async def __aenter__(self) -> "BrokenCM":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+            pass
+
+        def raise_for_status(self) -> None:
+            raise ConnectionError("broken connection")
+
+    mock_httpx_client.stream_post.return_value = BrokenCM()
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(asyncio, "sleep", AsyncMock())
+        with pytest.raises(ConnectionError, match="Error communicating with OpenRouter stream"):
+            async for _ in llm_client.stream_generate_text("test"):
+                pass
+
+
+from pydantic import BaseModel
+
+
+class DummyModel(BaseModel):
+    key: str
+
+
+@pytest.mark.asyncio
+async def test_extract_structured_data_pydantic_schema(
+    llm_client: OpenRouterClient, mock_httpx_client: AsyncMock, test_config: AppSettings
+) -> None:
+    mock_response = httpx.Response(
+        200,
+        json={"choices": [{"message": {"content": '{"key": "value"}'}}]},
+        request=httpx.Request("POST", test_config.openrouter_base_url),
+    )
+    mock_httpx_client.post.return_value = mock_response
+    result = await llm_client.extract_structured_data("Extract", DummyModel)
+    assert result == {"key": "value"}

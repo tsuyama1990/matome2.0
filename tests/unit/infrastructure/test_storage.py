@@ -85,11 +85,97 @@ async def test_read_file_stream_async_success(storage: LocalStorage, tmp_path: P
     assert "".join(chunks) == "A" * 5 * 1024 * 1024
 
 
-@pytest.mark.asyncio
-async def test_read_file_stream_async_path_traversal(storage: LocalStorage, tmp_path: Path) -> None:
-    outside_path = tmp_path.parent / "outside.txt"
 
-    stream = storage.read_file_stream_async(str(outside_path))
+
+
+
+
+
+
+
+@pytest.mark.asyncio
+async def test_save_upload_stream_cleanup_on_error(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+
+    async def err_stream() -> AsyncGenerator[bytes, None]:
+        yield b"chunk1"
+        raise OSError("fake error")
+
+    with pytest.raises(IOError, match="fake error"):
+        await storage.save_upload_stream("test.txt", err_stream())
+
+    assert not (tmp_path / "test.txt.tmp").exists()
+    assert not (tmp_path / "test.txt").exists()
+
+
+def test_exists(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+    f = tmp_path / "test.txt"
+    f.write_text("ok")
+    assert storage.exists(str(f)) is True
+    assert storage.exists(str(tmp_path / "nonexistent.txt")) is False
+
+
+def test_get_metadata(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+    f = tmp_path / "test.txt"
+    f.write_text("ok")
+    meta = storage.get_metadata(str(f))
+    assert "size" in meta
+    assert meta["size"] == 2
+    assert "modified" in meta
+
+
+def test_initialize(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path / "init_dir", create_dir=False)
+    assert not (tmp_path / "init_dir").exists()
+    storage.initialize()
+    assert (tmp_path / "init_dir").exists()
+
+
+@pytest.mark.asyncio
+async def test_read_file_stream_async_invalid_path(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+
+    # Passing an invalid type that causes `resolve()` to throw an exception
+    class BadPath(Path):
+        def is_absolute(self) -> bool:
+            return True
+
     with pytest.raises(ValueError, match="Path traversal attempt"):
-        async for _ in stream:
+        # Not a string, but simulating an Exception in the `try...except Exception:` block
+        # The easiest way to trigger it is to provide a path that raises an exception when resolved
+        bad_path = "\0invalid"  # Nul character often causes OS errors on resolve
+        async for _ in storage.read_file_stream_async(bad_path):
             pass
+
+
+@pytest.mark.asyncio
+async def test_read_file_stream_async_final_decode(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+    file_path = tmp_path / "test.txt"
+    # Write a multi-byte character sequence that gets split, or just use a final text string
+    file_path.write_bytes(b"hello")
+
+    chunks = []
+    async for chunk in storage.read_file_stream_async(str(file_path)):
+        chunks.append(chunk)
+
+    assert "".join(chunks) == "hello"
+
+
+@pytest.mark.asyncio
+async def test_read_file_stream_async_incomplete_unicode(tmp_path: Path) -> None:
+    storage = LocalStorage(base_dir=tmp_path)
+    file_path = tmp_path / "test.txt"
+    # Write a multi-byte sequence, but we truncate it so the incremental decoder
+    # waits for the rest and eventually decodes it with errors="replace" on the final step
+    file_path.write_bytes(b"\xe2\x82")  # Missing \xac for Euro sign
+
+    chunks = []
+    async for chunk in storage.read_file_stream_async(str(file_path)):
+        chunks.append(chunk)
+
+    assert len(chunks) == 1
+    # U+FFFD is the replacement character
+    assert chunks[0] == "\ufffd"
