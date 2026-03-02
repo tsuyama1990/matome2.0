@@ -1,13 +1,25 @@
+import asyncio
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import marimo
+
+from tutorials.tutorial_config import LLMSimulatorService, TutorialDataFactory
+from tutorials.tutorial_domain import (
+    MockAnalysisAxis,
+    MockConceptNode,
+    MockDocumentChunk,
+    MockPivotBoard,
+)
 
 __generated_with = "0.20.2"
 app = marimo.App()
 
 
 @app.cell
-def display_welcome_message(mo: Any) -> tuple[Any, ...]:
+def display_welcome_message(mo: Any) -> tuple[marimo.Html]:
     _message = mo.md(
         """
         # matome - User Acceptance Test & Tutorial
@@ -20,26 +32,23 @@ def display_welcome_message(mo: Any) -> tuple[Any, ...]:
 
 
 @app.cell
-def import_dependencies() -> tuple[Any, ...]:
-    import asyncio
-    from pathlib import Path
-    from uuid import uuid4
+def import_dependencies() -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
 
     import marimo as mo
 
-    from tutorials.tutorial_config import TutorialDataFactory
+    from tutorials.tutorial_config import LLMSimulatorService, TutorialDataFactory
     from tutorials.tutorial_domain import (
         MockAnalysisAxis,
         MockConceptNode,
         MockDocumentChunk,
         MockPivotBoard,
     )
-
     mock_analysis_axis = MockAnalysisAxis
     mock_concept_node = MockConceptNode
     mock_document_chunk = MockDocumentChunk
     mock_pivot_board = MockPivotBoard
     tutorial_data_factory = TutorialDataFactory
+    llm_simulator_service = LLMSimulatorService
 
     return (
         mock_analysis_axis,
@@ -48,6 +57,7 @@ def import_dependencies() -> tuple[Any, ...]:
         Path,
         mock_pivot_board,
         tutorial_data_factory,
+        llm_simulator_service,
         asyncio,
         mo,
         uuid4,
@@ -55,7 +65,7 @@ def import_dependencies() -> tuple[Any, ...]:
 
 
 @app.cell
-def display_step_one(mo: Any) -> tuple[Any, ...]:
+def display_step_one(mo: Any) -> tuple[marimo.Html]:
     _message = mo.md(
         """
         ## Step 1: Ingestion & RAPTOR Tree Generation
@@ -68,8 +78,11 @@ def display_step_one(mo: Any) -> tuple[Any, ...]:
 
 @app.cell
 def generate_mock_tree(
-    mock_concept_node: Any, mock_document_chunk: Any, tutorial_data_factory: Any, uuid4: Any
-) -> tuple[Any, ...]:
+    mock_concept_node: Any,
+    mock_document_chunk: Any,
+    tutorial_data_factory: type[TutorialDataFactory],
+    uuid4: Callable[[], Any],
+) -> tuple[list[MockDocumentChunk], Any, MockConceptNode, MockConceptNode]:
     doc_id = uuid4()
     chunks = tutorial_data_factory.create_mock_chunks(doc_id, uuid4)
     root_node = tutorial_data_factory.create_mock_root_node(uuid4)
@@ -80,7 +93,7 @@ def generate_mock_tree(
 
 
 @app.cell
-def display_step_two(locked_node: Any, mo: Any) -> tuple[Any, ...]:
+def display_step_two(locked_node: MockConceptNode, mo: Any) -> tuple[marimo.Html]:
     _message = mo.md(
         f"""
         ## Step 2: Interactive Learning (SQ3R)
@@ -94,7 +107,7 @@ def display_step_two(locked_node: Any, mo: Any) -> tuple[Any, ...]:
 
 
 @app.cell
-def get_user_answer(mo: Any) -> tuple[Any, ...]:
+def get_user_answer(mo: Any) -> tuple[marimo.ui.text]:
     user_answer = mo.ui.text(
         label="Your answer",
         placeholder="Type your answer here...",
@@ -104,28 +117,40 @@ def get_user_answer(mo: Any) -> tuple[Any, ...]:
 
 
 @app.cell
-async def evaluate_answer(locked_node: Any, mo: Any, user_answer: Any) -> tuple[Any, ...]:
-    async def simulate_llm_check(answer: str, summary: str) -> bool:
-        """Simulates LLM context evaluation."""
-        return bool("5000" in answer or "executive" in answer.lower())
+async def evaluate_answer(
+    locked_node: MockConceptNode,
+    mo: Any,
+    user_answer: marimo.ui.text,
+    llm_simulator_service: type[LLMSimulatorService],
+    asyncio: Any,
+) -> tuple[marimo.Html]:
+    sanitized_answer = str(user_answer.value).replace("<", "&lt;").replace(">", "&gt;").strip()
 
-    if not user_answer.value:
+    if not sanitized_answer:
         eval_result = mo.md("*Awaiting your answer...*")
     else:
-        is_correct = await simulate_llm_check(user_answer.value, locked_node.summary)
-        if is_correct:
-            locked_node.unlock()
-            eval_result = mo.md(
-                f"**Success!** Node unlocked. \n\n**High-Density Summary (CoD):**\n> {locked_node.summary}"
+        simulator = llm_simulator_service(required_keywords=["5000", "executive"])
+        try:
+            is_correct = await asyncio.wait_for(
+                simulator.check_understanding(sanitized_answer, locked_node.summary), timeout=2.0
             )
-        else:
-            eval_result = mo.md("**Not quite.** Try thinking about budget thresholds!")
+            if is_correct:
+                locked_node.unlock()
+                eval_result = mo.md(
+                    f"**Success!** Node unlocked. \n\n**High-Density Summary (CoD):**\n> {locked_node.summary}"
+                )
+            else:
+                eval_result = mo.md("**Not quite.** Try thinking about budget thresholds!")
+        except asyncio.TimeoutError:
+            eval_result = mo.md("**Error:** LLM Simulation timed out. Please try again.")
+        except Exception as e:
+            eval_result = mo.md(f"**Error:** An unexpected error occurred: {e}")
 
     return (eval_result,)
 
 
 @app.cell
-def display_step_three(locked_node: Any, mo: Any) -> tuple[Any, ...]:
+def display_step_three(locked_node: MockConceptNode, mo: Any) -> tuple[marimo.Html]:
     _message = mo.md(
         f"""
         **Node Status Check:** Is the node unlocked? **{locked_node.is_unlocked}**
@@ -142,12 +167,13 @@ def display_step_three(locked_node: Any, mo: Any) -> tuple[Any, ...]:
 def create_pivot_board(
     mock_analysis_axis: Any,
     mock_pivot_board: Any,
-    tutorial_data_factory: Any,
+    tutorial_data_factory: type[TutorialDataFactory],
     doc_id: Any,
-    locked_node: Any,
+    locked_node: MockConceptNode,
     mo: Any,
-    uuid4: Any,
-) -> tuple[Any, ...]:
+    uuid4: Callable[[], Any],
+) -> tuple[MockAnalysisAxis, MockPivotBoard, dict[str, list[MockConceptNode]]]:
+
     axis = tutorial_data_factory.create_mock_axis()
     clusters = tutorial_data_factory.create_mock_clusters(locked_node)
 
@@ -163,8 +189,18 @@ def create_pivot_board(
 
 
 @app.cell
-def display_step_four(tutorial_data_factory: Any, board: Any, mo: Any) -> tuple[Any, ...]:
-    mermaid_code = tutorial_data_factory.generate_mermaid_diagram(board.clusters)
+def display_step_four(
+    tutorial_data_factory: type[TutorialDataFactory], board: MockPivotBoard, mo: Any
+) -> tuple[str, marimo.Html]:
+    try:
+        mermaid_code = tutorial_data_factory.generate_mermaid_diagram(board.clusters)
+    except Exception as e:
+        mermaid_code = f"Error generating diagram: {e}"
+
+    try:
+        title = board.clusters["Executive"][0].title
+    except (KeyError, IndexError):
+        title = "Unknown Task"
 
     _message = mo.md(
         f"""
@@ -173,7 +209,7 @@ def display_step_four(tutorial_data_factory: Any, board: Any, mo: Any) -> tuple[
         Based on the new {board.axis.name} clusters, matome generates the To-Be system workflow!
 
         ### Extracted Workflow
-        - **Executive:** Handles {board.clusters["Executive"][0].title}
+        - **Executive:** Handles {title}
 
         ### Mermaid Diagram
         \n{mermaid_code}\n
