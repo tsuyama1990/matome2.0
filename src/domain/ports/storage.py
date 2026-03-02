@@ -4,16 +4,23 @@ from typing import Any
 
 
 class IFileStorage(ABC):
-    """Abstract interface for raw file storage operations."""
+    """Abstract interface for raw file storage operations.
+
+    Implementations must define explicit error handling protocols for IO access errors
+    and ideally incorporate retry logic when interfacing with unstable remote storage providers
+    (like S3 or GCS) to mitigate transient faults.
+    """
 
     @abstractmethod
     def exists(self, path: str) -> bool:
         """Checks if a file exists.
 
         Args:
-            path (str): Path to check.
+            path (str): Path to check. Must be validated against the storage base
+                        directory bounds to prevent Path Traversal vulnerabilities.
+                        Implementations should reject invalid paths.
         Returns:
-            bool: True if it exists, False otherwise.
+            bool: True if it exists safely, False otherwise.
         """
 
     @abstractmethod

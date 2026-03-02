@@ -222,3 +222,7 @@ __marimo__/
 .ac_cdd/project_state_local.json
 dev_documents/project_state.json
 dev_documents/project_state_local.json
+
+# Test execution logs
+dev_documents/test_execution_log.txt
+test_execution_log.txt

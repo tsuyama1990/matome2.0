@@ -4,11 +4,18 @@ from src.domain.models.document import DocumentChunk
 
 
 class IVectorStore(ABC):
-    """Abstract interface for a Vector Database."""
+    """Abstract interface for a Vector Database.
+
+    Implementations are strictly expected to provide error handling
+    and transient retry logic against upstream service availability drops.
+    """
 
     @abstractmethod
     async def check_health(self) -> bool:
         """Verifies if the vector store is reachable and configured.
+
+        Implementations must enforce strict timeout boundaries (e.g. 5 seconds)
+        to prevent application hangs during degraded downstream service availability.
 
         Returns:
             bool: True if the connection is healthy, otherwise False.

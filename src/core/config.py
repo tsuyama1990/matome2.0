@@ -31,10 +31,16 @@ class AppSettings(BaseSettings):
     def validate_keys(self) -> None:
         """Validates that critical API keys are present."""
         if not self.openrouter_api_key.get_secret_value():
-            msg = "OPENROUTER_API_KEY environment variable is not set or is empty."
+            msg = (
+                "OPENROUTER_API_KEY environment variable is not set or is empty. "
+                "Without this key, the OpenRouter LLM generation services will be unavailable."
+            )
             raise ValueError(msg)
         if not self.pinecone_api_key.get_secret_value():
-            msg = "PINECONE_API_KEY environment variable is not set or is empty."
+            msg = (
+                "PINECONE_API_KEY environment variable is not set or is empty. "
+                "Without this key, the Pinecone Vector Store semantic searches will be unavailable."
+            )
             raise ValueError(msg)
 
 
