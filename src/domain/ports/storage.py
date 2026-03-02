@@ -66,11 +66,14 @@ class IFileStorage(ABC):
         """
 
     @abstractmethod
-    def read_file_stream_async(self, path: str) -> AsyncGenerator[str, None]:
+    def read_file_stream_async(
+        self, path: str, encoding: str = "utf-8"
+    ) -> AsyncGenerator[str, None]:
         """Reads a file asynchronously, yielding safely decoded text chunks.
 
         Args:
             path (str): The path to the file.
+            encoding (str): Text encoding.
 
         Raises:
             FileNotFoundError: If the requested path does not exist.

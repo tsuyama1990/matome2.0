@@ -14,8 +14,8 @@ class PineconeIndexProtocol(Protocol):
         top_k: int,
         filter: dict[str, str] | None,  # noqa: A002
         include_metadata: bool,
-    ) -> Any: ...
-    def describe_index_stats(self) -> Any: ...
+    ) -> dict[str, Any]: ...
+    def describe_index_stats(self) -> dict[str, Any]: ...
 
 
 class PineconeIndexFactory:
@@ -114,16 +114,39 @@ class PineconeClient(IVectorStore):
             raise ConnectionError(msg) from e
         else:
             out_chunks = []
-            for match in getattr(results, "matches", []):
-                meta = match.metadata or {}
+            matches = getattr(results, "matches", None)
+            if matches is None and isinstance(results, dict):
+                matches = results.get("matches", [])
+            elif matches is None:
+                matches = []
+
+            for match in matches:
+                # Handle either dict or object response from Pinecone
+                meta = getattr(match, "metadata", None)
+                if meta is None and isinstance(match, dict):
+                    meta = match.get("metadata", {})
+                elif meta is None:
+                    meta = {}
+
+                import uuid
+
+                match_id = getattr(match, "id", None)
+                if match_id is None and isinstance(match, dict):
+                    match_id = match.get("id")
+                if match_id is None:
+                    match_id = str(uuid.uuid4())
+
+                match_values = getattr(match, "values", None)
+                if match_values is None and isinstance(match, dict):
+                    match_values = match.get("values")
                 # Recover original chunk
                 out_chunks.append(
                     DocumentChunk(
-                        chunk_id=match.id,
+                        chunk_id=uuid.UUID(str(match_id)),
                         document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
                         text=meta.pop("text", ""),
                         metadata=meta,
-                        embedding=match.values,
+                        embedding=match_values,
                     )
                 )
             return out_chunks

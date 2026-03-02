@@ -49,7 +49,9 @@ def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.M
     monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy_pinecone_key")
     settings = ConfigFactory.create_settings()
     # Should not raise any exception
-    settings.validate_keys()
+    from src.core.config import ConfigValidator
+
+    ConfigValidator.validate_keys(settings)
 
 
 def test_app_settings_post_init_validates() -> None:
@@ -65,11 +67,21 @@ def test_app_settings_post_init_validates() -> None:
 
 
 def test_validate_keys_fails_on_missing_production_keys() -> None:
-    with pytest.raises(ValueError, match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."):
-        ConfigFactory.create_settings(environment="prod", llm={"api_key": ""}, vector_store={"api_key": ""})
+    with pytest.raises(
+        ValueError,
+        match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY.",
+    ):
+        ConfigFactory.create_settings(
+            environment="prod", llm={"api_key": ""}, vector_store={"api_key": ""}
+        )
 
-    with pytest.raises(ValueError, match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."):
-        ConfigFactory.create_settings(environment="prod", llm={"api_key": "key"}, vector_store={"api_key": ""})
+    with pytest.raises(
+        ValueError,
+        match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY.",
+    ):
+        ConfigFactory.create_settings(
+            environment="prod", llm={"api_key": "key"}, vector_store={"api_key": ""}
+        )
 
 
 from pathlib import Path

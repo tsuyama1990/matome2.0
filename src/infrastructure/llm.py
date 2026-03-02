@@ -143,7 +143,6 @@ class OpenRouterClient(ILLMProvider):
         prompt: str,
         system_prompt: str = "",
         timeout: float = 30.0,
-        chunk_size: int | None = None,
     ) -> AsyncIterator[str]:
         """Stream implementation."""
         headers = self._get_headers()

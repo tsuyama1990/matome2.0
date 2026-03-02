@@ -100,7 +100,9 @@ class LocalStorage(IFileStorage):
             while chunk := f.read(1024 * 1024):  # 1MB chunks
                 yield chunk
 
-    async def read_file_stream_async(self, path: str) -> AsyncGenerator[str, None]:
+    async def read_file_stream_async(
+        self, path: str, encoding: str = "utf-8"
+    ) -> AsyncGenerator[str, None]:
         """Reads a file asynchronously, yielding safely decoded text chunks."""
         from anyio import Path as AnyioPath
 
@@ -119,7 +121,7 @@ class LocalStorage(IFileStorage):
             err_msg = "Path traversal attempt"
             raise ValueError(err_msg)
 
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        decoder = codecs.getincrementaldecoder(encoding)(errors="replace")
 
         async with aiofiles.open(path, "rb") as f:
             while True:
