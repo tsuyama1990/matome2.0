@@ -4,9 +4,10 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?style=flat&logo=FastAPI&logoColor=white)
 
+## Overview
 **matome** is a revolutionary knowledge workspace designed to transform the painful process of reading and summarising large documents into an engaging, interactive game of intellectual discovery. By integrating cognitive psychology principles (SQ3R method, Feynman technique) with advanced generative AI (RAPTOR, Multi-Dimensional Semantic KJ), matome seamlessly converts overwhelming text into dynamic knowledge networks and actionable insights.
 
-## Key Features
+## Features
 
 *   **Robust Configuration:** Centralised environment variable management using Pydantic Settings.
 *   **Schema-First Design:** Defined strict data models for Documents, Chunks, and Concept Nodes representing knowledge.
@@ -17,31 +18,7 @@
 *   **Multi-Dimensional Knowledge Restructuring (Pivot KJ):** Break free from the author's narrative. Instantly reorganise massive documents along custom analytical axes (e.g., SWOT, System Actors) to discover novel cross-sectional insights.
 *   **Automated Export & Web-Grounding:** With one click, generate comprehensive Product Requirements Documents (PRDs) and valid Mermaid.js UML diagrams from your restructured knowledge boards, grounded in modern best practices.
 
-## Architecture Overview
-
-matome is built on a high-performance, asynchronous Python backend utilising FastAPI and LangGraph. It strictly adheres to an Onion/Clean Architecture to guarantee separation of concerns and testability.
-
-```mermaid
-graph TD
-    UI[Frontend: React + Semantic Zoom Canvas] <--> API[Backend: FastAPI Routers]
-
-    subgraph Service Layer
-        API --> Orchestrator[LangGraph Orchestrator]
-        Orchestrator --> Chunking[Semantic Chunking & RAPTOR]
-        Orchestrator --> Tutor[Interactive Tutor & SQ3R]
-        Orchestrator --> KJ[Pivot KJ Engine]
-    end
-
-    subgraph Infrastructure Layer
-        Chunking --> VDB[(Vector Database)]
-        Chunking --> LLM((OpenRouter API))
-        KJ --> LLM
-        Tutor --> LLM
-    end
-```
-*For complete architectural details, read the `dev_documents/system_prompts/SYSTEM_ARCHITECTURE.md` file.*
-
-## Prerequisites
+## Requirements
 
 To run this project, you will need the following tools installed:
 
@@ -49,7 +26,7 @@ To run this project, you will need the following tools installed:
 *   **uv:** For extremely fast Python package and project management (see [uv documentation](https://docs.astral.sh/uv/))
 *   **OpenRouter API Key:** For accessing LLM models (Bring Your Own Key support).
 
-## Installation & Setup
+## Installation
 
 1.  **Clone the repository:**
     ```bash
@@ -99,6 +76,28 @@ uv run uvicorn main:app --reload
 ```
 
 ## Architecture/Structure
+
+matome is built on a high-performance, asynchronous Python backend utilising FastAPI and LangGraph. It strictly adheres to an Onion/Clean Architecture to guarantee separation of concerns and testability.
+
+```mermaid
+graph TD
+    UI[Frontend: React + Semantic Zoom Canvas] <--> API[Backend: FastAPI Routers]
+
+    subgraph Service Layer
+        API --> Orchestrator[LangGraph Orchestrator]
+        Orchestrator --> Chunking[Semantic Chunking & RAPTOR]
+        Orchestrator --> Tutor[Interactive Tutor & SQ3R]
+        Orchestrator --> KJ[Pivot KJ Engine]
+    end
+
+    subgraph Infrastructure Layer
+        Chunking --> VDB[(Vector Database)]
+        Chunking --> LLM((OpenRouter API))
+        KJ --> LLM
+        Tutor --> LLM
+    end
+```
+*For complete architectural details, read the `dev_documents/system_prompts/SYSTEM_ARCHITECTURE.md` file.*
 
 ```text
 matome2-0/
