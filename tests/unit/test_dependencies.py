@@ -31,12 +31,14 @@ import pytest
 @pytest.mark.asyncio
 async def test_init_async_client() -> None:
     from src.api.dependencies import InfrastructureContainer
+    from src.infrastructure.http import HttpxAdapter
 
     async_gen = InfrastructureContainer.init_async_client(10.0)
-    adapter = await anext(async_gen)
+    base_adapter = await anext(async_gen)
 
-    assert adapter is not None
-    assert adapter.client.timeout.read == 10.0
+    assert base_adapter is not None
+    assert isinstance(base_adapter, HttpxAdapter)
+    assert base_adapter.client.timeout.read == 10.0
 
     # We must manually trigger the finally block to ensure cleanup is called
     try:
@@ -44,7 +46,7 @@ async def test_init_async_client() -> None:
     except StopAsyncIteration:
         pass
 
-    assert adapter.client.is_closed
+    assert base_adapter.client.is_closed
 
 
 def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:

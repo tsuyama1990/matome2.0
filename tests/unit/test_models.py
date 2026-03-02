@@ -98,3 +98,16 @@ def test_concept_node_unlock() -> None:
     assert node.is_unlocked is False
     node.unlock()
     assert node.is_unlocked is True
+
+def test_base_domain_model_update() -> None:
+    chunk_id = uuid4()
+    doc_id = uuid4()
+    chunk = DocumentChunk(
+        chunk_id=chunk_id,
+        document_id=doc_id,
+        text="Original text",
+    )
+    updated_chunk = chunk.update(text="New text")
+    assert updated_chunk.text == "New text"
+    assert updated_chunk.chunk_id == chunk_id
+    assert chunk.text == "Original text" # Ensure original is immutable

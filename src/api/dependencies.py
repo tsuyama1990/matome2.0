@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 from dependency_injector import containers, providers
 
-from src.core.config import AppSettings
+from src.core.config import AppSettings, ConfigFactory
 from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpClientFactory
 from src.infrastructure.llm import OpenRouterClientFactory, OpenRouterConfig
@@ -17,7 +17,7 @@ class ConfigContainer(containers.DeclarativeContainer):
 
     env = providers.Configuration()
     config = providers.Configuration()
-    app_settings = providers.Singleton(AppSettings)
+    app_settings = providers.Singleton(ConfigFactory.create_settings)
 
 
 class InfrastructureContainer(containers.DeclarativeContainer):
