@@ -18,7 +18,9 @@ def _load_defaults() -> dict[str, Any]:
             return {}
     return {}
 
+
 _defaults = _load_defaults()
+
 
 class ConfigFactory:
     """Factory to create and configure AppSettings instances."""
@@ -31,23 +33,50 @@ class ConfigFactory:
 
 class LLMSettings(BaseModel):
     """Configuration specific to LLM interactions."""
+
     api_key: SecretStr = Field(default=SecretStr(""))
-    text_fast_model: str = Field(default_factory=lambda: _defaults.get("text_fast_model", constants.DEFAULT_TEXT_FAST_MODEL))
-    text_reasoning_model: str = Field(default_factory=lambda: _defaults.get("text_reasoning_model", constants.DEFAULT_TEXT_REASONING_MODEL))
-    multimodal_model: str = Field(default_factory=lambda: _defaults.get("multimodal_model", constants.DEFAULT_MULTIMODAL_MODEL))
-    base_url: HttpUrl | str = Field(default_factory=lambda: _defaults.get("openrouter_base_url", constants.DEFAULT_OPENROUTER_BASE_URL))
-    timeout: float = Field(default_factory=lambda: _defaults.get("llm_timeout", constants.DEFAULT_LLM_TIMEOUT))
+    text_fast_model: str = Field(
+        default_factory=lambda: _defaults.get("text_fast_model", constants.DEFAULT_TEXT_FAST_MODEL)
+    )
+    text_reasoning_model: str = Field(
+        default_factory=lambda: _defaults.get(
+            "text_reasoning_model", constants.DEFAULT_TEXT_REASONING_MODEL
+        )
+    )
+    multimodal_model: str = Field(
+        default_factory=lambda: _defaults.get(
+            "multimodal_model", constants.DEFAULT_MULTIMODAL_MODEL
+        )
+    )
+    base_url: HttpUrl | str = Field(
+        default_factory=lambda: _defaults.get(
+            "openrouter_base_url", constants.DEFAULT_OPENROUTER_BASE_URL
+        )
+    )
+    timeout: float = Field(
+        default_factory=lambda: _defaults.get("llm_timeout", constants.DEFAULT_LLM_TIMEOUT)
+    )
 
 
 class VectorStoreSettings(BaseModel):
     """Configuration specific to Vector Database."""
+
     api_key: SecretStr = Field(default=SecretStr(""))
-    index_name: str = Field(default_factory=lambda: _defaults.get("pinecone_index_name", constants.DEFAULT_PINECONE_INDEX_NAME))
+    index_name: str = Field(
+        default_factory=lambda: _defaults.get(
+            "pinecone_index_name", constants.DEFAULT_PINECONE_INDEX_NAME
+        )
+    )
 
 
 class StorageSettings(BaseModel):
     """Configuration specific to storage backends."""
-    base_dir: str = Field(default_factory=lambda: _defaults.get("storage_base_dir", constants.DEFAULT_STORAGE_BASE_DIR))
+
+    base_dir: str = Field(
+        default_factory=lambda: _defaults.get(
+            "storage_base_dir", constants.DEFAULT_STORAGE_BASE_DIR
+        )
+    )
 
 
 class AppSettings(BaseSettings):

@@ -27,7 +27,7 @@ class PineconeIndexFactory:
         from pinecone import Pinecone
 
         pc = Pinecone(api_key=api_key)
-        return pc.Index(index_name) # type: ignore[return-value]
+        return pc.Index(index_name)  # type: ignore[return-value]
 
 
 class VectorStoreFactory:

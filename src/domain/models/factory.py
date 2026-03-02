@@ -5,6 +5,7 @@ from src.domain.models.base import BaseDomainModel, MutableBaseDomainModel
 TBase = TypeVar("TBase", bound=BaseDomainModel)
 TMutable = TypeVar("TMutable", bound=MutableBaseDomainModel)
 
+
 class DomainModelFactory:
     """Factory to create domain objects, supporting mutable or immutable variations."""
 

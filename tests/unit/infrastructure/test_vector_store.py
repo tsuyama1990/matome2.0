@@ -26,7 +26,9 @@ async def test_check_health(vector_client: PineconeClient) -> None:
 
 @pytest.mark.asyncio
 async def test_check_health_failure() -> None:
-    with pytest.raises(ConfigurationError, match="Pinecone client must be initialized with a valid index"):
+    with pytest.raises(
+        ConfigurationError, match="Pinecone client must be initialized with a valid index"
+    ):
         PineconeClient(index=None)  # type: ignore
 
 
@@ -167,9 +169,6 @@ async def test_check_health_exception() -> None:
     client = PineconeClient(index=mock_index)
 
     assert await client.check_health() is False
-
-
-
 
 
 @pytest.mark.asyncio

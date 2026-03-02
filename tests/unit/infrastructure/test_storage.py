@@ -85,14 +85,6 @@ async def test_read_file_stream_async_success(storage: LocalStorage, tmp_path: P
     assert "".join(chunks) == "A" * 5 * 1024 * 1024
 
 
-
-
-
-
-
-
-
-
 @pytest.mark.asyncio
 async def test_save_upload_stream_cleanup_on_error(tmp_path: Path) -> None:
     storage = StorageFactory.create_local_storage(base_dir=tmp_path)

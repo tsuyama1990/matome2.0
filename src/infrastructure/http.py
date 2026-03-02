@@ -46,7 +46,9 @@ class HttpxAdapter(IHttpClient):
             return resp
 
     async def get(self, url: str, headers: dict[str, str], timeout: float = 30.0) -> IHttpResponse:
-        return await self._handle_request(lambda: self.client.get(url, headers=headers, timeout=timeout))
+        return await self._handle_request(
+            lambda: self.client.get(url, headers=headers, timeout=timeout)
+        )
 
     def stream_post(
         self,

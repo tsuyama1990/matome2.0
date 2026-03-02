@@ -18,6 +18,7 @@ class TestConfigFactory:
         monkeypatch.setenv("LLM__MULTIMODAL_MODEL", "test-vision")
         monkeypatch.setenv("LLM__BASE_URL", "http://test-api")
         from src.core.config import ConfigFactory
+
         return ConfigFactory.create_settings()
 
 
