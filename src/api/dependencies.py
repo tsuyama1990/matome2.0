@@ -23,7 +23,7 @@ class ConfigContainer(containers.DeclarativeContainer):
 class InfrastructureContainer(containers.DeclarativeContainer):
     """Container for infrastructure dependencies."""
 
-    config_settings = providers.Configuration()
+    config_settings: providers.Configuration = providers.Configuration()
 
     @staticmethod
     async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:

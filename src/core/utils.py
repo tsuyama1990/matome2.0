@@ -9,7 +9,7 @@ _ERROR_MSG_SHOULD_NOT_REACH_HERE = "Should not reach here"
 
 
 async def _with_retries(
-    func: Callable[[], Coroutine[Any, Any, T]], max_retries: int = 3, base_delay: float = 1.0
+    func: Callable[[], Coroutine[Any, None, T]], max_retries: int = 3, base_delay: float = 1.0
 ) -> T:
     """Retries the async function with exponential backoff on exceptions."""
     for attempt in range(max_retries):
@@ -34,10 +34,10 @@ async def _with_retries(
 
 def with_retries(
     max_retries: int = 3, base_delay: float = 1.0
-) -> Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]:
+) -> Callable[[Callable[..., Coroutine[Any, None, T]]], Callable[..., Coroutine[Any, None, T]]]:
     def decorator(
-        func: Callable[..., Coroutine[Any, Any, T]],
-    ) -> Callable[..., Coroutine[Any, Any, T]]:
+        func: Callable[..., Coroutine[Any, None, T]],
+    ) -> Callable[..., Coroutine[Any, None, T]]:
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> T:
             async def _func_wrapper() -> T:
