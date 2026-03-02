@@ -3,8 +3,9 @@ from uuid import uuid4
 
 import pytest
 
+from src.domain.models.board import AnalysisAxis, PivotBoard
 from src.domain.models.document import DocumentChunk
-from src.domain.models.node import AnalysisAxis, ConceptNode, PivotBoard
+from src.domain.models.node import ConceptNode
 
 
 @pytest.mark.asyncio

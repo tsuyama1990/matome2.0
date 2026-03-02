@@ -43,6 +43,7 @@ def import_dependencies() -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, 
         MockDocumentChunk,
         MockPivotBoard,
     )
+
     mock_analysis_axis = MockAnalysisAxis
     mock_concept_node = MockConceptNode
     mock_document_chunk = MockDocumentChunk
