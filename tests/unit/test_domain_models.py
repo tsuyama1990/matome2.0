@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from src.domain_models.config import AppDomainConfig, SubConfig
 from src.domain_models.manifest import ProjectManifest
 
+
 def test_project_manifest_valid() -> None:
     manifest = ProjectManifest(project_name="TestApp", version="1.0.0", description="A test application")
     assert manifest.project_name == "TestApp"

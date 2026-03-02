@@ -8,9 +8,10 @@ class BaseManifestModel(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    def update_model(self, **kwargs: object) -> typing.Self:
+    def update_model(self, **kwargs: typing.Any) -> typing.Self:
         """Creates an updated copy of the model, maintaining immutability."""
-        return self.model_copy(update=kwargs)
+        update_dict: dict[str, typing.Any] = kwargs
+        return self.model_copy(update=update_dict)
 
 
 class ProjectManifest(BaseManifestModel):
