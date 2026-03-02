@@ -16,9 +16,11 @@ class IFileStorage(ABC):
         """Checks if a file exists.
 
         Args:
-            path (str): Path to check. Must be validated against the storage base
-                        directory bounds to prevent Path Traversal vulnerabilities.
-                        Implementations should reject invalid paths.
+            path (str): Path to check. Must be explicitly validated using operations
+                        like `Path.relative_to(base_dir)` to guarantee it stays strictly
+                        within the pre-configured storage bounds, rejecting directory
+                        traversal attacks (e.g., paths containing `../`).
+
         Returns:
             bool: True if it exists safely, False otherwise.
         """
@@ -66,11 +68,14 @@ class IFileStorage(ABC):
         """
 
     @abstractmethod
-    def read_file_stream_async(self, path: str) -> AsyncGenerator[str, None]:
+    def read_file_stream_async(
+        self, path: str, encoding: str = "utf-8"
+    ) -> AsyncGenerator[str, None]:
         """Reads a file asynchronously, yielding safely decoded text chunks.
 
         Args:
             path (str): The path to the file.
+            encoding (str): Text encoding.
 
         Raises:
             FileNotFoundError: If the requested path does not exist.

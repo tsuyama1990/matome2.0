@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from src.core import constants
 
 
 def _load_defaults() -> dict[str, Any]:
@@ -18,41 +16,77 @@ def _load_defaults() -> dict[str, Any]:
             return {}
     return {}
 
+
 _defaults = _load_defaults()
-
-class ConfigFactory:
-    """Factory to create and configure AppSettings instances."""
-
-    @staticmethod
-    def create_settings(**kwargs: Any) -> "AppSettings":
-        """Initializes and returns an AppSettings instance."""
-        return AppSettings(**kwargs)
 
 
 class LLMSettings(BaseModel):
     """Configuration specific to LLM interactions."""
+
+    provider: Literal["openrouter", "openai", "anthropic"] = Field(default="openrouter")
     api_key: SecretStr = Field(default=SecretStr(""))
-    text_fast_model: str = Field(default_factory=lambda: _defaults.get("text_fast_model", constants.DEFAULT_TEXT_FAST_MODEL))
-    text_reasoning_model: str = Field(default_factory=lambda: _defaults.get("text_reasoning_model", constants.DEFAULT_TEXT_REASONING_MODEL))
-    multimodal_model: str = Field(default_factory=lambda: _defaults.get("multimodal_model", constants.DEFAULT_MULTIMODAL_MODEL))
-    base_url: HttpUrl | str = Field(default_factory=lambda: _defaults.get("openrouter_base_url", constants.DEFAULT_OPENROUTER_BASE_URL))
-    timeout: float = Field(default_factory=lambda: _defaults.get("llm_timeout", constants.DEFAULT_LLM_TIMEOUT))
+    text_fast_model: str = Field(
+        default_factory=lambda: _defaults.get("text_fast_model", "google/gemini-2.5-flash")
+    )
+    text_reasoning_model: str = Field(
+        default_factory=lambda: _defaults.get("text_reasoning_model", "deepseek/deepseek-reasoner")
+    )
+    multimodal_model: str = Field(
+        default_factory=lambda: _defaults.get("multimodal_model", "google/gemini-2.5-pro")
+    )
+    base_url: HttpUrl | str = Field(
+        default_factory=lambda: _defaults.get(
+            "openrouter_base_url", "https://openrouter.ai/api/v1/chat/completions"
+        )
+    )
+    timeout: float = Field(default_factory=lambda: _defaults.get("llm_timeout", 30.0))
 
 
 class VectorStoreSettings(BaseModel):
     """Configuration specific to Vector Database."""
+
     api_key: SecretStr = Field(default=SecretStr(""))
-    index_name: str = Field(default_factory=lambda: _defaults.get("pinecone_index_name", constants.DEFAULT_PINECONE_INDEX_NAME))
+    index_name: str = Field(
+        default_factory=lambda: _defaults.get("pinecone_index_name", "matome-index")
+    )
 
 
 class StorageSettings(BaseModel):
     """Configuration specific to storage backends."""
-    base_dir: str = Field(default_factory=lambda: _defaults.get("storage_base_dir", constants.DEFAULT_STORAGE_BASE_DIR))
+
+    base_dir: str = Field(default_factory=lambda: _defaults.get("storage_base_dir", "./data"))
+
+
+class ConfigValidator:
+    """Validator class to check configuration rules independently."""
+
+    @staticmethod
+    def validate_keys(settings: "AppSettings") -> None:
+        """Validates that critical API keys are present."""
+        if settings.environment == "prod" and (
+            not settings.llm.api_key.get_secret_value()
+            or not settings.vector_store.api_key.get_secret_value()
+        ):
+            msg = "Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."
+            raise ValueError(msg)
+        if not settings.llm.api_key.get_secret_value():
+            msg = (
+                "OPENROUTER_API_KEY environment variable is not set or is empty. "
+                "Without this key, the OpenRouter LLM generation services will be unavailable."
+            )
+            raise ValueError(msg)
+        if not settings.vector_store.api_key.get_secret_value():
+            msg = (
+                "PINECONE_API_KEY environment variable is not set or is empty. "
+                "Without this key, the Pinecone Vector Store semantic searches will be unavailable."
+            )
+            raise ValueError(msg)
 
 
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
 
+    environment: Literal["dev", "staging", "prod"] = Field(default="dev")
     llm: LLMSettings = Field(default_factory=LLMSettings)
     vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
@@ -63,22 +97,7 @@ class AppSettings(BaseSettings):
 
     def model_post_init(self, __context: Any) -> None:
         """Automatically checks validation upon startup correctly."""
-        self.validate_keys()
-
-    def validate_keys(self) -> None:
-        """Validates that critical API keys are present."""
-        if not self.llm.api_key.get_secret_value():
-            msg = (
-                "OPENROUTER_API_KEY environment variable is not set or is empty. "
-                "Without this key, the OpenRouter LLM generation services will be unavailable."
-            )
-            raise ValueError(msg)
-        if not self.vector_store.api_key.get_secret_value():
-            msg = (
-                "PINECONE_API_KEY environment variable is not set or is empty. "
-                "Without this key, the Pinecone Vector Store semantic searches will be unavailable."
-            )
-            raise ValueError(msg)
+        ConfigValidator.validate_keys(self)
 
 
 # For testing without loading settings right away, we defer initialization or catch the error

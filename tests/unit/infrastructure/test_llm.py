@@ -10,7 +10,7 @@ from src.core.config import AppSettings
 from src.domain.exceptions import ConfigurationError
 from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpClientFactory
-from src.infrastructure.llm import LLMClientFactory, OpenRouterClient, OpenRouterConfig
+from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRo
         base_url=test_config.llm.base_url,
         timeout=test_config.llm.timeout,
     )
-    return LLMClientFactory.create_openrouter_client(config=config, client=mock_httpx_client)
+    return OpenRouterClient(config=config, client=mock_httpx_client)
 
 
 def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
@@ -37,16 +37,16 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
         timeout=10.0,
     )
     with pytest.raises(ConfigurationError, match="base_url must be a valid HTTP/HTTPS URL"):
-        LLMClientFactory.create_openrouter_client(config=config, client=mock_httpx_client)
+        OpenRouterClient(config=config, client=mock_httpx_client)
 
     config.base_url = "http://valid.url"
     config.api_key = SecretStr("")
-    client = LLMClientFactory.create_openrouter_client(config=config, client=mock_httpx_client)
+    client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="api_key must not be empty"):
         client._get_headers()
 
     config.api_key = SecretStr("sk-or-v1-key\nwith\nnewline")
-    client = LLMClientFactory.create_openrouter_client(config=config, client=mock_httpx_client)
+    client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="Invalid characters in API key"):
         client._get_headers()
 
@@ -447,7 +447,9 @@ def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
         base_url="http://valid.url",
         timeout=10.0,
     )
-    client = LLMClientFactory.create_openrouter_client(config=config, client=mock_httpx_client)
+    from src.infrastructure.llm import OpenRouterClient
+
+    client = OpenRouterClient(config=config, client=mock_httpx_client)
     with pytest.raises(ConfigurationError, match="API key fails pattern validation"):
         client._get_headers()
 

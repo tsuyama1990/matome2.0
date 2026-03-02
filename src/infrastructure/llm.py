@@ -22,15 +22,6 @@ class OpenRouterConfig:
     timeout: float
 
 
-class LLMClientFactory:
-    """Factory to create and configure ILLMProvider instances."""
-
-    @staticmethod
-    def create_openrouter_client(config: OpenRouterConfig, client: IHttpClient) -> "OpenRouterClient":
-        """Initializes and returns an OpenRouterClient."""
-        return OpenRouterClient(config=config, client=client)
-
-
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
@@ -97,7 +88,9 @@ class OpenRouterClient(ILLMProvider):
         }
 
         try:
-            response = await self.client.post(str(self.config.base_url), headers=headers, json=payload)
+            response = await self.client.post(
+                str(self.config.base_url), headers=headers, json=payload
+            )
             response.raise_for_status()
             data = response.json()
 
@@ -156,7 +149,9 @@ class OpenRouterClient(ILLMProvider):
 
         async def _connect() -> Any:
             try:
-                cm = self.client.stream_post(str(self.config.base_url), headers=headers, json=payload)
+                cm = self.client.stream_post(
+                    str(self.config.base_url), headers=headers, json=payload
+                )
                 resp = await cm.__aenter__()
                 resp.raise_for_status()
             except Exception as e:

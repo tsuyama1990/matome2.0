@@ -31,6 +31,13 @@ class IHttpClient(ABC):
     async def get(self, url: str, headers: dict[str, str], timeout: float = 30.0) -> IHttpResponse:
         """Performs an asynchronous GET request.
 
+        Args:
+            url (str): The endpoint to send the request to.
+            headers (dict): Request headers.
+            timeout (float): The maximum duration (in seconds) to wait for a connection
+                             and response before aborting. Implementations must translate
+                             underlying library-specific timeouts to standard TimeoutError.
+
         Raises:
             TimeoutError: If the request exceeds the timeout period.
             ConnectionError: If a network connection error occurs.

@@ -1,6 +1,6 @@
 import typing
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BaseDomainModel(BaseModel):
@@ -11,10 +11,16 @@ class BaseDomainModel(BaseModel):
     data errors.
 
     Crucially, it makes models `frozen=True` (immutable) after creation to prevent side effects
-    during passing between different application layers. If you need to update a model after it's
-    created, you MUST use the `model_copy(update={...})` method, which safely creates a new instance
-    with the modified fields without mutating the original object's state.
+    during passing between different application layers. This immutability guarantee ensures that
+    domain objects remain thread-safe and predictable across asynchronous tasks. If you need to
+    update a model after it's created, you MUST use the `update(key=value)` method. This method
+    internally wraps `model_copy(update={...})`, safely creating a new, isolated instance with
+    the modified fields without mutating the original object's internal state.
     """
+
+    schema_version: int = Field(
+        default=1, description="Schema version for data migration and backward compatibility."
+    )
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -28,5 +34,9 @@ class MutableBaseDomainModel(BaseModel):
 
     Use this base class when domain objects require modification after instantiation.
     """
+
+    schema_version: int = Field(
+        default=1, description="Schema version for data migration and backward compatibility."
+    )
 
     model_config = ConfigDict(extra="forbid")

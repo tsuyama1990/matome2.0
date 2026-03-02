@@ -16,6 +16,8 @@ class IVectorStore(ABC):
 
         Implementations must enforce strict timeout boundaries (e.g. 5 seconds)
         to prevent application hangs during degraded downstream service availability.
+        This method should internally catch any ConnectionError, TimeoutError,
+        or provider-specific exceptions and return False instead of raising.
 
         Returns:
             bool: True if the connection is healthy, otherwise False.

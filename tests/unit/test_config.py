@@ -12,15 +12,12 @@ def test_settings_initialization(test_config: AppSettings) -> None:
     assert test_config.llm.multimodal_model == "test-vision"
 
 
-from src.core.config import ConfigFactory
-
-
 def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default fallbacks when environment variables are missing."""
     # Temporarily set dummy keys so validation passes during initialization
     monkeypatch.setenv("LLM__API_KEY", "dummy")
     monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy")
-    settings = ConfigFactory.create_settings()
+    settings = AppSettings()
     assert settings.llm.text_fast_model == "google/gemini-2.5-flash"
     assert settings.llm.text_reasoning_model == "deepseek/deepseek-reasoner"
     assert settings.llm.multimodal_model == "google/gemini-2.5-pro"
@@ -32,7 +29,7 @@ def test_validate_keys_fails_on_missing_openrouter_api_key(monkeypatch: pytest.M
     with pytest.raises(
         ValueError, match="OPENROUTER_API_KEY environment variable is not set or is empty."
     ):
-        ConfigFactory.create_settings()
+        AppSettings()
 
 
 def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -41,29 +38,64 @@ def test_validate_keys_fails_on_missing_pinecone_api_key(monkeypatch: pytest.Mon
     with pytest.raises(
         ValueError, match="PINECONE_API_KEY environment variable is not set or is empty."
     ):
-        ConfigFactory.create_settings()
+        AppSettings()
 
 
 def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LLM__API_KEY", "dummy_router_key")
     monkeypatch.setenv("VECTOR_STORE__API_KEY", "dummy_pinecone_key")
-    settings = ConfigFactory.create_settings()
+    settings = AppSettings()
     # Should not raise any exception
-    settings.validate_keys()
+    from src.core.config import ConfigValidator
+
+    ConfigValidator.validate_keys(settings)
 
 
+from pydantic import SecretStr
 
 
 def test_app_settings_post_init_validates() -> None:
     # Testing that model_post_init is implicitly called and raises
     # if we bypass the environment variables
+    from src.core.config import LLMSettings, VectorStoreSettings
 
     with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is not set"):
         # We explicitly supply empty strings to bypass defaults and force validation
-        ConfigFactory.create_settings(llm={"api_key": ""}, vector_store={"api_key": "mock"})
+        AppSettings(
+            llm=LLMSettings(api_key=SecretStr("")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("mock")),
+        )
 
     with pytest.raises(ValueError, match="PINECONE_API_KEY environment variable is not set"):
-        ConfigFactory.create_settings(llm={"api_key": "mock"}, vector_store={"api_key": ""})
+        AppSettings(
+            llm=LLMSettings(api_key=SecretStr("mock")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("")),
+        )
+
+
+def test_validate_keys_fails_on_missing_production_keys() -> None:
+    from src.core.config import LLMSettings, VectorStoreSettings
+
+    with pytest.raises(
+        ValueError,
+        match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY.",
+    ):
+        AppSettings(
+            environment="prod",
+            llm=LLMSettings(api_key=SecretStr("")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("")),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY.",
+    ):
+        AppSettings(
+            environment="prod",
+            llm=LLMSettings(api_key=SecretStr("key")),
+            vector_store=VectorStoreSettings(api_key=SecretStr("")),
+        )
+
 
 from pathlib import Path
 
@@ -81,6 +113,7 @@ def test_load_defaults_invalid_json(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
         result = src.core.config._load_defaults()
         assert result == {}
+
 
 def test_load_defaults_file_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     import src.core.config
