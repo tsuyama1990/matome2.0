@@ -6,7 +6,12 @@ from pydantic import BaseModel
 
 
 class ILLMProvider(ABC):
-    """Abstract interface for LLM interactions."""
+    """Abstract interface for LLM interactions.
+
+    Implementations must enforce structured error handling and provide
+    adaptive retry logic (e.g. exponential backoff and jitter) to deal
+    with common remote API service degradation or throttling (429s).
+    """
 
     @abstractmethod
     async def generate_text(

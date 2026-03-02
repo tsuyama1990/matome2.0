@@ -4,7 +4,11 @@ from src.domain.models.document import DocumentChunk
 
 
 class IVectorStore(ABC):
-    """Abstract interface for a Vector Database."""
+    """Abstract interface for a Vector Database.
+
+    Implementations are strictly expected to provide error handling
+    and transient retry logic against upstream service availability drops.
+    """
 
     @abstractmethod
     async def check_health(self) -> bool:

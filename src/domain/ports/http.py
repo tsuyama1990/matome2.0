@@ -21,7 +21,11 @@ class IHttpResponse(Protocol):
 
 
 class IHttpClient(ABC):
-    """Abstract interface for making HTTP requests."""
+    """Abstract interface for making HTTP requests.
+
+    Implementations must enforce robust error handling for connection faults
+    and potentially implement retry logic with exponential backoff for transient HTTP errors.
+    """
 
     @abstractmethod
     async def get(self, url: str, headers: dict[str, str]) -> IHttpResponse:

@@ -4,7 +4,12 @@ from typing import Any
 
 
 class IFileStorage(ABC):
-    """Abstract interface for raw file storage operations."""
+    """Abstract interface for raw file storage operations.
+
+    Implementations must define explicit error handling protocols for IO access errors
+    and ideally incorporate retry logic when interfacing with unstable remote storage providers
+    (like S3 or GCS) to mitigate transient faults.
+    """
 
     @abstractmethod
     def exists(self, path: str) -> bool:
