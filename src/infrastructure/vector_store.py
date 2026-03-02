@@ -12,10 +12,36 @@ class PineconeIndexProtocol(Protocol):
         self,
         vector: list[float],
         top_k: int,
-        filter: dict[str, str] | None,  # noqa: A002
+        filter_dict: dict[str, str] | None,
         include_metadata: bool,
     ) -> dict[str, Any]: ...
     def describe_index_stats(self) -> dict[str, Any]: ...
+
+
+class PineconeIndexAdapter(PineconeIndexProtocol):
+    """Adapter to map Pinecone SDK methods to the internal protocol."""
+
+    def __init__(self, index: Any) -> None:
+        self._index = index
+
+    def upsert(self, vectors: list[dict[str, Any]]) -> None:
+        self._index.upsert(vectors=vectors)
+
+    def query(
+        self,
+        vector: list[float],
+        top_k: int,
+        filter_dict: dict[str, str] | None,
+        include_metadata: bool,
+    ) -> dict[str, Any]:
+        res = self._index.query(
+            vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
+        )
+        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", lambda: {})()
+
+    def describe_index_stats(self) -> dict[str, Any]:
+        res = self._index.describe_index_stats()
+        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", lambda: {})()
 
 
 class PineconeIndexFactory:
@@ -27,7 +53,7 @@ class PineconeIndexFactory:
         from pinecone import Pinecone
 
         pc = Pinecone(api_key=api_key)
-        return pc.Index(index_name)  # type: ignore[return-value]
+        return PineconeIndexAdapter(pc.Index(index_name))
 
 
 class VectorStoreFactory:
@@ -107,7 +133,7 @@ class PineconeClient(IVectorStore):
 
         try:
             results = self._index.query(
-                vector=query_embedding, top_k=top_k, filter=filters, include_metadata=True
+                vector=query_embedding, top_k=top_k, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
             msg = f"Pinecone query failed: {e}"

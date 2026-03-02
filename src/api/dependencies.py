@@ -4,10 +4,10 @@ from pathlib import Path
 import httpx
 from dependency_injector import containers, providers
 
-from src.core.config import AppSettings, ConfigFactory
+from src.core.config import AppSettings
 from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpClientFactory
-from src.infrastructure.llm import LLMClientFactory, OpenRouterConfig
+from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 from src.infrastructure.storage import StorageFactory
 from src.infrastructure.vector_store import PineconeIndexFactory, VectorStoreFactory
 
@@ -17,13 +17,13 @@ class ConfigContainer(containers.DeclarativeContainer):
 
     env = providers.Configuration()
     config = providers.Configuration()
-    app_settings = providers.Singleton(ConfigFactory.create_settings)
+    app_settings = providers.Singleton(AppSettings)
 
 
 class InfrastructureContainer(containers.DeclarativeContainer):
     """Container for infrastructure dependencies."""
 
-    config_settings: providers.Configuration = providers.Configuration()
+    config_settings = providers.Dependency(instance_of=AppSettings)
 
     @staticmethod
     async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:
@@ -49,7 +49,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     llm_provider = providers.Factory(
-        LLMClientFactory.create_openrouter_client,
+        OpenRouterClient,
         config=llm_config,
         client=http_client,
     )
