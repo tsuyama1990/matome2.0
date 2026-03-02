@@ -5,7 +5,8 @@ import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
-from src.infrastructure.http import HttpClientFactory, HttpxAdapter
+from src.domain.ports.http import IHttpClient
+from src.infrastructure.http import HttpClientFactory
 from src.infrastructure.llm import OpenRouterClientFactory, OpenRouterConfig
 from src.infrastructure.storage import StorageFactory
 from src.infrastructure.vector_store import PineconeClient, PineconeIndexFactory
@@ -25,7 +26,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     config_settings = providers.Configuration()
 
     @staticmethod
-    async def init_async_client(timeout: float) -> AsyncGenerator[HttpxAdapter, None]:
+    async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:
         client = httpx.AsyncClient(timeout=timeout)
         adapter = HttpClientFactory.create_httpx_adapter(client=client)
         try:
