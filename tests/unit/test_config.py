@@ -64,6 +64,8 @@ def test_app_settings_post_init_validates() -> None:
         AppSettings(openrouter_api_key=SecretStr("mock"), pinecone_api_key=SecretStr(""))
 
 from pathlib import Path
+
+
 def test_load_defaults_invalid_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import src.core.config
 
