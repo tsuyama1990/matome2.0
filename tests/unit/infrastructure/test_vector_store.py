@@ -6,7 +6,7 @@ import pytest
 
 from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
-from src.infrastructure.vector_store import PineconeClient, PineconeConfig, PineconeIndexProtocol
+from src.infrastructure.vector_store import PineconeClient, PineconeConfig, PineconeIndexProtocol, PineconeIndexAdapter
 
 
 @pytest.fixture
@@ -238,3 +238,193 @@ async def test_upsert_chunks_max_size() -> None:
 
     with pytest.raises(ValueError, match="Batch size exceeds maximum allowed \\(10000\\)"):
         await client.upsert_chunks(dummy_chunks)  # type: ignore
+
+def test_pinecone_index_adapter_upsert():
+    mock_index = MagicMock()
+    adapter = PineconeIndexAdapter(mock_index)
+    adapter.upsert([{"id": "1", "values": [0.1]}])
+    mock_index.upsert.assert_called_once_with(vectors=[{"id": "1", "values": [0.1]}])
+
+def test_pinecone_index_adapter_query_object():
+    mock_index = MagicMock()
+
+    class MockResponse:
+        def to_dict(self):
+            return {"matches": []}
+
+    mock_index.query.return_value = MockResponse()
+    adapter = PineconeIndexAdapter(mock_index)
+    res = adapter.query(vector=[0.1], top_k=5, filter_dict=None, include_metadata=True)
+    assert res == {"matches": []}
+
+def test_pinecone_index_adapter_query_dict():
+    mock_index = MagicMock()
+    mock_index.query.return_value = {"matches": []}
+    adapter = PineconeIndexAdapter(mock_index)
+    res = adapter.query(vector=[0.1], top_k=5, filter_dict=None, include_metadata=True)
+    assert res == {"matches": []}
+
+def test_pinecone_index_adapter_describe_stats_object():
+    mock_index = MagicMock()
+    class MockStats:
+        def to_dict(self):
+            return {"dimension": 1536}
+
+    mock_index.describe_index_stats.return_value = MockStats()
+    adapter = PineconeIndexAdapter(mock_index)
+    res = adapter.describe_index_stats()
+    assert res == {"dimension": 1536}
+
+def test_pinecone_index_adapter_describe_stats_dict():
+    mock_index = MagicMock()
+    mock_index.describe_index_stats.return_value = {"dimension": 1536}
+    adapter = PineconeIndexAdapter(mock_index)
+    res = adapter.describe_index_stats()
+    assert res == {"dimension": 1536}
+
+@pytest.mark.asyncio
+async def test_search_similar_handles_dict_response():
+    mock_index = MagicMock(spec=PineconeIndexProtocol)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
+
+    mock_index.query.return_value = {
+        "matches": [
+            {
+                "id": str(uuid4()),
+                "values": [0.1, 0.2, 0.3],
+                "metadata": {"text": "dict match"}
+            },
+            {
+                # Missing id, values, metadata
+            }
+        ]
+    }
+
+    res = await client.search_similar(query_embedding=[0.1], top_k=2)
+    assert len(res) == 2
+    assert res[0].text == "dict match"
+    assert res[1].text == ""
+    assert res[1].embedding is None
+
+@pytest.mark.asyncio
+async def test_search_similar_handles_missing_matches():
+    mock_index = MagicMock(spec=PineconeIndexProtocol)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
+
+    mock_index.query.return_value = {}
+
+    res = await client.search_similar(query_embedding=[0.1], top_k=2)
+    assert len(res) == 0
+
+@pytest.mark.asyncio
+async def test_search_similar_handles_object_with_none_matches():
+    mock_index = MagicMock(spec=PineconeIndexProtocol)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
+
+    class MockResponse:
+        matches = None
+
+    mock_index.query.return_value = MockResponse()
+
+    res = await client.search_similar(query_embedding=[0.1], top_k=2)
+    assert len(res) == 0
+
+@pytest.mark.asyncio
+async def test_search_similar_handles_object_missing_attributes():
+    mock_index = MagicMock(spec=PineconeIndexProtocol)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
+
+    class MockMatch:
+        id = None
+        values = None
+        metadata = None
+
+    class MockMatchWithMethod:
+        id = None
+        def values(self):
+            return [0.1]
+        metadata = None
+
+    class MockMatchWithDictId:
+        id = {"id": "test"} # should fail parsing
+        values = None
+        metadata = {"document_id": ""}
+
+    class MockMatchWithBadId:
+        id = "not-a-uuid"
+        values = None
+        metadata = {"document_id": "not-a-uuid"}
+
+    class MockResponse:
+        matches = [
+            MockMatch(),
+            MockMatchWithMethod(),
+            {"id": None, "values": None, "metadata": None},
+            MockMatchWithDictId(),
+            {"id": "test", "values": None, "metadata": {"document_id": None}},
+            MockMatchWithBadId(),
+            {"id": "test", "values": None, "metadata": {"document_id": ""}}
+        ]
+
+    mock_index.query.return_value = MockResponse()
+
+    res = await client.search_similar(query_embedding=[0.1], top_k=7)
+    assert len(res) == 7
+    assert res[0].text == ""
+    assert res[0].embedding is None
+    assert res[1].embedding is None
+    assert res[2].embedding is None
+    assert res[3].embedding is None
+    assert str(res[3].document_id) == "00000000-0000-0000-0000-000000000000"
+    assert str(res[4].document_id) == "00000000-0000-0000-0000-000000000000"
+    assert str(res[5].document_id) == "00000000-0000-0000-0000-000000000000"
+    assert str(res[6].document_id) == "00000000-0000-0000-0000-000000000000"
+
+    # Add coverage for valid id missing from missing test
+    class MockMatchValidID:
+        id = "202e8d91-a1dc-49e0-8438-2a74c2dfd1d6"
+        values = None
+        metadata = None
+
+    mock_index.query.return_value = {"matches": [MockMatchValidID()]}
+    res2 = await client.search_similar(query_embedding=[0.1], top_k=1)
+    assert str(res2[0].chunk_id) == "202e8d91-a1dc-49e0-8438-2a74c2dfd1d6"
+
+
+def test_pinecone_index_factory():
+    from src.infrastructure.vector_store import PineconeIndexFactory
+    with pytest.MonkeyPatch().context() as m:
+        class MockIndex:
+            pass
+        class MockPinecone:
+            def __init__(self, api_key):
+                self.api_key = api_key
+            def Index(self, index_name):
+                return MockIndex()
+
+        import sys
+        mock_pinecone_module = MagicMock()
+        mock_pinecone_module.Pinecone = MockPinecone
+        m.setitem(sys.modules, "pinecone", mock_pinecone_module)
+
+        index = PineconeIndexFactory.create_index("fake_key", "fake_name")
+        assert isinstance(index, PineconeIndexAdapter)
+
+def test_vector_store_factory():
+    from src.infrastructure.vector_store import VectorStoreFactory
+    mock_index = MagicMock()
+    config = PineconeConfig(max_retries=1, base_delay=1.0, batch_size=1, max_batch_size=1)
+    client = VectorStoreFactory.create_pinecone_client(mock_index, config)
+    assert isinstance(client, PineconeClient)

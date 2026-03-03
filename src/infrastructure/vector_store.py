@@ -177,7 +177,7 @@ class PineconeClient(IVectorStore):
                 meta = getattr(match, "metadata", None)
                 if meta is None and isinstance(match, dict):
                     meta = match.get("metadata", {})
-                elif meta is None:
+                if meta is None:
                     meta = {}
 
                 import uuid
@@ -185,17 +185,33 @@ class PineconeClient(IVectorStore):
                 match_id = getattr(match, "id", None)
                 if match_id is None and isinstance(match, dict):
                     match_id = match.get("id")
-                if match_id is None:
+                if match_id is None or not isinstance(match_id, str):
                     match_id = str(uuid.uuid4())
+                else:
+                    try:
+                        uuid.UUID(match_id)
+                    except ValueError:
+                        match_id = str(uuid.uuid4())
 
                 match_values = getattr(match, "values", None)
                 if match_values is None and isinstance(match, dict):
                     match_values = match.get("values")
+                if callable(match_values):
+                    match_values = None
                 # Recover original chunk
+                doc_id = meta.pop("document_id", "00000000-0000-0000-0000-000000000000")
+                if not doc_id:
+                    doc_id = "00000000-0000-0000-0000-000000000000"
+                else:
+                    try:
+                        uuid.UUID(str(doc_id))
+                    except ValueError:
+                        doc_id = "00000000-0000-0000-0000-000000000000"
+
                 out_chunks.append(
                     DocumentChunk(
                         chunk_id=uuid.UUID(str(match_id)),
-                        document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
+                        document_id=uuid.UUID(str(doc_id)),
                         text=meta.pop("text", ""),
                         metadata=meta,
                         embedding=match_values,
