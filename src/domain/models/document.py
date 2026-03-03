@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from src.domain.models.base import BaseDomainModel
 
@@ -16,3 +16,10 @@ class DocumentChunk(BaseDomainModel):
         default_factory=dict, description="Extracted entities and tags"
     )
     embedding: list[float] | None = None
+
+    @field_validator("embedding")
+    @classmethod
+    def validate_embedding(cls, v: list[float] | None) -> list[float] | None:
+        if v is not None and len(v) == 0:
+            raise ValueError("Embedding must not be empty if provided")
+        return v

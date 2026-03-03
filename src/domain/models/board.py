@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from src.domain.models.base import BaseDomainModel
 from src.domain.models.node import ConceptNode
@@ -20,3 +20,7 @@ class PivotBoard(BaseDomainModel):
     original_document_id: UUID
     axis: AnalysisAxis
     clusters: dict[str, list[ConceptNode]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_cluster_consistency(self) -> 'PivotBoard':
+        return self

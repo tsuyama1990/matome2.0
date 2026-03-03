@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, HttpUrl, SecretStr
+from pydantic import BaseModel, Field, HttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -68,32 +68,6 @@ class StorageSettings(BaseModel):
     )
 
 
-class ConfigValidator:
-    """Validator class to check configuration rules independently."""
-
-    @staticmethod
-    def validate_keys(settings: "AppSettings") -> None:
-        """Validates that critical API keys are present."""
-        if settings.environment == "prod" and (
-            not settings.llm.api_key.get_secret_value()
-            or not settings.vector_store.api_key.get_secret_value()
-        ):
-            msg = "Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."
-            raise ValueError(msg)
-        if not settings.llm.api_key.get_secret_value():
-            msg = (
-                "OPENROUTER_API_KEY environment variable is not set or is empty. "
-                "Without this key, the OpenRouter LLM generation services will be unavailable."
-            )
-            raise ValueError(msg)
-        if not settings.vector_store.api_key.get_secret_value():
-            msg = (
-                "PINECONE_API_KEY environment variable is not set or is empty. "
-                "Without this key, the Pinecone Vector Store semantic searches will be unavailable."
-            )
-            raise ValueError(msg)
-
-
 class AppSettings(BaseSettings):
     """Central configuration managed via environment variables."""
 
@@ -106,9 +80,35 @@ class AppSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"
     )
 
+
+    @field_validator("environment", mode="before")
+    @classmethod
+    def validate_environment(cls, v: Any) -> str:
+        """Ensures environment falls back cleanly if misconfigured."""
+        if isinstance(v, str) and v.lower() in ("dev", "staging", "prod"):
+            return v.lower()
+        return "dev"
+
     def model_post_init(self, __context: Any) -> None:
         """Automatically checks validation upon startup correctly."""
-        ConfigValidator.validate_keys(self)
+        if self.environment == "prod" and (
+            not self.llm.api_key.get_secret_value()
+            or not self.vector_store.api_key.get_secret_value()
+        ):
+            msg = "Production environment requires both OPENROUTER_API_KEY and PINECONE_API_KEY."
+            raise ValueError(msg)
+        if not self.llm.api_key.get_secret_value():
+            msg = (
+                "OPENROUTER_API_KEY environment variable is not set or is empty. "
+                "Without this key, the OpenRouter LLM generation services will be unavailable."
+            )
+            raise ValueError(msg)
+        if not self.vector_store.api_key.get_secret_value():
+            msg = (
+                "PINECONE_API_KEY environment variable is not set or is empty. "
+                "Without this key, the Pinecone Vector Store semantic searches will be unavailable."
+            )
+            raise ValueError(msg)
 
 
 # For testing without loading settings right away, we defer initialization or catch the error

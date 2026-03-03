@@ -66,8 +66,8 @@ def test_pivot_board_with_complex_clusters() -> None:
     """Test complex nested structure of PivotBoard."""
     axis = AnalysisAxis(name="System", dimensions=["Actors", "DataFlow"])
 
-    node1 = ConceptNode(node_id=uuid4(), title="Node 1", summary="Sum 1", level=1)
-    node2 = ConceptNode(node_id=uuid4(), title="Node 2", summary="Sum 2", level=2)
+    node1 = ConceptNode(node_id=uuid4(), title="Node 1", summary="Sum 1", level=0)
+    node2 = ConceptNode(node_id=uuid4(), title="Node 2", summary="Sum 2", level=0)
 
     board = PivotBoard(
         board_id=uuid4(),
@@ -94,7 +94,7 @@ def test_document_chunk_metadata_typing() -> None:
 
 
 def test_concept_node_unlock() -> None:
-    node = ConceptNode(node_id=uuid4(), title="Test", summary="Summary", level=1)
+    node = ConceptNode(node_id=uuid4(), title="Test", summary="Summary", level=0)
     assert node.is_unlocked is False
     node.unlock()
     assert node.is_unlocked is True

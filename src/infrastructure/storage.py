@@ -18,14 +18,13 @@ class StorageFactory:
         base_dir: str | Path,
         max_upload_size: int,
         create_dir: bool = True,
-        path_class: type[Path] = Path,
+
     ) -> IFileStorage:
         """Initializes and returns a LocalStorage instance."""
         return LocalStorage(
-            base_dir=path_class(base_dir) if isinstance(base_dir, str) else base_dir,
+            base_dir=Path(base_dir) if isinstance(base_dir, str) else base_dir,
             max_upload_size=max_upload_size,
             create_dir=create_dir,
-            path_class=path_class,
         )
 
 class LocalStorage(IFileStorage):
@@ -36,13 +35,12 @@ class LocalStorage(IFileStorage):
         base_dir: Path,
         max_upload_size: int,
         create_dir: bool = True,
-        path_class: type[Path] = Path,
+
     ) -> None:
-        self.path_class = path_class
         self.max_upload_size = max_upload_size
         # Attempt to wrap the base_dir in the path_class if it's strictly a string/path
         self.base_dir = (
-            self.path_class(base_dir) if not isinstance(base_dir, self.path_class) else base_dir
+            Path(base_dir) if isinstance(base_dir, str) else base_dir
         )
         if not self.base_dir.is_absolute():
             self.base_dir = self.base_dir.resolve()
@@ -55,11 +53,11 @@ class LocalStorage(IFileStorage):
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def exists(self, path: str) -> bool:
-        p = self.path_class(path)
+        p = Path(path)
         return p.exists()
 
     def get_metadata(self, path: str) -> dict[str, Any]:
-        p = self.path_class(path)
+        p = Path(path)
         stat = p.stat()
         return {"size": stat.st_size, "modified": stat.st_mtime}
 
@@ -103,7 +101,7 @@ class LocalStorage(IFileStorage):
 
     def read_file_stream(self, path: str) -> Generator[bytes, None, None]:
         """Reads a file yielding bytes as a stream."""
-        p = self.path_class(path)
+        p = Path(path)
         if not p.is_absolute() or not p.resolve().is_relative_to(self.base_dir.resolve()):
             err_msg = "Path traversal attempt"
             raise ValueError(err_msg)
@@ -118,7 +116,7 @@ class LocalStorage(IFileStorage):
         """Reads a file asynchronously, yielding safely decoded text chunks."""
         from anyio import Path as AnyioPath
 
-        p = self.path_class(path)
+        p = Path(path)
         anyio_p = AnyioPath(p)
         anyio_base = AnyioPath(self.base_dir)
 

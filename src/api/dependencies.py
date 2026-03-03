@@ -1,15 +1,14 @@
 from collections.abc import AsyncGenerator
-from pathlib import Path
 
 import httpx
 from dependency_injector import containers, providers
 
 from src.core.config import AppSettings
 from src.domain.ports.http import IHttpClient
-from src.infrastructure.http import HttpClientFactory
+from src.infrastructure.http import HttpxAdapter
 from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
-from src.infrastructure.storage import StorageFactory
-from src.infrastructure.vector_store import PineconeConfig, PineconeIndexFactory, VectorStoreFactory
+from src.infrastructure.storage import LocalStorage
+from src.infrastructure.vector_store import PineconeClient, PineconeConfig, PineconeIndexFactory
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -29,12 +28,19 @@ class InfrastructureContainer(containers.DeclarativeContainer):
 
     @staticmethod
     async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:
+        import logging
         client = httpx.AsyncClient(timeout=timeout)
-        adapter = HttpClientFactory.create_httpx_adapter(client=client)
+        adapter = HttpxAdapter(client=client)
         try:
             yield adapter
+        except Exception:
+            logging.error("HTTP client error", exc_info=True)
+            raise
         finally:
-            await adapter.close()
+            try:
+                await adapter.close()
+            except Exception:
+                logging.error("Failed to close HTTP client cleanly", exc_info=True)
 
     http_client = providers.Resource(
         init_async_client,
@@ -52,7 +58,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         base_delay=config_settings.provided.llm.base_delay,
     )
 
-    llm_provider = providers.Factory(
+    llm_provider = providers.Singleton(
         OpenRouterClient,
         config=llm_config,
         client=http_client,
@@ -78,16 +84,16 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
 
     vector_store = providers.Singleton(
-        VectorStoreFactory.create_pinecone_client,
+        PineconeClient,
         index=pinecone_index,
         config=pinecone_config,
     )
 
     file_storage = providers.Singleton(
-        StorageFactory.create_local_storage,
+        LocalStorage,
         base_dir=config_settings.provided.storage.base_dir,
         max_upload_size=config_settings.provided.storage.max_upload_size,
-        path_class=Path,
+
     )
 
 

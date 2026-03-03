@@ -28,8 +28,8 @@ class OpenRouterConfig:
 class OpenRouterClient(ILLMProvider):
     """Concrete implementation for OpenRouter LLM Client."""
 
-    config: OpenRouterConfig
-    client: IHttpClient
+    _config: OpenRouterConfig
+    _client: IHttpClient
 
     def __init__(
         self,
@@ -39,14 +39,14 @@ class OpenRouterClient(ILLMProvider):
         if not str(config.base_url).startswith(("http://", "https://")):
             msg = "base_url must be a valid HTTP/HTTPS URL"
             raise ConfigurationError(msg)
-        self.config = config
-        self.client = client
+        self._config = config
+        self._client = client
 
     def _get_headers(self) -> dict[str, str]:
         """Constructs secure headers for API communication."""
         import re
 
-        token = self.config.api_key.get_secret_value()
+        token = self._config.api_key.get_secret_value()
         if not token:
             msg = "api_key must not be empty"
             raise ConfigurationError(msg)
@@ -77,7 +77,7 @@ class OpenRouterClient(ILLMProvider):
         async def _func() -> str:
             return await self._generate_text(prompt, system_prompt, timeout)
 
-        return await _with_retries(_func, self.config.max_retries, self.config.base_delay)
+        return await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
     async def _generate_text(
         self,
@@ -97,13 +97,13 @@ class OpenRouterClient(ILLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         payload = {
-            "model": self.config.default_model,
+            "model": self._config.default_model,
             "messages": messages,
         }
 
         try:
-            response = await self.client.post(
-                str(self.config.base_url), headers=headers, json=payload
+            response = await self._client.post(
+                str(self._config.base_url), headers=headers, json=payload
             )
             response.raise_for_status()
             data = response.json()
@@ -156,15 +156,15 @@ class OpenRouterClient(ILLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         payload = {
-            "model": self.config.default_model,
+            "model": self._config.default_model,
             "messages": messages,
             "stream": True,
         }
 
         async def _connect() -> Any:
             try:
-                cm = self.client.stream_post(
-                    str(self.config.base_url), headers=headers, json=payload
+                cm = self._client.stream_post(
+                    str(self._config.base_url), headers=headers, json=payload
                 )
                 resp = await cm.__aenter__()
                 resp.raise_for_status()
@@ -182,12 +182,12 @@ class OpenRouterClient(ILLMProvider):
                 return cm, resp
 
         response_cm, response = await _with_retries(
-            _connect, self.config.max_retries, self.config.base_delay
+            _connect, self._config.max_retries, self._config.base_delay
         )
 
         # Now stream from the established connection
         try:
-            async with asyncio.timeout(self.config.timeout):
+            async with asyncio.timeout(self._config.timeout):
                 async for line in response.aiter_lines():
                     chunk = self._parse_stream_line(line)
                     if chunk == "[DONE]":
@@ -232,6 +232,14 @@ class OpenRouterClient(ILLMProvider):
         except json.JSONDecodeError:
             pass
         return None
+
+    def stream_extract_structured_data(
+        self,
+        prompt: str,
+        schema: type[BaseModel] | dict[str, Any],
+        system_prompt: str = "",
+    ) -> AsyncIterator[str]:
+        raise NotImplementedError
 
     async def extract_structured_data(
         self,
