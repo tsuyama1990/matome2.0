@@ -40,14 +40,14 @@ class IFileStorage(ABC):
         self,
         filename: str,
         stream: AsyncGenerator[bytes, None],
-        max_size_bytes: int = 10 * 1024 * 1024,
+        max_size_bytes: int | None = None,
     ) -> str:
         """Saves a stream of bytes to a file, returning its path.
 
         Args:
             filename (str): The name to save the file under.
             stream (AsyncGenerator[bytes, None]): An asynchronous generator yielding file chunks.
-            max_size_bytes (int): Maximum allowed file size before aborting, preventing OOM / disk full.
+            max_size_bytes (int | None): Maximum allowed file size before aborting, preventing OOM / disk full.
 
         Raises:
             ValueError: If the total size exceeds the `max_size_bytes` or if path traversal is attempted.

@@ -11,7 +11,7 @@ class IVectorStore(ABC):
     """
 
     @abstractmethod
-    async def check_health(self, timeout: float = 5.0) -> bool:
+    async def check_health(self, timeout: float | None = None) -> bool:
         """Verifies if the vector store is reachable and configured.
 
         Implementations must enforce strict timeout boundaries (e.g. 5 seconds)
@@ -37,7 +37,7 @@ class IVectorStore(ABC):
 
     @abstractmethod
     async def search_similar(
-        self, query_embedding: list[float], top_k: int = 5, filters: dict[str, str] | None = None
+        self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         """Search for semantically similar chunks.
 

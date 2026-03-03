@@ -40,6 +40,8 @@ class LLMSettings(BaseModel):
         )
     )
     timeout: float = Field(default_factory=lambda: _defaults.get("llm_timeout", 30.0))
+    max_retries: int = Field(default_factory=lambda: _defaults.get("llm_max_retries", 3))
+    base_delay: float = Field(default_factory=lambda: _defaults.get("llm_base_delay", 1.0))
 
 
 class VectorStoreSettings(BaseModel):
@@ -49,12 +51,21 @@ class VectorStoreSettings(BaseModel):
     index_name: str = Field(
         default_factory=lambda: _defaults.get("pinecone_index_name", "matome-index")
     )
+    max_retries: int = Field(default_factory=lambda: _defaults.get("vector_store_max_retries", 3))
+    base_delay: float = Field(default_factory=lambda: _defaults.get("vector_store_base_delay", 1.0))
+    batch_size: int = Field(default_factory=lambda: _defaults.get("vector_store_batch_size", 100))
+    max_batch_size: int = Field(
+        default_factory=lambda: _defaults.get("vector_store_max_batch_size", 10000)
+    )
 
 
 class StorageSettings(BaseModel):
     """Configuration specific to storage backends."""
 
     base_dir: str = Field(default_factory=lambda: _defaults.get("storage_base_dir", "./data"))
+    max_upload_size: int = Field(
+        default_factory=lambda: _defaults.get("storage_max_upload_size", 10 * 1024 * 1024)
+    )
 
 
 class ConfigValidator:

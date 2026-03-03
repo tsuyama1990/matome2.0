@@ -25,6 +25,8 @@ def llm_client(mock_httpx_client: AsyncMock, test_config: AppSettings) -> OpenRo
         default_model=test_config.llm.text_fast_model,
         base_url=test_config.llm.base_url,
         timeout=test_config.llm.timeout,
+        max_retries=3,
+        base_delay=1.0,
     )
     return OpenRouterClient(config=config, client=mock_httpx_client)
 
@@ -35,6 +37,8 @@ def test_llm_client_initialization_errors(mock_httpx_client: AsyncMock) -> None:
         default_model="m",
         base_url="invalid_url",
         timeout=10.0,
+        max_retries=3,
+        base_delay=1.0,
     )
     with pytest.raises(ConfigurationError, match="base_url must be a valid HTTP/HTTPS URL"):
         OpenRouterClient(config=config, client=mock_httpx_client)
@@ -446,6 +450,8 @@ def test_api_key_fails_pattern(mock_httpx_client: AsyncMock) -> None:
         default_model="m",
         base_url="http://valid.url",
         timeout=10.0,
+        max_retries=3,
+        base_delay=1.0,
     )
     from src.infrastructure.llm import OpenRouterClient
 

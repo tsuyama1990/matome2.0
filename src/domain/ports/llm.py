@@ -18,14 +18,14 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,
+        timeout: float | None = None,
     ) -> str:
         """Generates text from the LLM provider.
 
         Args:
             prompt (str): The main user prompt to pass to the model.
             system_prompt (str): System prompt to configure the model's behavior.
-            timeout (float): Maximum time to wait for a response before timing out.
+            timeout (float | None): Maximum time to wait for a response before timing out.
 
         Raises:
             TimeoutError: If the underlying API call exceeds the timeout period. Implementations
@@ -42,14 +42,14 @@ class ILLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,
+        timeout: float | None = None,
     ) -> AsyncIterator[str]:
         """Generates text from the LLM provider as an asynchronous stream.
 
         Args:
             prompt (str): The main user prompt.
             system_prompt (str): System prompt context.
-            timeout (float): The request timeout limit.
+            timeout (float | None): The request timeout limit.
 
         Yields:
             str: Chunks of the generated response.
