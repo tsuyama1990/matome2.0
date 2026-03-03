@@ -4,8 +4,18 @@ from uuid import uuid4
 
 import pytest
 
+from src.core.constants import (
+    ERR_EMBEDDING_CANNOT_BE_EMPTY,
+    ERR_EMBEDDING_MUST_BE_LIST,
+    ERR_EMBEDDING_MUST_BE_NUMERIC,
+    ERR_INVALID_OR_MISSING_EMBEDDING,
+    ERR_INVALID_PINECONE_API_KEY_FORMAT,
+    ERR_PINECONE_SEARCH_01,
+    ERR_PINECONE_UPSERT_01,
+    ERR_EMPTY_EMBEDDING,
+)
 from src.domain.exceptions import ConfigurationError
-from src.domain.models.document import DocumentChunk
+from tests.unit.infrastructure.test_data_factory import TestDataFactory
 from src.infrastructure.vector_store import PineconeClient, PineconeConfig, PineconeIndexProtocol, PineconeIndexAdapter
 
 
@@ -15,10 +25,14 @@ def mock_pinecone_index() -> MagicMock:
 
 
 @pytest.fixture
-def vector_client(mock_pinecone_index: MagicMock) -> PineconeClient:
+def test_config() -> PineconeConfig:
+    return PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000)
+
+@pytest.fixture
+def vector_client(mock_pinecone_index: MagicMock, test_config: PineconeConfig) -> PineconeClient:
     return PineconeClient(
         index=mock_pinecone_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
 
@@ -49,9 +63,7 @@ async def test_check_health_failure() -> None:
 async def test_upsert_chunks_success(
     vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
-    chunk = DocumentChunk(
-        chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
-    )
+    chunk = TestDataFactory.create_mock_chunk()
 
     await vector_client.upsert_chunks([chunk])
     mock_pinecone_index.upsert.assert_called_once()
@@ -59,9 +71,10 @@ async def test_upsert_chunks_success(
 
 @pytest.mark.asyncio
 async def test_upsert_chunks_missing_embedding(vector_client: PineconeClient) -> None:
-    chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=None)
+    chunk = TestDataFactory.create_mock_chunk()
+    chunk = chunk.model_copy(update={"embedding": None})
 
-    with pytest.raises(ValueError, match="has invalid or missing embedding"):
+    with pytest.raises(ValueError, match=ERR_INVALID_OR_MISSING_EMBEDDING.split("{")[0]):
         await vector_client.upsert_chunks([chunk])
 
 
@@ -95,7 +108,7 @@ async def test_search_similar_connection_error(
 ) -> None:
     mock_pinecone_index.query.side_effect = Exception("Network down")
 
-    with pytest.raises(ConnectionError, match="ERR_PINECONE_SEARCH_01"):
+    with pytest.raises(ConnectionError, match=ERR_PINECONE_SEARCH_01):
         await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
 
@@ -103,9 +116,7 @@ async def test_search_similar_connection_error(
 async def test_upsert_chunks_retry_success(
     vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
-    chunk = DocumentChunk(
-        chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
-    )
+    chunk = TestDataFactory.create_mock_chunk()
 
     mock_pinecone_index.upsert.side_effect = [Exception("Network down"), None]
 
@@ -119,15 +130,13 @@ async def test_upsert_chunks_retry_success(
 async def test_upsert_chunks_retry_failure(
     vector_client: PineconeClient, mock_pinecone_index: MagicMock
 ) -> None:
-    chunk = DocumentChunk(
-        chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1, 0.2, 0.3]
-    )
+    chunk = TestDataFactory.create_mock_chunk()
 
     mock_pinecone_index.upsert.side_effect = Exception("Network down")
 
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
-        with pytest.raises(ConnectionError, match="ERR_PINECONE_UPSERT_01"):
+        with pytest.raises(ConnectionError, match=ERR_PINECONE_UPSERT_01):
             await vector_client.upsert_chunks([chunk])
 
     assert mock_pinecone_index.upsert.call_count == 3
@@ -167,72 +176,70 @@ async def test_search_similar_retry_failure(
 
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
-        with pytest.raises(ConnectionError, match="ERR_PINECONE_SEARCH_01"):
+        with pytest.raises(ConnectionError, match=ERR_PINECONE_SEARCH_01):
             await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert mock_pinecone_index.query.call_count == 3
 
 
 @pytest.mark.asyncio
-async def test_check_health_exception() -> None:
+async def test_check_health_exception(test_config: PineconeConfig) -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     mock_index.describe_index_stats.side_effect = Exception("failed")
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     assert await client.check_health() is False
 
 
 @pytest.mark.asyncio
-async def test_upsert_chunks_batching() -> None:
+async def test_upsert_chunks_batching(test_config: PineconeConfig) -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     chunks = []
     for _ in range(150):  # > 100 to trigger batching loop
-        chunks.append(
-            DocumentChunk(
-                chunk_id=uuid4(),
-                document_id=uuid4(),
-                text="Sample",
-                embedding=[0.1, 0.2, 0.3],
-            )
-        )
+        chunks.append(TestDataFactory.create_mock_chunk())
 
     await client.upsert_chunks(chunks)
     assert mock_index.upsert.call_count == 2
 
 
 @pytest.mark.asyncio
-async def test_search_similar_invalid_query() -> None:
+async def test_search_similar_invalid_query(test_config: PineconeConfig) -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     with pytest.raises(
-        ValueError, match="query_embedding must be a valid list"
+        ValueError, match=ERR_EMBEDDING_MUST_BE_LIST
     ):
-        await client.search_similar([], top_k=5)
+        await client.search_similar(None, top_k=5) # type: ignore
 
     with pytest.raises(
-        ValueError, match="query_embedding must contain only numeric values"
+        ValueError, match=ERR_EMBEDDING_CANNOT_BE_EMPTY
     ):
-        await client.search_similar(["not", "float"], top_k=5)  # type: ignore
+        await client.search_similar(TestDataFactory.get_empty_list(), top_k=5)
+
+    with pytest.raises(
+        ValueError, match=ERR_EMBEDDING_MUST_BE_NUMERIC
+    ):
+        await client.search_similar(TestDataFactory.get_invalid_embedding(), top_k=5)
 
 
 @pytest.mark.asyncio
-async def test_upsert_chunks_max_size() -> None:
+async def test_upsert_chunks_max_size(test_config: PineconeConfig) -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     # We don't actually need to instantiate 10001 chunks, just bypass the type checker
@@ -286,11 +293,11 @@ def test_pinecone_index_adapter_describe_stats_dict():
     assert res == {"dimension": 1536}
 
 @pytest.mark.asyncio
-async def test_search_similar_handles_dict_response():
+async def test_search_similar_handles_dict_response(test_config: PineconeConfig):
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     mock_index.query.return_value = {
@@ -313,11 +320,11 @@ async def test_search_similar_handles_dict_response():
     assert res[1].embedding is None
 
 @pytest.mark.asyncio
-async def test_search_similar_handles_missing_matches():
+async def test_search_similar_handles_missing_matches(test_config: PineconeConfig):
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     mock_index.query.return_value = {}
@@ -326,11 +333,11 @@ async def test_search_similar_handles_missing_matches():
     assert len(res) == 0
 
 @pytest.mark.asyncio
-async def test_search_similar_handles_object_with_none_matches():
+async def test_search_similar_handles_object_with_none_matches(test_config: PineconeConfig):
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     class MockResponse:
@@ -342,11 +349,11 @@ async def test_search_similar_handles_object_with_none_matches():
     assert len(res) == 0
 
 @pytest.mark.asyncio
-async def test_search_similar_handles_object_missing_attributes():
+async def test_search_similar_handles_object_missing_attributes(test_config: PineconeConfig):
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     client = PineconeClient(
         index=mock_index,
-        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+        config=test_config,
     )
 
     class MockMatch:
@@ -425,14 +432,14 @@ def test_pinecone_index_factory():
         m.setitem(sys.modules, "pinecone", mock_pinecone_module)
 
         # Valid key needs alphanumeric, hyphens, and > 30 chars
-        valid_key = "a" * 35
+        valid_key = TestDataFactory.get_valid_api_key()
         index = PineconeIndexFactory.create_index(valid_key, "fake_name")
         assert isinstance(index, PineconeIndexAdapter)
 
 def test_pinecone_index_factory_invalid_key():
     from src.infrastructure.vector_store import PineconeIndexFactory
-    with pytest.raises(ValueError, match="ERR_INVALID_PINECONE_API_KEY_FORMAT"):
-        PineconeIndexFactory.create_index("", "fake_name")
+    with pytest.raises(ValueError, match=ERR_INVALID_PINECONE_API_KEY_FORMAT):
+        PineconeIndexFactory.create_index(TestDataFactory.get_invalid_api_key(), "fake_name")
 
 def test_vector_store_factory():
     from src.infrastructure.vector_store import VectorStoreFactory
@@ -469,14 +476,16 @@ async def test_upsert_chunks_empty_chunks(vector_client: PineconeClient) -> None
 
 @pytest.mark.asyncio
 async def test_upsert_chunks_invalid_embedding_empty(vector_client: PineconeClient) -> None:
-    chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[])
-    with pytest.raises(ValueError, match="has empty embedding"):
+    chunk = TestDataFactory.create_mock_chunk()
+    chunk = chunk.model_copy(update={"embedding": []})
+    with pytest.raises(ValueError, match=ERR_EMPTY_EMBEDDING.split("{")[0]):
         await vector_client.upsert_chunks([chunk])
 
 
 @pytest.mark.asyncio
 async def test_upsert_chunks_invalid_metadata(vector_client: PineconeClient) -> None:
-    chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1], metadata={"valid": "ok", "invalid": []})
+    chunk = TestDataFactory.create_mock_chunk()
+    chunk = chunk.model_copy(update={"metadata": {"valid": "ok", "invalid": []}})
     await vector_client.upsert_chunks([chunk])
 
 @pytest.mark.asyncio

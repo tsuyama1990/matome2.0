@@ -31,8 +31,8 @@ src/api/__init__.py                      0      0   100%
 src/api/dependencies.py                 41      0   100%
 src/core/__init__.py                     0      0   100%
 src/core/config.py                      55      0   100%
-src/core/constants.py                    1      0   100%
-src/core/utils.py                       34      0   100%
+src/core/constants.py                   13      0   100%
+src/core/utils.py                       42      0   100%
 src/domain/__init__.py                   0      0   100%
 src/domain/exceptions.py                 8      0   100%
 src/domain/models/__init__.py            6      0   100%
@@ -50,9 +50,9 @@ src/domain/ports/vector_store.py         9      0   100%
 src/infrastructure/http.py              41      0   100%
 src/infrastructure/llm.py              170      0   100%
 src/infrastructure/storage.py           88      0   100%
-src/infrastructure/vector_store.py     161      4    98%   158, 198-199, 246
+src/infrastructure/vector_store.py     149      2    99%   166, 244
 ------------------------------------------------------------------
-TOTAL                                  729      4    99%
-============================= 132 passed in 45.31s =============================
+TOTAL                                  737      2    99%
+============================= 132 passed in 48.33s =============================
 /app/.venv/lib/python3.12/site-packages/coverage/report_core.py:113: CoverageWarning: Couldn't parse '/app/src/dependency_injector/providers.pyx': No source for code: '/app/src/dependency_injector/providers.pyx'. (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.4/messages.html#warning-couldnt-parse
   coverage._warn(msg, slug="couldnt-parse")

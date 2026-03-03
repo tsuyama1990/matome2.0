@@ -4,7 +4,18 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from src.core.utils import _with_retries
+from src.core.constants import (
+    ERR_BATCH_SIZE_EXCEEDED,
+    ERR_EMPTY_EMBEDDING,
+    ERR_INVALID_OR_MISSING_EMBEDDING,
+    ERR_INVALID_PINECONE_API_KEY_FORMAT,
+    ERR_PINECONE_ADAPTER_QUERY_01,
+    ERR_PINECONE_ADAPTER_STATS_01,
+    ERR_PINECONE_ADAPTER_UPSERT_01,
+    ERR_PINECONE_SEARCH_01,
+    ERR_PINECONE_UPSERT_01,
+)
+from src.core.utils import _with_retries, validate_embedding
 from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
@@ -32,8 +43,8 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         try:
             self._index.upsert(vectors=vectors)
         except Exception as e:
-            logging.error("ERR_PINECONE_ADAPTER_UPSERT_01")
-            raise ConnectionError("ERR_PINECONE_ADAPTER_UPSERT_01") from e
+            logging.error(ERR_PINECONE_ADAPTER_UPSERT_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_UPSERT_01) from e
 
     def query(
         self,
@@ -48,16 +59,16 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
             )
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error("ERR_PINECONE_ADAPTER_QUERY_01")
-            raise ConnectionError("ERR_PINECONE_ADAPTER_QUERY_01") from e
+            logging.error(ERR_PINECONE_ADAPTER_QUERY_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_QUERY_01) from e
 
     def describe_index_stats(self) -> Any:
         try:
             res = self._index.describe_index_stats()
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error("ERR_PINECONE_ADAPTER_STATS_01")
-            raise ConnectionError("ERR_PINECONE_ADAPTER_STATS_01") from e
+            logging.error(ERR_PINECONE_ADAPTER_STATS_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_STATS_01) from e
 
 
 class PineconeIndexFactory:
@@ -68,7 +79,7 @@ class PineconeIndexFactory:
         """Initializes and returns a configured Pinecone index."""
         import re
         if not api_key or not isinstance(api_key, str) or len(api_key) < 30 or not re.match(r"^[a-zA-Z0-9\-]+$", api_key):
-            raise ValueError("ERR_INVALID_PINECONE_API_KEY_FORMAT")
+            raise ValueError(ERR_INVALID_PINECONE_API_KEY_FORMAT)
 
         from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
@@ -133,18 +144,15 @@ class PineconeClient(IVectorStore):
             return
 
         if len(chunks) > self._config.max_batch_size:
-            msg = f"Batch size exceeds maximum allowed ({self._config.max_batch_size})"
-            raise ValueError(msg)
+            raise ValueError(ERR_BATCH_SIZE_EXCEEDED.format(max_batch_size=self._config.max_batch_size))
 
         vectors = []
         for chunk in chunks:
             if chunk.embedding is None or not isinstance(chunk.embedding, list):
-                msg = f"Chunk {chunk.chunk_id} has invalid or missing embedding"
-                raise ValueError(msg)
+                raise ValueError(ERR_INVALID_OR_MISSING_EMBEDDING.format(chunk_id=chunk.chunk_id))
 
             if len(chunk.embedding) == 0:
-                msg = f"Chunk {chunk.chunk_id} has empty embedding"
-                raise ValueError(msg)
+                raise ValueError(ERR_EMPTY_EMBEDDING.format(chunk_id=chunk.chunk_id))
 
             # To avoid exposing raw text in vector DB metadata (Data Minimization)
             meta = {
@@ -174,9 +182,8 @@ class PineconeClient(IVectorStore):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
         except Exception as e:
-            logging.error("ERR_PINECONE_UPSERT_01")
-            msg = "ERR_PINECONE_UPSERT_01"
-            raise ConnectionError(msg) from e
+            logging.error(ERR_PINECONE_UPSERT_01)
+            raise ConnectionError(ERR_PINECONE_UPSERT_01) from e
 
     async def search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
@@ -191,15 +198,7 @@ class PineconeClient(IVectorStore):
     async def _search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
-        if not query_embedding or not isinstance(query_embedding, list):
-            msg = "query_embedding must be a valid list"
-            raise ValueError(msg)
-        if len(query_embedding) == 0:
-            msg = "query_embedding cannot be empty"
-            raise ValueError(msg)
-        if not all(isinstance(x, (int, float)) for x in query_embedding):
-            msg = "query_embedding must contain only numeric values"
-            raise ValueError(msg)
+        validate_embedding(query_embedding)
 
         # Hard limit to prevent abuse / memory exhaustion
         limit = min(top_k, 10000)
@@ -209,9 +208,8 @@ class PineconeClient(IVectorStore):
                 vector=query_embedding, top_k=limit, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
-            logging.error("ERR_PINECONE_SEARCH_01")
-            msg = "ERR_PINECONE_SEARCH_01"
-            raise ConnectionError(msg) from e
+            logging.error(ERR_PINECONE_SEARCH_01)
+            raise ConnectionError(ERR_PINECONE_SEARCH_01) from e
         else:
             out_chunks = []
             matches = getattr(results, "matches", None)
