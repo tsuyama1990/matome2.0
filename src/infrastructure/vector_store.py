@@ -32,8 +32,8 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         try:
             self._index.upsert(vectors=vectors)
         except Exception as e:
-            logging.error(f"Pinecone adapter upsert failed: {e}")
-            raise ConnectionError(f"Adapter upsert error: {e}") from e
+            logging.error("ERR_PINECONE_ADAPTER_UPSERT_01")
+            raise ConnectionError("ERR_PINECONE_ADAPTER_UPSERT_01") from e
 
     def query(
         self,
@@ -48,16 +48,16 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
             )
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error(f"Pinecone adapter query failed: {e}")
-            raise ConnectionError(f"Adapter query error: {e}") from e
+            logging.error("ERR_PINECONE_ADAPTER_QUERY_01")
+            raise ConnectionError("ERR_PINECONE_ADAPTER_QUERY_01") from e
 
     def describe_index_stats(self) -> Any:
         try:
             res = self._index.describe_index_stats()
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error(f"Pinecone adapter stats failed: {e}")
-            raise ConnectionError(f"Adapter stats error: {e}") from e
+            logging.error("ERR_PINECONE_ADAPTER_STATS_01")
+            raise ConnectionError("ERR_PINECONE_ADAPTER_STATS_01") from e
 
 
 class PineconeIndexFactory:
@@ -66,8 +66,9 @@ class PineconeIndexFactory:
     @staticmethod
     def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
         """Initializes and returns a configured Pinecone index."""
-        if not api_key or not isinstance(api_key, str) or len(api_key) < 10:
-            raise ValueError("Invalid Pinecone API key provided")
+        import re
+        if not api_key or not isinstance(api_key, str) or len(api_key) < 30 or not re.match(r"^[a-zA-Z0-9\-]+$", api_key):
+            raise ValueError("ERR_INVALID_PINECONE_API_KEY_FORMAT")
 
         from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
@@ -123,11 +124,11 @@ class PineconeClient(IVectorStore):
         """Insert or update chunks into the vector store."""
 
         async def _func() -> None:
-            await self.__upsert_chunks(chunks)
+            await self._upsert_chunks(chunks)
 
         await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
-    async def __upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
+    async def _upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         if not chunks:
             return
 
@@ -145,13 +146,16 @@ class PineconeClient(IVectorStore):
                 msg = f"Chunk {chunk.chunk_id} has empty embedding"
                 raise ValueError(msg)
 
+            # To avoid exposing raw text in vector DB metadata (Data Minimization)
             meta = {
                 "document_id": str(chunk.document_id),
-                "text": str(chunk.text)[:10000],  # Sanitize to prevent huge payloads
             }
 
             if isinstance(chunk.metadata, dict):
                 for k, v in chunk.metadata.items():
+                    # explicitly exclude text if someone shoved it in metadata
+                    if k == "text":
+                        continue
                     if isinstance(v, (str, int, float, bool)):
                         meta[k] = v
 
@@ -170,8 +174,8 @@ class PineconeClient(IVectorStore):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
         except Exception as e:
-            logging.error(f"Pinecone upsert failed: {e}")
-            msg = f"Pinecone upsert failed: {e}"
+            logging.error("ERR_PINECONE_UPSERT_01")
+            msg = "ERR_PINECONE_UPSERT_01"
             raise ConnectionError(msg) from e
 
     async def search_similar(
@@ -180,15 +184,21 @@ class PineconeClient(IVectorStore):
         """Search for semantically similar chunks."""
 
         async def _func() -> list[DocumentChunk]:
-            return await self.__search_similar(query_embedding, top_k, filters)
+            return await self._search_similar(query_embedding, top_k, filters)
 
         return await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
-    async def __search_similar(
+    async def _search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
-        if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
-            msg = "query_embedding must be a non-empty list of numeric values"
+        if not query_embedding or not isinstance(query_embedding, list):
+            msg = "query_embedding must be a valid list"
+            raise ValueError(msg)
+        if len(query_embedding) == 0:
+            msg = "query_embedding cannot be empty"
+            raise ValueError(msg)
+        if not all(isinstance(x, (int, float)) for x in query_embedding):
+            msg = "query_embedding must contain only numeric values"
             raise ValueError(msg)
 
         # Hard limit to prevent abuse / memory exhaustion
@@ -199,8 +209,8 @@ class PineconeClient(IVectorStore):
                 vector=query_embedding, top_k=limit, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
-            logging.error(f"Pinecone query failed: {e}")
-            msg = f"Pinecone query failed: {e}"
+            logging.error("ERR_PINECONE_SEARCH_01")
+            msg = "ERR_PINECONE_SEARCH_01"
             raise ConnectionError(msg) from e
         else:
             out_chunks = []
@@ -250,7 +260,7 @@ class PineconeClient(IVectorStore):
                     DocumentChunk(
                         chunk_id=uuid.UUID(str(match_id)),
                         document_id=uuid.UUID(str(doc_id)),
-                        text=meta.pop("text", ""),
+                        text="",  # Text is omitted from metadata per security minimization
                         metadata=meta,
                         embedding=match_values,
                     )

@@ -68,9 +68,11 @@ def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:
     sys.modules["pinecone"] = module
 
     try:
-        index = PineconeIndexFactory.create_index("test_key__mock", "test_index")
+        # Mock key needs to pass regex and length
+        valid_key = "a" * 35
+        index = PineconeIndexFactory.create_index(valid_key, "test_index")
         assert index._index == "MockIndex"  # type: ignore[attr-defined]
-        mock_pinecone.assert_called_once_with(api_key="test_key__mock")
+        mock_pinecone.assert_called_once_with(api_key=valid_key)
         mock_pinecone_instance.Index.assert_called_once_with("test_index")
     finally:
         del sys.modules["pinecone"]

@@ -75,7 +75,6 @@ async def test_search_similar_success(
     mock_match.values = [0.1, 0.2, 0.3]
     mock_match.metadata = {
         "document_id": str(uuid4()),
-        "text": "Test result",
         "extra_meta": "value",
     }
 
@@ -86,7 +85,7 @@ async def test_search_similar_success(
     results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert len(results) == 1
-    assert results[0].text == "Test result"
+    assert results[0].text == ""
     assert results[0].metadata["extra_meta"] == "value"
 
 
@@ -96,7 +95,7 @@ async def test_search_similar_connection_error(
 ) -> None:
     mock_pinecone_index.query.side_effect = Exception("Network down")
 
-    with pytest.raises(ConnectionError, match="Pinecone query failed"):
+    with pytest.raises(ConnectionError, match="ERR_PINECONE_SEARCH_01"):
         await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
 
@@ -128,7 +127,7 @@ async def test_upsert_chunks_retry_failure(
 
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
-        with pytest.raises(ConnectionError, match="Pinecone upsert failed"):
+        with pytest.raises(ConnectionError, match="ERR_PINECONE_UPSERT_01"):
             await vector_client.upsert_chunks([chunk])
 
     assert mock_pinecone_index.upsert.call_count == 3
@@ -143,7 +142,6 @@ async def test_search_similar_retry_success(
     mock_match.values = [0.1, 0.2, 0.3]
     mock_match.metadata = {
         "document_id": str(uuid4()),
-        "text": "Test result",
         "extra_meta": "value",
     }
 
@@ -157,7 +155,7 @@ async def test_search_similar_retry_success(
         results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert len(results) == 1
-    assert results[0].text == "Test result"
+    assert results[0].text == ""
     assert mock_pinecone_index.query.call_count == 2
 
 
@@ -169,7 +167,7 @@ async def test_search_similar_retry_failure(
 
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
-        with pytest.raises(ConnectionError, match="Pinecone query failed"):
+        with pytest.raises(ConnectionError, match="ERR_PINECONE_SEARCH_01"):
             await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert mock_pinecone_index.query.call_count == 3
@@ -219,12 +217,12 @@ async def test_search_similar_invalid_query() -> None:
     )
 
     with pytest.raises(
-        ValueError, match="query_embedding must be a non-empty list of numeric values"
+        ValueError, match="query_embedding must be a valid list"
     ):
         await client.search_similar([], top_k=5)
 
     with pytest.raises(
-        ValueError, match="query_embedding must be a non-empty list of numeric values"
+        ValueError, match="query_embedding must contain only numeric values"
     ):
         await client.search_similar(["not", "float"], top_k=5)  # type: ignore
 
@@ -310,7 +308,7 @@ async def test_search_similar_handles_dict_response():
 
     res = await client.search_similar(query_embedding=[0.1], top_k=2)
     assert len(res) == 2
-    assert res[0].text == "dict match"
+    assert res[0].text == ""  # text is dropped intentionally per security
     assert res[1].text == ""
     assert res[1].embedding is None
 
@@ -426,12 +424,14 @@ def test_pinecone_index_factory():
         mock_pinecone_module.Pinecone = MockPinecone
         m.setitem(sys.modules, "pinecone", mock_pinecone_module)
 
-        index = PineconeIndexFactory.create_index("fake_key_12345", "fake_name")
+        # Valid key needs alphanumeric, hyphens, and > 30 chars
+        valid_key = "a" * 35
+        index = PineconeIndexFactory.create_index(valid_key, "fake_name")
         assert isinstance(index, PineconeIndexAdapter)
 
 def test_pinecone_index_factory_invalid_key():
     from src.infrastructure.vector_store import PineconeIndexFactory
-    with pytest.raises(ValueError, match="Invalid Pinecone API key provided"):
+    with pytest.raises(ValueError, match="ERR_INVALID_PINECONE_API_KEY_FORMAT"):
         PineconeIndexFactory.create_index("", "fake_name")
 
 def test_vector_store_factory():
