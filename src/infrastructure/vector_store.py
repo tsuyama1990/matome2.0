@@ -1,3 +1,6 @@
+import asyncio
+import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -26,7 +29,11 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         self._index = index
 
     def upsert(self, vectors: list[dict[str, Any]]) -> None:
-        self._index.upsert(vectors=vectors)
+        try:
+            self._index.upsert(vectors=vectors)
+        except Exception as e:
+            logging.error(f"Pinecone adapter upsert failed: {e}")
+            raise ConnectionError(f"Adapter upsert error: {e}") from e
 
     def query(
         self,
@@ -35,14 +42,22 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         filter_dict: dict[str, str] | None,
         include_metadata: bool,
     ) -> Any:
-        res = self._index.query(
-            vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
-        )
-        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        try:
+            res = self._index.query(
+                vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
+            )
+            return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        except Exception as e:
+            logging.error(f"Pinecone adapter query failed: {e}")
+            raise ConnectionError(f"Adapter query error: {e}") from e
 
     def describe_index_stats(self) -> Any:
-        res = self._index.describe_index_stats()
-        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        try:
+            res = self._index.describe_index_stats()
+            return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        except Exception as e:
+            logging.error(f"Pinecone adapter stats failed: {e}")
+            raise ConnectionError(f"Adapter stats error: {e}") from e
 
 
 class PineconeIndexFactory:
@@ -51,8 +66,10 @@ class PineconeIndexFactory:
     @staticmethod
     def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
         """Initializes and returns a configured Pinecone index."""
-        from pinecone import Pinecone
+        if not api_key or not isinstance(api_key, str) or len(api_key) < 10:
+            raise ValueError("Invalid Pinecone API key provided")
 
+        from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
         return PineconeIndexAdapter(pc.Index(index_name))
 
@@ -92,7 +109,12 @@ class PineconeClient(IVectorStore):
     async def check_health(self, timeout: float | None = None) -> bool:
         """Verifies if the vector store is reachable and configured."""
         try:
-            self._index.describe_index_stats()
+            if timeout:
+                await asyncio.wait_for(
+                    asyncio.to_thread(self._index.describe_index_stats), timeout=timeout
+                )
+            else:
+                await asyncio.to_thread(self._index.describe_index_stats)
         except Exception:
             return False
         return True
@@ -101,26 +123,37 @@ class PineconeClient(IVectorStore):
         """Insert or update chunks into the vector store."""
 
         async def _func() -> None:
-            await self._upsert_chunks(chunks)
+            await self.__upsert_chunks(chunks)
 
         await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
-    async def _upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
+    async def __upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
+        if not chunks:
+            return
+
         if len(chunks) > self._config.max_batch_size:
             msg = f"Batch size exceeds maximum allowed ({self._config.max_batch_size})"
             raise ValueError(msg)
 
         vectors = []
         for chunk in chunks:
-            if not chunk.embedding:
-                msg = f"Chunk {chunk.chunk_id} has no embedding"
+            if chunk.embedding is None or not isinstance(chunk.embedding, list):
+                msg = f"Chunk {chunk.chunk_id} has invalid or missing embedding"
+                raise ValueError(msg)
+
+            if len(chunk.embedding) == 0:
+                msg = f"Chunk {chunk.chunk_id} has empty embedding"
                 raise ValueError(msg)
 
             meta = {
                 "document_id": str(chunk.document_id),
-                "text": chunk.text,
+                "text": str(chunk.text)[:10000],  # Sanitize to prevent huge payloads
             }
-            meta.update(chunk.metadata)
+
+            if isinstance(chunk.metadata, dict):
+                for k, v in chunk.metadata.items():
+                    if isinstance(v, (str, int, float, bool)):
+                        meta[k] = v
 
             vectors.append(
                 {
@@ -137,6 +170,7 @@ class PineconeClient(IVectorStore):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
         except Exception as e:
+            logging.error(f"Pinecone upsert failed: {e}")
             msg = f"Pinecone upsert failed: {e}"
             raise ConnectionError(msg) from e
 
@@ -146,22 +180,26 @@ class PineconeClient(IVectorStore):
         """Search for semantically similar chunks."""
 
         async def _func() -> list[DocumentChunk]:
-            return await self._search_similar(query_embedding, top_k, filters)
+            return await self.__search_similar(query_embedding, top_k, filters)
 
         return await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
-    async def _search_similar(
+    async def __search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
             msg = "query_embedding must be a non-empty list of numeric values"
             raise ValueError(msg)
 
+        # Hard limit to prevent abuse / memory exhaustion
+        limit = min(top_k, 10000)
+
         try:
             results = self._index.query(
-                vector=query_embedding, top_k=top_k, filter_dict=filters, include_metadata=True
+                vector=query_embedding, top_k=limit, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
+            logging.error(f"Pinecone query failed: {e}")
             msg = f"Pinecone query failed: {e}"
             raise ConnectionError(msg) from e
         else:

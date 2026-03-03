@@ -28,6 +28,11 @@ async def test_check_health(vector_client: PineconeClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_check_health_with_timeout(vector_client: PineconeClient) -> None:
+    assert await vector_client.check_health(timeout=1.0) is True
+
+
+@pytest.mark.asyncio
 async def test_check_health_failure() -> None:
     with pytest.raises(
         ConfigurationError, match="Pinecone client must be initialized with a valid index"
@@ -56,7 +61,7 @@ async def test_upsert_chunks_success(
 async def test_upsert_chunks_missing_embedding(vector_client: PineconeClient) -> None:
     chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=None)
 
-    with pytest.raises(ValueError, match="has no embedding"):
+    with pytest.raises(ValueError, match="has invalid or missing embedding"):
         await vector_client.upsert_chunks([chunk])
 
 
@@ -375,13 +380,14 @@ async def test_search_similar_handles_object_missing_attributes():
             MockMatchWithDictId(),
             {"id": "test", "values": None, "metadata": {"document_id": None}},
             MockMatchWithBadId(),
-            {"id": "test", "values": None, "metadata": {"document_id": ""}}
+            {"id": "test", "values": None, "metadata": {"document_id": ""}},
+            {"id": "test2", "values": None, "metadata": {"document_id": "not-a-uuid"}}
         ]
 
     mock_index.query.return_value = MockResponse()
 
-    res = await client.search_similar(query_embedding=[0.1], top_k=7)
-    assert len(res) == 7
+    res = await client.search_similar(query_embedding=[0.1], top_k=8)
+    assert len(res) == 8
     assert res[0].text == ""
     assert res[0].embedding is None
     assert res[1].embedding is None
@@ -391,6 +397,7 @@ async def test_search_similar_handles_object_missing_attributes():
     assert str(res[4].document_id) == "00000000-0000-0000-0000-000000000000"
     assert str(res[5].document_id) == "00000000-0000-0000-0000-000000000000"
     assert str(res[6].document_id) == "00000000-0000-0000-0000-000000000000"
+    assert str(res[7].document_id) == "00000000-0000-0000-0000-000000000000"
 
     # Add coverage for valid id missing from missing test
     class MockMatchValidID:
@@ -419,8 +426,13 @@ def test_pinecone_index_factory():
         mock_pinecone_module.Pinecone = MockPinecone
         m.setitem(sys.modules, "pinecone", mock_pinecone_module)
 
-        index = PineconeIndexFactory.create_index("fake_key", "fake_name")
+        index = PineconeIndexFactory.create_index("fake_key_12345", "fake_name")
         assert isinstance(index, PineconeIndexAdapter)
+
+def test_pinecone_index_factory_invalid_key():
+    from src.infrastructure.vector_store import PineconeIndexFactory
+    with pytest.raises(ValueError, match="Invalid Pinecone API key provided"):
+        PineconeIndexFactory.create_index("", "fake_name")
 
 def test_vector_store_factory():
     from src.infrastructure.vector_store import VectorStoreFactory
@@ -428,3 +440,45 @@ def test_vector_store_factory():
     config = PineconeConfig(max_retries=1, base_delay=1.0, batch_size=1, max_batch_size=1)
     client = VectorStoreFactory.create_pinecone_client(mock_index, config)
     assert isinstance(client, PineconeClient)
+
+
+def test_pinecone_index_adapter_upsert_exception():
+    mock_index = MagicMock()
+    mock_index.upsert.side_effect = Exception("failed")
+    adapter = PineconeIndexAdapter(mock_index)
+    with pytest.raises(ConnectionError):
+        adapter.upsert([])
+
+def test_pinecone_index_adapter_query_exception():
+    mock_index = MagicMock()
+    mock_index.query.side_effect = Exception("failed")
+    adapter = PineconeIndexAdapter(mock_index)
+    with pytest.raises(ConnectionError):
+        adapter.query(vector=[0.1], top_k=5, filter_dict=None, include_metadata=True)
+
+def test_pinecone_index_adapter_describe_stats_exception():
+    mock_index = MagicMock()
+    mock_index.describe_index_stats.side_effect = Exception("failed")
+    adapter = PineconeIndexAdapter(mock_index)
+    with pytest.raises(ConnectionError):
+        adapter.describe_index_stats()
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_empty_chunks(vector_client: PineconeClient) -> None:
+    await vector_client.upsert_chunks([])
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_invalid_embedding_empty(vector_client: PineconeClient) -> None:
+    chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[])
+    with pytest.raises(ValueError, match="has empty embedding"):
+        await vector_client.upsert_chunks([chunk])
+
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_invalid_metadata(vector_client: PineconeClient) -> None:
+    chunk = DocumentChunk(chunk_id=uuid4(), document_id=uuid4(), text="Test", embedding=[0.1], metadata={"valid": "ok", "invalid": []})
+    await vector_client.upsert_chunks([chunk])
+
+@pytest.mark.asyncio
+async def test_upsert_chunks_empty_list_return(vector_client: PineconeClient) -> None:
+    await vector_client.upsert_chunks([])
