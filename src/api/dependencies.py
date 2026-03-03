@@ -1,5 +1,4 @@
 from collections.abc import AsyncGenerator
-from pathlib import Path
 
 import httpx
 from dependency_injector import containers, providers
@@ -87,7 +86,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         StorageFactory.create_local_storage,
         base_dir=config_settings.provided.storage.base_dir,
         max_upload_size=config_settings.provided.storage.max_upload_size,
-        path_class=Path,
+
     )
 
 

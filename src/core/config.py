@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, HttpUrl, SecretStr
+from pydantic import BaseModel, Field, HttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -105,6 +105,15 @@ class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"
     )
+
+
+    @field_validator("environment", mode="before")
+    @classmethod
+    def validate_environment(cls, v: Any) -> str:
+        """Ensures environment falls back cleanly if misconfigured."""
+        if isinstance(v, str) and v.lower() in ("dev", "staging", "prod"):
+            return v.lower()
+        return "dev"
 
     def model_post_init(self, __context: Any) -> None:
         """Automatically checks validation upon startup correctly."""

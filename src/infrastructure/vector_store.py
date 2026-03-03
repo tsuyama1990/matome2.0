@@ -36,7 +36,7 @@ class PineconeIndexProtocol(Protocol):
 class PineconeIndexAdapter(PineconeIndexProtocol):
     """Adapter to map Pinecone SDK methods to the internal protocol."""
 
-    def __init__(self, index: Any) -> None:
+    def __init__(self, index: typing.Any) -> None:  # Using typing.Any because the official Pinecone SDK is untyped and dynamic
         self._index = index
 
     def upsert(self, vectors: list[dict[str, Any]]) -> None:
