@@ -28,17 +28,6 @@ class StorageFactory:
             path_class=path_class,
         )
 
-    @staticmethod
-    def create_s3_storage(bucket_name: str) -> IFileStorage:
-        """Initializes and returns an S3 storage instance (stub)."""
-        raise NotImplementedError("S3 storage backend is not yet fully implemented.")
-
-    @staticmethod
-    def create_gcs_storage(bucket_name: str) -> IFileStorage:
-        """Initializes and returns a GCS storage instance (stub)."""
-        raise NotImplementedError("GCS storage backend is not yet fully implemented.")
-
-
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 
