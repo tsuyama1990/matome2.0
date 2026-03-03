@@ -6,7 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, HttpUrl, SecretStr
 
-from src.core.utils import _with_retries, with_retries
+from src.core.constants import API_KEY_REGEX_PATTERN
+from src.core.utils import _with_retries
 from src.domain.exceptions import ConfigurationError
 from src.domain.ports.http import IHttpClient
 from src.domain.ports.llm import ILLMProvider
@@ -20,6 +21,8 @@ class OpenRouterConfig:
     default_model: str
     base_url: HttpUrl | str
     timeout: float
+    max_retries: int
+    base_delay: float
 
 
 class OpenRouterClient(ILLMProvider):
@@ -53,7 +56,7 @@ class OpenRouterClient(ILLMProvider):
             raise ConfigurationError(msg)
 
         # Secure string format validation
-        if not re.match(r"^sk-or-v1-[a-zA-Z0-9_]+$", token) or len(token) < 20:
+        if not re.match(API_KEY_REGEX_PATTERN, token) or len(token) < 20:
             msg = "API key fails pattern validation"
             raise ConfigurationError(msg)
 
@@ -63,14 +66,25 @@ class OpenRouterClient(ILLMProvider):
             "Content-Type": "application/json",
         }
 
-    @with_retries(max_retries=3, base_delay=1.0)
     async def generate_text(
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,
+        timeout: float | None = None,
     ) -> str:
         """Generates text from the LLM provider using httpx."""
+
+        async def _func() -> str:
+            return await self._generate_text(prompt, system_prompt, timeout)
+
+        return await _with_retries(_func, self.config.max_retries, self.config.base_delay)
+
+    async def _generate_text(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        timeout: float | None = None,
+    ) -> str:
         if not prompt.strip():
             msg = "Prompt cannot be empty"
             raise ConfigurationError(msg)
@@ -131,7 +145,7 @@ class OpenRouterClient(ILLMProvider):
         self,
         prompt: str,
         system_prompt: str = "",
-        timeout: float = 30.0,
+        timeout: float | None = None,
     ) -> AsyncIterator[str]:
         """Stream implementation."""
         headers = self._get_headers()
@@ -167,7 +181,9 @@ class OpenRouterClient(ILLMProvider):
             else:
                 return cm, resp
 
-        response_cm, response = await _with_retries(_connect)
+        response_cm, response = await _with_retries(
+            _connect, self.config.max_retries, self.config.base_delay
+        )
 
         # Now stream from the established connection
         try:

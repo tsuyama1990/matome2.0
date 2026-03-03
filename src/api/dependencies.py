@@ -9,7 +9,7 @@ from src.domain.ports.http import IHttpClient
 from src.infrastructure.http import HttpClientFactory
 from src.infrastructure.llm import OpenRouterClient, OpenRouterConfig
 from src.infrastructure.storage import StorageFactory
-from src.infrastructure.vector_store import PineconeIndexFactory, VectorStoreFactory
+from src.infrastructure.vector_store import PineconeConfig, PineconeIndexFactory, VectorStoreFactory
 
 
 class ConfigContainer(containers.DeclarativeContainer):
@@ -48,6 +48,8 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         default_model=config_settings.provided.llm.text_fast_model,
         base_url=config_settings.provided.llm.base_url,
         timeout=config_settings.provided.llm.timeout,
+        max_retries=config_settings.provided.llm.max_retries,
+        base_delay=config_settings.provided.llm.base_delay,
     )
 
     llm_provider = providers.Factory(
@@ -67,14 +69,24 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         index_name=config_settings.provided.vector_store.index_name,
     )
 
+    pinecone_config = providers.Factory(
+        PineconeConfig,
+        max_retries=config_settings.provided.vector_store.max_retries,
+        base_delay=config_settings.provided.vector_store.base_delay,
+        batch_size=config_settings.provided.vector_store.batch_size,
+        max_batch_size=config_settings.provided.vector_store.max_batch_size,
+    )
+
     vector_store = providers.Singleton(
         VectorStoreFactory.create_pinecone_client,
         index=pinecone_index,
+        config=pinecone_config,
     )
 
     file_storage = providers.Singleton(
         StorageFactory.create_local_storage,
         base_dir=config_settings.provided.storage.base_dir,
+        max_upload_size=config_settings.provided.storage.max_upload_size,
         path_class=Path,
     )
 

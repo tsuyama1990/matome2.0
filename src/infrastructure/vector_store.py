@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from typing import Any, Protocol
 
-from src.core.utils import with_retries
+from src.core.utils import _with_retries
 from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
@@ -56,27 +57,39 @@ class PineconeIndexFactory:
         return PineconeIndexAdapter(pc.Index(index_name))
 
 
+@dataclass
+class PineconeConfig:
+    max_retries: int
+    base_delay: float
+    batch_size: int
+    max_batch_size: int
+
+
 class VectorStoreFactory:
     """Factory to create and configure IVectorStore instances."""
 
     @staticmethod
-    def create_pinecone_client(index: PineconeIndexProtocol) -> "PineconeClient":
+    def create_pinecone_client(
+        index: PineconeIndexProtocol, config: PineconeConfig
+    ) -> "PineconeClient":
         """Initializes and returns a PineconeClient."""
-        return PineconeClient(index=index)
+        return PineconeClient(index=index, config=config)
 
 
 class PineconeClient(IVectorStore):
     """Concrete implementation for Pinecone Vector Database."""
 
     _index: PineconeIndexProtocol
+    _config: PineconeConfig
 
-    def __init__(self, index: PineconeIndexProtocol) -> None:
+    def __init__(self, index: PineconeIndexProtocol, config: PineconeConfig) -> None:
         if index is None:
             msg = "Pinecone client must be initialized with a valid index"
             raise ConfigurationError(msg)
         self._index = index
+        self._config = config
 
-    async def check_health(self, timeout: float = 5.0) -> bool:
+    async def check_health(self, timeout: float | None = None) -> bool:
         """Verifies if the vector store is reachable and configured."""
         try:
             self._index.describe_index_stats()
@@ -84,12 +97,17 @@ class PineconeClient(IVectorStore):
             return False
         return True
 
-    @with_retries(max_retries=3, base_delay=1.0)
     async def upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         """Insert or update chunks into the vector store."""
 
-        if len(chunks) > 10000:
-            msg = "Batch size exceeds maximum allowed (10,000)"
+        async def _func() -> None:
+            await self._upsert_chunks(chunks)
+
+        await _with_retries(_func, self._config.max_retries, self._config.base_delay)
+
+    async def _upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
+        if len(chunks) > self._config.max_batch_size:
+            msg = f"Batch size exceeds maximum allowed ({self._config.max_batch_size})"
             raise ValueError(msg)
 
         vectors = []
@@ -114,7 +132,7 @@ class PineconeClient(IVectorStore):
 
         try:
             # Implement batching for large datasets
-            batch_size = 100
+            batch_size = self._config.batch_size
             for i in range(0, len(vectors), batch_size):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
@@ -122,11 +140,19 @@ class PineconeClient(IVectorStore):
             msg = f"Pinecone upsert failed: {e}"
             raise ConnectionError(msg) from e
 
-    @with_retries(max_retries=3, base_delay=1.0)
     async def search_similar(
-        self, query_embedding: list[float], top_k: int = 5, filters: dict[str, str] | None = None
+        self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
         """Search for semantically similar chunks."""
+
+        async def _func() -> list[DocumentChunk]:
+            return await self._search_similar(query_embedding, top_k, filters)
+
+        return await _with_retries(_func, self._config.max_retries, self._config.base_delay)
+
+    async def _search_similar(
+        self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
+    ) -> list[DocumentChunk]:
         if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
             msg = "query_embedding must be a non-empty list of numeric values"
             raise ValueError(msg)

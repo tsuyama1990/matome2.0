@@ -6,7 +6,7 @@ import pytest
 
 from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
-from src.infrastructure.vector_store import PineconeClient, PineconeIndexProtocol
+from src.infrastructure.vector_store import PineconeClient, PineconeConfig, PineconeIndexProtocol
 
 
 @pytest.fixture
@@ -16,7 +16,10 @@ def mock_pinecone_index() -> MagicMock:
 
 @pytest.fixture
 def vector_client(mock_pinecone_index: MagicMock) -> PineconeClient:
-    return PineconeClient(index=mock_pinecone_index)
+    return PineconeClient(
+        index=mock_pinecone_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
 
 
 @pytest.mark.asyncio
@@ -29,7 +32,12 @@ async def test_check_health_failure() -> None:
     with pytest.raises(
         ConfigurationError, match="Pinecone client must be initialized with a valid index"
     ):
-        PineconeClient(index=None)  # type: ignore
+        PineconeClient(
+            index=None,  # type: ignore
+            config=PineconeConfig(
+                max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000
+            ),
+        )
 
 
 @pytest.mark.asyncio
@@ -70,7 +78,7 @@ async def test_search_similar_success(
     mock_response.matches = [mock_match]
     mock_pinecone_index.query.return_value = mock_response
 
-    results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+    results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert len(results) == 1
     assert results[0].text == "Test result"
@@ -84,7 +92,7 @@ async def test_search_similar_connection_error(
     mock_pinecone_index.query.side_effect = Exception("Network down")
 
     with pytest.raises(ConnectionError, match="Pinecone query failed"):
-        await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+        await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
 
 @pytest.mark.asyncio
@@ -141,7 +149,7 @@ async def test_search_similar_retry_success(
 
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
-        results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+        results = await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert len(results) == 1
     assert results[0].text == "Test result"
@@ -157,7 +165,7 @@ async def test_search_similar_retry_failure(
     with pytest.MonkeyPatch().context() as m:
         m.setattr(asyncio, "sleep", AsyncMock())
         with pytest.raises(ConnectionError, match="Pinecone query failed"):
-            await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3])
+            await vector_client.search_similar(query_embedding=[0.1, 0.2, 0.3], top_k=5)
 
     assert mock_pinecone_index.query.call_count == 3
 
@@ -166,7 +174,10 @@ async def test_search_similar_retry_failure(
 async def test_check_health_exception() -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
     mock_index.describe_index_stats.side_effect = Exception("failed")
-    client = PineconeClient(index=mock_index)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
 
     assert await client.check_health() is False
 
@@ -174,7 +185,10 @@ async def test_check_health_exception() -> None:
 @pytest.mark.asyncio
 async def test_upsert_chunks_batching() -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
-    client = PineconeClient(index=mock_index)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
 
     chunks = []
     for _ in range(150):  # > 100 to trigger batching loop
@@ -194,27 +208,33 @@ async def test_upsert_chunks_batching() -> None:
 @pytest.mark.asyncio
 async def test_search_similar_invalid_query() -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
-    client = PineconeClient(index=mock_index)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
 
     with pytest.raises(
         ValueError, match="query_embedding must be a non-empty list of numeric values"
     ):
-        await client.search_similar([])
+        await client.search_similar([], top_k=5)
 
     with pytest.raises(
         ValueError, match="query_embedding must be a non-empty list of numeric values"
     ):
-        await client.search_similar(["not", "float"])
+        await client.search_similar(["not", "float"], top_k=5)  # type: ignore
 
 
 @pytest.mark.asyncio
 async def test_upsert_chunks_max_size() -> None:
     mock_index = MagicMock(spec=PineconeIndexProtocol)
-    client = PineconeClient(index=mock_index)
+    client = PineconeClient(
+        index=mock_index,
+        config=PineconeConfig(max_retries=3, base_delay=1.0, batch_size=100, max_batch_size=10000),
+    )
 
     # We don't actually need to instantiate 10001 chunks, just bypass the type checker
     # and pass a dummy list to check the length validation
     dummy_chunks = [None] * 10001
 
-    with pytest.raises(ValueError, match="Batch size exceeds maximum allowed \\(10,000\\)"):
-        await client.upsert_chunks(dummy_chunks)
+    with pytest.raises(ValueError, match="Batch size exceeds maximum allowed \\(10000\\)"):
+        await client.upsert_chunks(dummy_chunks)  # type: ignore

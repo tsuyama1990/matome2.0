@@ -15,11 +15,15 @@ class StorageFactory:
 
     @staticmethod
     def create_local_storage(
-        base_dir: str | Path, create_dir: bool = True, path_class: type[Path] = Path
+        base_dir: str | Path,
+        max_upload_size: int,
+        create_dir: bool = True,
+        path_class: type[Path] = Path,
     ) -> IFileStorage:
         """Initializes and returns a LocalStorage instance."""
         return LocalStorage(
             base_dir=path_class(base_dir) if isinstance(base_dir, str) else base_dir,
+            max_upload_size=max_upload_size,
             create_dir=create_dir,
             path_class=path_class,
         )
@@ -39,9 +43,14 @@ class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
 
     def __init__(
-        self, base_dir: Path, create_dir: bool = True, path_class: type[Path] = Path
+        self,
+        base_dir: Path,
+        max_upload_size: int,
+        create_dir: bool = True,
+        path_class: type[Path] = Path,
     ) -> None:
         self.path_class = path_class
+        self.max_upload_size = max_upload_size
         # Attempt to wrap the base_dir in the path_class if it's strictly a string/path
         self.base_dir = (
             self.path_class(base_dir) if not isinstance(base_dir, self.path_class) else base_dir
@@ -69,9 +78,11 @@ class LocalStorage(IFileStorage):
         self,
         filename: str,
         stream: AsyncGenerator[bytes, None],
-        max_size_bytes: int = 10 * 1024 * 1024,
+        max_size_bytes: int | None = None,
     ) -> str:
         """Saves a stream of bytes to a file, returning its path."""
+        if max_size_bytes is None:
+            max_size_bytes = self.max_upload_size
         safe_path = self.base_dir / filename
         if not safe_path.resolve().is_relative_to(self.base_dir.resolve()):
             err_msg = "Path traversal attempt"
