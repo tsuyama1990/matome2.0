@@ -14,7 +14,7 @@ def validate_embedding(embedding: Any) -> None:
         ERR_EMBEDDING_MUST_BE_NUMERIC,
     )
     if not isinstance(embedding, list):
-        raise ValueError(ERR_EMBEDDING_MUST_BE_LIST)
+        raise TypeError(ERR_EMBEDDING_MUST_BE_LIST)
     if len(embedding) == 0:
         raise ValueError(ERR_EMBEDDING_CANNOT_BE_EMPTY)
     if not all(isinstance(x, (int, float)) for x in embedding):

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import uuid
+import typing
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -43,7 +43,7 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         try:
             self._index.upsert(vectors=vectors)
         except Exception as e:
-            logging.error(ERR_PINECONE_ADAPTER_UPSERT_01)
+            logging.exception(ERR_PINECONE_ADAPTER_UPSERT_01)
             raise ConnectionError(ERR_PINECONE_ADAPTER_UPSERT_01) from e
 
     def query(
@@ -59,7 +59,7 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
             )
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error(ERR_PINECONE_ADAPTER_QUERY_01)
+            logging.exception(ERR_PINECONE_ADAPTER_QUERY_01)
             raise ConnectionError(ERR_PINECONE_ADAPTER_QUERY_01) from e
 
     def describe_index_stats(self) -> Any:
@@ -67,7 +67,7 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
             res = self._index.describe_index_stats()
             return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
         except Exception as e:
-            logging.error(ERR_PINECONE_ADAPTER_STATS_01)
+            logging.exception(ERR_PINECONE_ADAPTER_STATS_01)
             raise ConnectionError(ERR_PINECONE_ADAPTER_STATS_01) from e
 
 
@@ -165,7 +165,7 @@ class PineconeClient(IVectorStore):
                     if k == "text":
                         continue
                     if isinstance(v, (str, int, float, bool)):
-                        meta[k] = v
+                        meta[k] = str(v)
 
             vectors.append(
                 {
@@ -182,7 +182,7 @@ class PineconeClient(IVectorStore):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
         except Exception as e:
-            logging.error(ERR_PINECONE_UPSERT_01)
+            logging.exception(ERR_PINECONE_UPSERT_01)
             raise ConnectionError(ERR_PINECONE_UPSERT_01) from e
 
     async def search_similar(
@@ -194,6 +194,48 @@ class PineconeClient(IVectorStore):
             return await self._search_similar(query_embedding, top_k, filters)
 
         return await _with_retries(_func, self._config.max_retries, self._config.base_delay)
+
+    def _parse_match(self, match: typing.Any) -> DocumentChunk:
+        import uuid
+        meta = getattr(match, "metadata", None)
+        if meta is None and isinstance(match, dict):
+            meta = match.get("metadata", {})
+        if meta is None:
+            meta = {}
+
+        match_id = getattr(match, "id", None)
+        if match_id is None and isinstance(match, dict):
+            match_id = match.get("id")
+        if match_id is None or not isinstance(match_id, str):
+            match_id = str(uuid.uuid4())
+        else:
+            try:
+                uuid.UUID(match_id)
+            except ValueError:
+                match_id = str(uuid.uuid4())
+
+        match_values = getattr(match, "values", None)
+        if match_values is None and isinstance(match, dict):
+            match_values = match.get("values")
+        if callable(match_values):
+            match_values = None
+        # Recover original chunk
+        doc_id = meta.pop("document_id", "00000000-0000-0000-0000-000000000000")
+        if not doc_id:
+            doc_id = "00000000-0000-0000-0000-000000000000"
+        else:
+            try:
+                uuid.UUID(str(doc_id))
+            except ValueError:
+                doc_id = "00000000-0000-0000-0000-000000000000"
+
+        return DocumentChunk(
+            chunk_id=uuid.UUID(str(match_id)),
+            document_id=uuid.UUID(str(doc_id)),
+            text="",  # Text is omitted from metadata per security minimization
+            metadata=meta,
+            embedding=match_values,
+        )
 
     async def _search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
@@ -208,7 +250,7 @@ class PineconeClient(IVectorStore):
                 vector=query_embedding, top_k=limit, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
-            logging.error(ERR_PINECONE_SEARCH_01)
+            logging.exception(ERR_PINECONE_SEARCH_01)
             raise ConnectionError(ERR_PINECONE_SEARCH_01) from e
         else:
             out_chunks = []
@@ -219,48 +261,5 @@ class PineconeClient(IVectorStore):
                 matches = []
 
             for match in matches:
-                # Handle either dict or object response from Pinecone
-                meta = getattr(match, "metadata", None)
-                if meta is None and isinstance(match, dict):
-                    meta = match.get("metadata", {})
-                if meta is None:
-                    meta = {}
-
-                import uuid
-
-                match_id = getattr(match, "id", None)
-                if match_id is None and isinstance(match, dict):
-                    match_id = match.get("id")
-                if match_id is None or not isinstance(match_id, str):
-                    match_id = str(uuid.uuid4())
-                else:
-                    try:
-                        uuid.UUID(match_id)
-                    except ValueError:
-                        match_id = str(uuid.uuid4())
-
-                match_values = getattr(match, "values", None)
-                if match_values is None and isinstance(match, dict):
-                    match_values = match.get("values")
-                if callable(match_values):
-                    match_values = None
-                # Recover original chunk
-                doc_id = meta.pop("document_id", "00000000-0000-0000-0000-000000000000")
-                if not doc_id:
-                    doc_id = "00000000-0000-0000-0000-000000000000"
-                else:
-                    try:
-                        uuid.UUID(str(doc_id))
-                    except ValueError:
-                        doc_id = "00000000-0000-0000-0000-000000000000"
-
-                out_chunks.append(
-                    DocumentChunk(
-                        chunk_id=uuid.UUID(str(match_id)),
-                        document_id=uuid.UUID(str(doc_id)),
-                        text="",  # Text is omitted from metadata per security minimization
-                        metadata=meta,
-                        embedding=match_values,
-                    )
-                )
+                out_chunks.append(self._parse_match(match))
             return out_chunks
