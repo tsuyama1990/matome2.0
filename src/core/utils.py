@@ -7,6 +7,28 @@ T = TypeVar("T")
 
 _ERROR_MSG_SHOULD_NOT_REACH_HERE = "Should not reach here"
 
+def validate_embedding(embedding: Any) -> None:
+    from src.core.constants import (
+        ERR_EMBEDDING_CANNOT_BE_EMPTY,
+        ERR_EMBEDDING_MUST_BE_LIST,
+        ERR_EMBEDDING_MUST_BE_NUMERIC,
+    )
+    # Check if the object is iterable and supports __len__ but is not a string
+    if not hasattr(embedding, "__iter__") or isinstance(embedding, str):
+        raise ValueError(ERR_EMBEDDING_MUST_BE_LIST)
+    try:
+        length = len(embedding)
+    except TypeError:
+        raise ValueError(ERR_EMBEDDING_MUST_BE_LIST)
+
+    if length == 0:
+        raise ValueError(ERR_EMBEDDING_CANNOT_BE_EMPTY)
+
+    # Support numeric validation even if it's a numpy array or similar wrapper
+    for x in embedding:
+        if not hasattr(x, "__float__") and not isinstance(x, (int, float)):
+            raise ValueError(ERR_EMBEDDING_MUST_BE_NUMERIC)
+
 
 async def _with_retries(
     func: Callable[[], Coroutine[Any, None, T]], max_retries: int = 3, base_delay: float = 1.0
