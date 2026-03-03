@@ -215,10 +215,151 @@ def display_step_four(
         ### Mermaid Diagram
         \n{mermaid_code}\n
 
-        **Congratulations! You have completed the UAT flow.**
+        **Congratulations! You have completed UAT-01.**
         """
     )
     return (mermaid_code, _message)
+
+
+@app.cell
+def display_uat2_step_one(mo: Any) -> tuple[marimo.Html]:
+    _message = mo.md(
+        """
+        ---
+        # Scenario UAT-02: Multi-Dimensional Analysis for a Consultant (Advanced)
+
+        ## Step 1: Ingestion
+
+        As a consultant, you need to synthesize multiple reports. You upload three separate documents detailing:
+        1. Market Trends
+        2. Competitor Analysis
+        3. Regulatory Changes
+        """
+    )
+    return (_message,)
+
+
+@app.cell
+def ingest_uat2_docs(
+    tutorial_data_factory: type[TutorialDataFactory],
+    uuid4: Callable[[], Any],
+    mo: Any
+) -> tuple[tuple[MockDocumentChunk, MockDocumentChunk, MockDocumentChunk], marimo.Html]:
+    docs = tutorial_data_factory.create_mock_uat2_docs(uuid4)
+    _message = mo.md(f"**Success:** Ingested {len(docs)} documents.")
+    return docs, _message
+
+
+@app.cell
+def display_uat2_step_two(mo: Any) -> tuple[marimo.Html]:
+    _message = mo.md(
+        """
+        ## Step 2: Exploration
+
+        You navigate the massive combined knowledge tree using the Semantic Zoom UI.
+        You never lose your place thanks to the minimap and breadcrumbs:
+
+        *Breadcrumbs: Home > Europe > Energy Sector > **Regulatory Constraints***
+        """
+    )
+    return (_message,)
+
+
+@app.cell
+def display_uat2_step_three(mo: Any) -> tuple[marimo.Html]:
+    _message = mo.md(
+        """
+        ## Step 3: Restructuring (Pivot KJ)
+
+        You define a custom axis: "Opportunities vs Threats in the European Market."
+        The system pulls data across all three documents and physically reorganises the nodes into a custom matrix on the canvas.
+        """
+    )
+    return (_message,)
+
+
+@app.cell
+def create_uat2_pivot_board(
+    tutorial_data_factory: type[TutorialDataFactory],
+    docs: tuple[MockDocumentChunk, MockDocumentChunk, MockDocumentChunk],
+    uuid4: Callable[[], Any],
+    mock_pivot_board: Any,
+    mo: Any
+) -> tuple[MockPivotBoard, MockConceptNode, marimo.Html]:
+    uat2_axis = tutorial_data_factory.create_mock_uat2_axis()
+    chunk_refs = [d.chunk_id for d in docs]
+    uat2_clusters = tutorial_data_factory.create_mock_uat2_clusters(uuid4, chunk_refs)
+
+    uat2_board = mock_pivot_board(
+        board_id=uuid4(),
+        original_document_id=docs[0].document_id, # Simplified for mock
+        axis=uat2_axis,
+        clusters=uat2_clusters,
+    )
+
+    threat_node = uat2_clusters["Threats"][0]
+
+    _message = mo.md(
+        f"**Created Pivot Board!** Axis: {uat2_board.axis.name}\n\n"
+        f"Identified Threat Node: **{threat_node.title}**"
+    )
+    return uat2_board, threat_node, _message
+
+
+@app.cell
+async def display_uat2_step_four(
+    threat_node: MockConceptNode,
+    llm_simulator_service: type[LLMSimulatorService],
+    mo: Any
+) -> tuple[marimo.Html]:
+    uat2_simulator = llm_simulator_service(required_keywords=[])
+    suggestion = await uat2_simulator.get_web_grounding_suggestion(threat_node.title)
+
+    _message = mo.md(
+        f"""
+        ## Step 4: Web-Grounding
+
+        The AI flags the "{threat_node.title}" node regarding a specific law and suggests:
+
+        > "{suggestion}"
+
+        Would you like to accept this suggestion and downgrade the threat to Neutral?
+        """
+    )
+    return (_message,)
+
+
+@app.cell
+def uat2_accept_suggestion(
+    mo: Any,
+    uat2_board: MockPivotBoard,
+    threat_node: MockConceptNode
+) -> tuple[marimo.ui.button]:
+    accept_btn = mo.ui.button(label="Accept Suggestion & Downgrade", on_change=lambda _: True)
+    return (accept_btn,)
+
+
+@app.cell
+def handle_uat2_downgrade(
+    accept_btn: marimo.ui.button,
+    uat2_board: MockPivotBoard,
+    threat_node: MockConceptNode,
+    mo: Any
+) -> tuple[marimo.Html]:
+    if accept_btn.value:
+        # State mutation for the mock UAT
+        if threat_node in uat2_board.clusters["Threats"]:
+            uat2_board.clusters["Threats"].remove(threat_node)
+            uat2_board.clusters["Neutral"].append(threat_node)
+
+        _message = mo.md(
+            f"**Success!** Node '{threat_node.title}' has been moved to the **Neutral** cluster.\n\n"
+            "**Congratulations! You have completed UAT-02.**"
+        )
+    else:
+        _message = mo.md("*Awaiting your decision...*")
+
+    return (_message,)
 
 
 if __name__ == "__main__":

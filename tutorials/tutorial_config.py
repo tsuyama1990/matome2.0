@@ -12,11 +12,19 @@ TUTORIAL_TEXTS = {
     "chunk_2": "Manager approval is required for all travel expenses.",
     "root_summary": "High-level overview of company approval processes.",
     "locked_summary": "Detailed breakdown of budget thresholds requiring executive sign-off.",
+    # UAT-02 Texts
+    "uat2_doc1": "Market trends indicate a shift towards renewable energy in Europe.",
+    "uat2_doc2": "Competitor X is investing heavily in solar panel manufacturing.",
+    "uat2_doc3": "New regulatory changes will impose strict tariffs on non-green imports by 2026.",
+    "uat2_threat_summary": "New regulatory changes imposing strict tariffs on non-green imports by 2026.",
 }
 
 TUTORIAL_ENTITIES = {
     "chunk_1": {"entities": ["Executive", "Budget", "£5000"]},
     "chunk_2": {"entities": ["Manager", "Travel"]},
+    "uat2_doc1": {"entities": ["Market Trends", "Renewable Energy", "Europe"]},
+    "uat2_doc2": {"entities": ["Competitor X", "Solar Panels"]},
+    "uat2_doc3": {"entities": ["Regulatory Changes", "Tariffs", "2026"]},
 }
 
 
@@ -30,6 +38,12 @@ class LLMSimulatorService:
         """Simulates LLM context evaluation by matching keywords."""
         answer_lower = answer.lower()
         return any(keyword in answer_lower for keyword in self.required_keywords)
+
+    async def get_web_grounding_suggestion(self, node_title: str) -> str:
+        """Simulates an AI Web-Grounding check flagging a specific node."""
+        if "Regulatory" in node_title or "Threat" in node_title:
+            return "Recent news indicates this law's enforcement has been delayed. Would you like to downgrade this threat?"
+        return "No recent external updates found for this node."
 
 
 class TutorialDataFactory:
@@ -85,6 +99,54 @@ class TutorialDataFactory:
     @staticmethod
     def create_mock_clusters(locked_node: MockConceptNode) -> dict[str, list[MockConceptNode]]:
         return {"Executive": [locked_node], "Manager": [], "Employee": []}
+
+    @staticmethod
+    def create_mock_uat2_docs(uuid4_func: Callable[[], UUID]) -> tuple[MockDocumentChunk, MockDocumentChunk, MockDocumentChunk]:
+        return (
+            MockDocumentChunk(
+                chunk_id=uuid4_func(),
+                document_id=uuid4_func(),
+                text=TUTORIAL_TEXTS["uat2_doc1"],
+                metadata=TUTORIAL_ENTITIES["uat2_doc1"],
+            ),
+            MockDocumentChunk(
+                chunk_id=uuid4_func(),
+                document_id=uuid4_func(),
+                text=TUTORIAL_TEXTS["uat2_doc2"],
+                metadata=TUTORIAL_ENTITIES["uat2_doc2"],
+            ),
+            MockDocumentChunk(
+                chunk_id=uuid4_func(),
+                document_id=uuid4_func(),
+                text=TUTORIAL_TEXTS["uat2_doc3"],
+                metadata=TUTORIAL_ENTITIES["uat2_doc3"],
+            ),
+        )
+
+    @staticmethod
+    def create_mock_uat2_axis() -> MockAnalysisAxis:
+        return MockAnalysisAxis(
+            name="Opportunities vs Threats in the European Market",
+            dimensions=["Opportunities", "Threats", "Neutral"]
+        )
+
+    @staticmethod
+    def create_mock_uat2_clusters(
+        uuid4_func: Callable[[], UUID], chunk_refs: list[UUID]
+    ) -> dict[str, list[MockConceptNode]]:
+        threat_node = MockConceptNode(
+            node_id=uuid4_func(),
+            title="Regulatory Tariff Threat",
+            summary=TUTORIAL_TEXTS["uat2_threat_summary"],
+            level=1,
+            is_unlocked=True,
+            chunk_references=chunk_refs
+        )
+        return {
+            "Opportunities": [],
+            "Threats": [threat_node],
+            "Neutral": []
+        }
 
     @staticmethod
     def generate_mermaid_diagram(clusters: dict[str, list[MockConceptNode]]) -> str:
