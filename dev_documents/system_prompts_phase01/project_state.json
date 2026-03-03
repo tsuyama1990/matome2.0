@@ -1,0 +1,113 @@
+{
+  "project_session_id": "sessions/1170500159843683916",
+  "feature_branch": "dev/int-20260301-1307",
+  "integration_branch": "dev/int-20260301-1307",
+  "qa_session_id": "sessions/1623979360471428634",
+  "cycles": [
+    {
+      "id": "01",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/8978137440752778590",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": null,
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813229Z",
+      "updated_at": "2026-03-01T22:48:38.947949Z"
+    },
+    {
+      "id": "02",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/18186663328052494722",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": null,
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813236Z",
+      "updated_at": "2026-03-02T01:53:17.348975Z"
+    },
+    {
+      "id": "03",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/12468218426046386520",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": null,
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813238Z",
+      "updated_at": "2026-03-02T04:24:59.561983Z"
+    },
+    {
+      "id": "04",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/6840283894146623095",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": null,
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813240Z",
+      "updated_at": "2026-03-02T09:31:06.525610Z"
+    },
+    {
+      "id": "05",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/7279112671517588534",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": "Jules Session Failed: Unknown error",
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813242Z",
+      "updated_at": "2026-03-02T14:25:12.823155Z"
+    },
+    {
+      "id": "06",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/16011615396527794259",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": null,
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813244Z",
+      "updated_at": "2026-03-02T19:13:04.419937Z"
+    },
+    {
+      "id": "07",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/13478275081555062615",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": "Session timed out. Last error: Timed out after 7205.766543952981s",
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813246Z",
+      "updated_at": "2026-03-03T00:54:01.159394Z"
+    },
+    {
+      "id": "08",
+      "status": "completed",
+      "branch_name": null,
+      "jules_session_id": "sessions/5047629128263177416",
+      "current_iteration": 1,
+      "pr_url": null,
+      "last_error": "Session timed out. Last error: Timed out after 7203.129985013977s",
+      "session_restart_count": 0,
+      "max_session_restarts": 2,
+      "created_at": "2026-03-01T13:25:04.813248Z",
+      "updated_at": "2026-03-03T11:45:59.341385Z"
+    }
+  ],
+  "last_updated": "2026-03-03T12:17:11.908334Z"
+}
