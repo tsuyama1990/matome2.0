@@ -1,7 +1,21 @@
+import asyncio
+import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from src.core.utils import _with_retries
+from src.core.constants import (
+    ERR_BATCH_SIZE_EXCEEDED,
+    ERR_EMPTY_EMBEDDING,
+    ERR_INVALID_OR_MISSING_EMBEDDING,
+    ERR_INVALID_PINECONE_API_KEY_FORMAT,
+    ERR_PINECONE_ADAPTER_QUERY_01,
+    ERR_PINECONE_ADAPTER_STATS_01,
+    ERR_PINECONE_ADAPTER_UPSERT_01,
+    ERR_PINECONE_SEARCH_01,
+    ERR_PINECONE_UPSERT_01,
+)
+from src.core.utils import _with_retries, validate_embedding
 from src.domain.exceptions import ConfigurationError
 from src.domain.models.document import DocumentChunk
 from src.domain.ports.vector_store import IVectorStore
@@ -26,7 +40,11 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         self._index = index
 
     def upsert(self, vectors: list[dict[str, Any]]) -> None:
-        self._index.upsert(vectors=vectors)
+        try:
+            self._index.upsert(vectors=vectors)
+        except Exception as e:
+            logging.error(ERR_PINECONE_ADAPTER_UPSERT_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_UPSERT_01) from e
 
     def query(
         self,
@@ -35,14 +53,22 @@ class PineconeIndexAdapter(PineconeIndexProtocol):
         filter_dict: dict[str, str] | None,
         include_metadata: bool,
     ) -> Any:
-        res = self._index.query(
-            vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
-        )
-        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        try:
+            res = self._index.query(
+                vector=vector, top_k=top_k, filter=filter_dict, include_metadata=include_metadata
+            )
+            return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        except Exception as e:
+            logging.error(ERR_PINECONE_ADAPTER_QUERY_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_QUERY_01) from e
 
     def describe_index_stats(self) -> Any:
-        res = self._index.describe_index_stats()
-        return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        try:
+            res = self._index.describe_index_stats()
+            return dict(res) if isinstance(res, dict) else getattr(res, "to_dict", dict)()
+        except Exception as e:
+            logging.error(ERR_PINECONE_ADAPTER_STATS_01)
+            raise ConnectionError(ERR_PINECONE_ADAPTER_STATS_01) from e
 
 
 class PineconeIndexFactory:
@@ -51,8 +77,11 @@ class PineconeIndexFactory:
     @staticmethod
     def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
         """Initializes and returns a configured Pinecone index."""
-        from pinecone import Pinecone
+        import re
+        if not api_key or not isinstance(api_key, str) or len(api_key) < 30 or not re.match(r"^[a-zA-Z0-9\-]+$", api_key):
+            raise ValueError(ERR_INVALID_PINECONE_API_KEY_FORMAT)
 
+        from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
         return PineconeIndexAdapter(pc.Index(index_name))
 
@@ -92,7 +121,12 @@ class PineconeClient(IVectorStore):
     async def check_health(self, timeout: float | None = None) -> bool:
         """Verifies if the vector store is reachable and configured."""
         try:
-            self._index.describe_index_stats()
+            if timeout:
+                await asyncio.wait_for(
+                    asyncio.to_thread(self._index.describe_index_stats), timeout=timeout
+                )
+            else:
+                await asyncio.to_thread(self._index.describe_index_stats)
         except Exception:
             return False
         return True
@@ -106,21 +140,32 @@ class PineconeClient(IVectorStore):
         await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
     async def _upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
+        if not chunks:
+            return
+
         if len(chunks) > self._config.max_batch_size:
-            msg = f"Batch size exceeds maximum allowed ({self._config.max_batch_size})"
-            raise ValueError(msg)
+            raise ValueError(ERR_BATCH_SIZE_EXCEEDED.format(max_batch_size=self._config.max_batch_size))
 
         vectors = []
         for chunk in chunks:
-            if not chunk.embedding:
-                msg = f"Chunk {chunk.chunk_id} has no embedding"
-                raise ValueError(msg)
+            if chunk.embedding is None or not isinstance(chunk.embedding, list):
+                raise ValueError(ERR_INVALID_OR_MISSING_EMBEDDING.format(chunk_id=chunk.chunk_id))
 
+            if len(chunk.embedding) == 0:
+                raise ValueError(ERR_EMPTY_EMBEDDING.format(chunk_id=chunk.chunk_id))
+
+            # To avoid exposing raw text in vector DB metadata (Data Minimization)
             meta = {
                 "document_id": str(chunk.document_id),
-                "text": chunk.text,
             }
-            meta.update(chunk.metadata)
+
+            if isinstance(chunk.metadata, dict):
+                for k, v in chunk.metadata.items():
+                    # explicitly exclude text if someone shoved it in metadata
+                    if k == "text":
+                        continue
+                    if isinstance(v, (str, int, float, bool)):
+                        meta[k] = v
 
             vectors.append(
                 {
@@ -137,8 +182,8 @@ class PineconeClient(IVectorStore):
                 batch = vectors[i : i + batch_size]
                 self._index.upsert(vectors=batch)
         except Exception as e:
-            msg = f"Pinecone upsert failed: {e}"
-            raise ConnectionError(msg) from e
+            logging.error(ERR_PINECONE_UPSERT_01)
+            raise ConnectionError(ERR_PINECONE_UPSERT_01) from e
 
     async def search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
@@ -153,17 +198,18 @@ class PineconeClient(IVectorStore):
     async def _search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
-        if not query_embedding or not all(isinstance(x, (int, float)) for x in query_embedding):
-            msg = "query_embedding must be a non-empty list of numeric values"
-            raise ValueError(msg)
+        validate_embedding(query_embedding)
+
+        # Hard limit to prevent abuse / memory exhaustion
+        limit = min(top_k, 10000)
 
         try:
             results = self._index.query(
-                vector=query_embedding, top_k=top_k, filter_dict=filters, include_metadata=True
+                vector=query_embedding, top_k=limit, filter_dict=filters, include_metadata=True
             )
         except Exception as e:
-            msg = f"Pinecone query failed: {e}"
-            raise ConnectionError(msg) from e
+            logging.error(ERR_PINECONE_SEARCH_01)
+            raise ConnectionError(ERR_PINECONE_SEARCH_01) from e
         else:
             out_chunks = []
             matches = getattr(results, "matches", None)
@@ -177,7 +223,7 @@ class PineconeClient(IVectorStore):
                 meta = getattr(match, "metadata", None)
                 if meta is None and isinstance(match, dict):
                     meta = match.get("metadata", {})
-                elif meta is None:
+                if meta is None:
                     meta = {}
 
                 import uuid
@@ -185,18 +231,34 @@ class PineconeClient(IVectorStore):
                 match_id = getattr(match, "id", None)
                 if match_id is None and isinstance(match, dict):
                     match_id = match.get("id")
-                if match_id is None:
+                if match_id is None or not isinstance(match_id, str):
                     match_id = str(uuid.uuid4())
+                else:
+                    try:
+                        uuid.UUID(match_id)
+                    except ValueError:
+                        match_id = str(uuid.uuid4())
 
                 match_values = getattr(match, "values", None)
                 if match_values is None and isinstance(match, dict):
                     match_values = match.get("values")
+                if callable(match_values):
+                    match_values = None
                 # Recover original chunk
+                doc_id = meta.pop("document_id", "00000000-0000-0000-0000-000000000000")
+                if not doc_id:
+                    doc_id = "00000000-0000-0000-0000-000000000000"
+                else:
+                    try:
+                        uuid.UUID(str(doc_id))
+                    except ValueError:
+                        doc_id = "00000000-0000-0000-0000-000000000000"
+
                 out_chunks.append(
                     DocumentChunk(
                         chunk_id=uuid.UUID(str(match_id)),
-                        document_id=meta.pop("document_id", "00000000-0000-0000-0000-000000000000"),
-                        text=meta.pop("text", ""),
+                        document_id=uuid.UUID(str(doc_id)),
+                        text="",  # Text is omitted from metadata per security minimization
                         metadata=meta,
                         embedding=match_values,
                     )
