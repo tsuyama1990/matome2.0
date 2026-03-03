@@ -1,6 +1,16 @@
 import typing
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+
+
+class DomainEventDispatcher:
+    """Placeholder for domain event dispatching logic."""
+
+    @staticmethod
+    def dispatch(event: Any) -> None:
+        pass
+
 
 
 class BaseDomainModel(BaseModel):
@@ -21,6 +31,17 @@ class BaseDomainModel(BaseModel):
     schema_version: int = Field(
         default=1, description="Schema version for data migration and backward compatibility."
     )
+    _domain_events: list[Any] = PrivateAttr(default_factory=list)
+
+    def add_domain_event(self, event: Any) -> None:
+        self._domain_events.append(event)
+
+    def clear_domain_events(self) -> None:
+        self._domain_events.clear()
+
+    @property
+    def domain_events(self) -> list[Any]:
+        return self._domain_events.copy()
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -38,5 +59,16 @@ class MutableBaseDomainModel(BaseModel):
     schema_version: int = Field(
         default=1, description="Schema version for data migration and backward compatibility."
     )
+    _domain_events: list[Any] = PrivateAttr(default_factory=list)
+
+    def add_domain_event(self, event: Any) -> None:
+        self._domain_events.append(event)
+
+    def clear_domain_events(self) -> None:
+        self._domain_events.clear()
+
+    @property
+    def domain_events(self) -> list[Any]:
+        return self._domain_events.copy()
 
     model_config = ConfigDict(extra="forbid")

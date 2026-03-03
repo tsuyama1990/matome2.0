@@ -21,27 +21,42 @@ def validate_embedding(embedding: Any) -> None:
         raise ValueError(ERR_EMBEDDING_MUST_BE_NUMERIC)
 
 
+from dataclasses import dataclass
+
+
+@dataclass
+class RetryPolicy:
+    """Encapsulates retry strategies and makes them configurable per service."""
+    max_retries: int = 3
+    base_delay: float = 1.0
+
 async def _with_retries(
-    func: Callable[[], Coroutine[Any, None, T]], max_retries: int = 3, base_delay: float = 1.0
+    func: Callable[[], Coroutine[Any, None, T]],
+    max_retries: int | None = None,
+    base_delay: float | None = None,
+    policy: RetryPolicy | None = None
 ) -> T:
     """Retries the async function with exponential backoff on exceptions."""
-    for attempt in range(max_retries):
+    retries = max_retries if max_retries is not None else (policy.max_retries if policy else 3)
+    delay = base_delay if base_delay is not None else (policy.base_delay if policy else 1.0)
+
+    for attempt in range(retries):
         try:
             return await func()
         except ConnectionError as e:
             if "not initialized" in str(e):
                 raise
-            if attempt == max_retries - 1:
+            if attempt == retries - 1:
                 raise
-            await asyncio.sleep(base_delay * (2**attempt))
+            await asyncio.sleep(delay * (2**attempt))
         except TimeoutError:
-            if attempt == max_retries - 1:
+            if attempt == retries - 1:
                 raise
-            await asyncio.sleep(base_delay * (2**attempt))
+            await asyncio.sleep(delay * (2**attempt))
         except Exception:
-            if attempt == max_retries - 1:
+            if attempt == retries - 1:
                 raise
-            await asyncio.sleep(base_delay * (2**attempt))
+            await asyncio.sleep(delay * (2**attempt))
     raise RuntimeError(_ERROR_MSG_SHOULD_NOT_REACH_HERE)
 
 

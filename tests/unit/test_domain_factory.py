@@ -14,7 +14,7 @@ def test_create_immutable() -> None:
 
 def test_create_mutable() -> None:
     node = DomainModelFactory.create_mutable(
-        ConceptNode, node_id=uuid4(), title="Test Node", summary="Test summary", level=1
+        ConceptNode, node_id=uuid4(), title="Test Node", summary="Test summary", level=0
     )
     assert node.title == "Test Node"
     node.unlock()

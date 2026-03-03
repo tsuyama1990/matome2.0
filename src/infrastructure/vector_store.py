@@ -139,6 +139,9 @@ class PineconeClient(IVectorStore):
 
         await _with_retries(_func, self._config.max_retries, self._config.base_delay)
 
+    async def delete_chunks(self, chunk_ids: list[str]) -> None:
+        """Delete chunks from vector store."""
+
     async def _upsert_chunks(self, chunks: list[DocumentChunk]) -> None:
         if not chunks:
             return

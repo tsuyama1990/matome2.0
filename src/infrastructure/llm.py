@@ -233,6 +233,14 @@ class OpenRouterClient(ILLMProvider):
             pass
         return None
 
+    def stream_extract_structured_data(
+        self,
+        prompt: str,
+        schema: type[BaseModel] | dict[str, Any],
+        system_prompt: str = "",
+    ) -> AsyncIterator[str]:
+        raise NotImplementedError
+
     async def extract_structured_data(
         self,
         prompt: str,

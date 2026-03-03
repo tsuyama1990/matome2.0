@@ -39,20 +39,8 @@ class IVectorStore(ABC):
     async def search_similar(
         self, query_embedding: list[float], top_k: int, filters: dict[str, str] | None = None
     ) -> list[DocumentChunk]:
-        """Search for semantically similar chunks.
+        """Search for semantically similar chunks."""
 
-        This method must be highly performant, utilizing approximate nearest neighbor
-        (ANN / HNSW) algorithms capable of millisecond latency.
-
-        Args:
-            query_embedding (list[float]): The embedded vector query.
-            top_k (int): Number of most similar results to return.
-            filters (dict | None): Metadata filters to apply before or during the search.
-
-        Returns:
-            list[DocumentChunk]: A list of chunks matching the query.
-
-        Raises:
-            ConnectionError: If the search request times out or DB is unreachable.
-            ValueError: If the query embedding has a dimension mismatch.
-        """
+    @abstractmethod
+    async def delete_chunks(self, chunk_ids: list[str]) -> None:
+        """Deletes chunks from the vector store in a batch."""
