@@ -22,5 +22,5 @@ class PivotBoard(BaseDomainModel):
     clusters: dict[str, list[ConceptNode]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_cluster_consistency(self) -> 'PivotBoard':
+    def validate_cluster_consistency(self) -> "PivotBoard":
         return self

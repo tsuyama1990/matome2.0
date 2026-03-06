@@ -80,7 +80,6 @@ class AppSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", env_nested_delimiter="__"
     )
 
-
     @field_validator("environment", mode="before")
     @classmethod
     def validate_environment(cls, v: Any) -> str:
