@@ -7,12 +7,14 @@ T = TypeVar("T")
 
 _ERROR_MSG_SHOULD_NOT_REACH_HERE = "Should not reach here"
 
+
 def validate_embedding(embedding: Any) -> None:
     from src.core.constants import (
         ERR_EMBEDDING_CANNOT_BE_EMPTY,
         ERR_EMBEDDING_MUST_BE_LIST,
         ERR_EMBEDDING_MUST_BE_NUMERIC,
     )
+
     if not isinstance(embedding, list):
         raise TypeError(ERR_EMBEDDING_MUST_BE_LIST)
     if len(embedding) == 0:
@@ -27,14 +29,16 @@ from dataclasses import dataclass
 @dataclass
 class RetryPolicy:
     """Encapsulates retry strategies and makes them configurable per service."""
+
     max_retries: int = 3
     base_delay: float = 1.0
+
 
 async def _with_retries(
     func: Callable[[], Coroutine[Any, None, T]],
     max_retries: int | None = None,
     base_delay: float | None = None,
-    policy: RetryPolicy | None = None
+    policy: RetryPolicy | None = None,
 ) -> T:
     """Retries the async function with exponential backoff on exceptions."""
     retries = max_retries if max_retries is not None else (policy.max_retries if policy else 3)

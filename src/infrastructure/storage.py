@@ -18,7 +18,6 @@ class StorageFactory:
         base_dir: str | Path,
         max_upload_size: int,
         create_dir: bool = True,
-
     ) -> IFileStorage:
         """Initializes and returns a LocalStorage instance."""
         return LocalStorage(
@@ -26,6 +25,7 @@ class StorageFactory:
             max_upload_size=max_upload_size,
             create_dir=create_dir,
         )
+
 
 class LocalStorage(IFileStorage):
     """Concrete implementation for Local File Storage."""
@@ -35,13 +35,10 @@ class LocalStorage(IFileStorage):
         base_dir: Path,
         max_upload_size: int,
         create_dir: bool = True,
-
     ) -> None:
         self.max_upload_size = max_upload_size
         # Attempt to wrap the base_dir in the path_class if it's strictly a string/path
-        self.base_dir = (
-            Path(base_dir) if isinstance(base_dir, str) else base_dir
-        )
+        self.base_dir = Path(base_dir) if isinstance(base_dir, str) else base_dir
         if not self.base_dir.is_absolute():
             self.base_dir = self.base_dir.resolve()
 

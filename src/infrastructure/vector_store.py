@@ -36,7 +36,9 @@ class PineconeIndexProtocol(Protocol):
 class PineconeIndexAdapter(PineconeIndexProtocol):
     """Adapter to map Pinecone SDK methods to the internal protocol."""
 
-    def __init__(self, index: typing.Any) -> None:  # Using typing.Any because the official Pinecone SDK is untyped and dynamic
+    def __init__(
+        self, index: typing.Any
+    ) -> None:  # Using typing.Any because the official Pinecone SDK is untyped and dynamic
         self._index = index
 
     def upsert(self, vectors: list[dict[str, Any]]) -> None:
@@ -78,10 +80,17 @@ class PineconeIndexFactory:
     def create_index(api_key: str, index_name: str) -> PineconeIndexProtocol:
         """Initializes and returns a configured Pinecone index."""
         import re
-        if not api_key or not isinstance(api_key, str) or len(api_key) < 30 or not re.match(r"^[a-zA-Z0-9\-]+$", api_key):
+
+        if (
+            not api_key
+            or not isinstance(api_key, str)
+            or len(api_key) < 30
+            or not re.match(r"^[a-zA-Z0-9\-]+$", api_key)
+        ):
             raise ValueError(ERR_INVALID_PINECONE_API_KEY_FORMAT)
 
         from pinecone import Pinecone
+
         pc = Pinecone(api_key=api_key)
         return PineconeIndexAdapter(pc.Index(index_name))
 
@@ -147,7 +156,9 @@ class PineconeClient(IVectorStore):
             return
 
         if len(chunks) > self._config.max_batch_size:
-            raise ValueError(ERR_BATCH_SIZE_EXCEEDED.format(max_batch_size=self._config.max_batch_size))
+            raise ValueError(
+                ERR_BATCH_SIZE_EXCEEDED.format(max_batch_size=self._config.max_batch_size)
+            )
 
         vectors = []
         for chunk in chunks:
@@ -200,6 +211,7 @@ class PineconeClient(IVectorStore):
 
     def _parse_match(self, match: typing.Any) -> DocumentChunk:
         import uuid
+
         meta = getattr(match, "metadata", None)
         if meta is None and isinstance(match, dict):
             meta = match.get("metadata", {})

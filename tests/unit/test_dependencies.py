@@ -70,6 +70,7 @@ def test_init_pinecone_index(monkeypatch: pytest.MonkeyPatch) -> None:
     try:
         # Mock key needs to pass regex and length
         from tests.unit.infrastructure.test_data_factory import TestDataFactory
+
         valid_key = TestDataFactory.get_valid_api_key()
         index = PineconeIndexFactory.create_index(valid_key, "test_index")
         assert index._index == "MockIndex"  # type: ignore[attr-defined]

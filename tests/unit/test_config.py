@@ -48,9 +48,6 @@ def test_validate_keys_succeeds_when_both_keys_are_present(monkeypatch: pytest.M
     # Should not raise any exception
 
 
-
-
-
 from pydantic import SecretStr
 
 

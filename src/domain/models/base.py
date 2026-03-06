@@ -12,7 +12,6 @@ class DomainEventDispatcher:
         pass
 
 
-
 class BaseDomainModel(BaseModel):
     """Base domain model enforcing strict validation rules.
 

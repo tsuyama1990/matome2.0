@@ -29,6 +29,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     @staticmethod
     async def init_async_client(timeout: float) -> AsyncGenerator[IHttpClient, None]:
         import logging
+
         client = httpx.AsyncClient(timeout=timeout)
         adapter = HttpxAdapter(client=client)
         try:
@@ -93,7 +94,6 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         LocalStorage,
         base_dir=config_settings.provided.storage.base_dir,
         max_upload_size=config_settings.provided.storage.max_upload_size,
-
     )
 
 

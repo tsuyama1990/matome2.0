@@ -17,7 +17,7 @@ class ConceptNode(MutableBaseDomainModel):
     chunk_references: list[UUID] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_hierarchy(self) -> 'ConceptNode':
+    def validate_hierarchy(self) -> "ConceptNode":
         if self.level == 0 and self.parent_id is not None:
             raise ValueError("Root nodes (level 0) cannot have a parent")
         if self.level > 0 and self.parent_id is None:
