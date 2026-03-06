@@ -1,0 +1,9 @@
+{
+    "text_fast_model": "google/gemini-2.5-flash",
+    "text_reasoning_model": "deepseek/deepseek-reasoner",
+    "multimodal_model": "google/gemini-2.5-pro",
+    "openrouter_base_url": "https://openrouter.ai/api/v1/chat/completions",
+    "pinecone_index_name": "matome-index",
+    "storage_base_dir": "./data",
+    "llm_timeout": 30.0
+}

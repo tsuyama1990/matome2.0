@@ -4,12 +4,72 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aiofiles>=25.1.0",
+    "bleach>=6.3.0",
+    "dependency-injector>=4.48.3",
+    "fastapi>=0.135.0",
+    "httpx>=0.28.1",
+    "pinecone>=8.1.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.13.1",
+    "uvicorn>=0.41.0",
+    "marimo>=0.1.0",
+]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=1.19.1",
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.15.4",
+    "types-aiofiles>=25.1.0.20251011",
+    "types-bleach>=6.3.0.20251115",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "F", "E", "W", "C90", "I", "N", "UP", "YTT", "ANN", "ASYNC", "S", "BLE",
+    "B", "A", "C4", "DTZ", "T10", "EM", "ICN", "PIE", "T20", "PT", "RET",
+    "SIM", "TID", "ARG", "PTH", "ERA", "PL", "TRY", "RUF"
+]
+
+ignore = [
+    "ASYNC109",
+    "PTH123", "PT012", "E402", "SIM105", "EM101",
+    "ANN101", "ANN002", "ANN003", "ANN001", "ANN401", "ARG001", "ARG005",
+    "PLR2004", "E501", "TRY003", "D", "ANN201", "N806", "PLC0415", "BLE001",
+    "PT019", "RUF003", "ARG002", "RUF043", "RUF059", "PLR0913", "ANN202", "PLR0911"
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]  # Allow assert in tests
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.flake8-annotations]
+suppress-dummy-args = true
+
+[tool.uv]
+managed = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tutorials/*.py" = ["N803", "ARG004"]
+"tutorials/UAT_AND_TUTORIAL.py" = ["N999", "N803", "ARG004"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
