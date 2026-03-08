@@ -1,0 +1,8 @@
+Update available 0.20.2 → 0.20.4
+Run uv add --upgrade marimo to upgrade.
+
+[W 260308 14:15:10 utils:182] This notebook has errors, saving may lose data. Continuing anyway.
+
+        Edit UAT_AND_TUTORIAL.py in your browser 📝
+
+        ➜  URL: http://localhost:8081?access_token=1bvq_rcC_8j0fdP5NAtlHw
