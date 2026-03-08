@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "marimo>=0.20.4",
+# ]
+# ///
 import asyncio
 from collections.abc import Callable
 from pathlib import Path
@@ -33,6 +39,9 @@ def display_welcome_message(mo: Any) -> tuple[marimo.Html]:
 
 @app.cell
 def import_dependencies() -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
+    import asyncio
+    from pathlib import Path
+    from uuid import uuid4
 
     import marimo as mo
 
