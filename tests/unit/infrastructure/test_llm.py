@@ -144,6 +144,8 @@ async def test_stream_generate_text_success(
 @pytest.mark.asyncio
 async def test_httpx_adapter_methods() -> None:
     """Test HttpxAdapter basic methods to cover IHttpClient mapping."""
+    from unittest.mock import Mock
+
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     adapter = HttpClientFactory.create_httpx_adapter(client=mock_client)
 
